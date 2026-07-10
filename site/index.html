@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>forsyth — it knew it would rain</title>
+  <meta name="description" content="A solar-powered mesh of small weather stations — wind, rain, pressure, air, lightning — that talk over LoRa and tell you what the sky is planning. A starstucklab project." />
+  <meta property="og:title" content="forsyth" />
+  <meta property="og:description" content="A scatter of quiet machines that know what the sky is planning. A starstucklab project." />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#0b0c0e" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/kit/tokens.css" />
+  <link rel="stylesheet" href="assets/kit/base.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
+</head>
+<body>
+
+<!-- ============ TOP BAR ============ -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="#" class="brand">
+      <img src="assets/mark.svg" alt="" aria-hidden="true" />
+      forsyth
+    </a>
+    <span class="status">
+      <span class="dot"></span>
+      <span class="status-text">Station 000 · Expecting rain</span>
+    </span>
+  </div>
+</header>
+
+<div class="page">
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="rain" aria-hidden="true"></div>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">
+      <span>A weather mesh</span>
+      <span class="sep">/</span>
+      <span>Lower Himalayas, 2026</span>
+    </div>
+    <h1>forsyth<span class="tail">.</span></h1>
+    <p class="hero-tag">A scatter of quiet machines that know what the sky is planning.</p>
+  </div>
+  <div class="hero-scroll">scroll ↓</div>
+</section>
+
+
+<!-- ============ THE PREMISE ============ -->
+<section class="text" id="premise">
+  <div class="wrap">
+    <div class="cols-two">
+      <div>
+        <span class="kicker">The premise</span>
+        <h2 class="headline">Somebody always knew it would rain.</h2>
+      </div>
+      <div class="prose">
+        <p>
+          Every family has one — the relative who glanced at the ridge, said
+          <em>bring the washing in</em>, and was right. No app. No radar.
+          Just a long, unhurried acquaintance with the sky.
+        </p>
+        <p>
+          Forsyth is that relative, rebuilt in solder. Small solar-fed stations
+          sit out on masts and rooftops, kilometres apart, measuring wind and
+          rain and pressure and the air itself. A few times an hour each one
+          murmurs what it saw over LoRa radio to a coordinator, which writes it
+          all down and puts it where you can see it.
+        </p>
+        <p>
+          Say the name out loud. It's not subtle. It is, however, patient
+          about being proven right.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ MOOD BAND ============ -->
+<section class="band mood">
+  <div class="band-inner">
+    <p class="band-quote">
+      It never says "I told you so." It doesn't have to.
+    </p>
+    <span class="band-attribution">— the flex, unstated</span>
+  </div>
+</section>
+
+
+<!-- ============ HOW IT WORKS ============ -->
+<section class="timeline-section">
+  <div class="wrap">
+    <span class="kicker">How it works</span>
+    <h2 class="headline">Four moves, mostly asleep.</h2>
+
+    <div class="timeline" aria-label="How forsyth works, in four steps">
+      <div class="timeline-track" aria-hidden="true"></div>
+      <ol class="timeline-steps">
+        <li class="timeline-step">
+          <span class="num">01</span>
+          <span class="dot" aria-hidden="true"></span>
+          <svg class="step-icon icon-measure" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" fill="none"/>
+            <line class="needle" x1="12" y1="12" x2="17" y2="7"/>
+            <circle cx="12" cy="12" r="1.6"/>
+          </svg>
+          <h3>Measure</h3>
+          <p>A leaf wakes, counts the wind's pulses, reads the air, and notes what the sky has been muttering.</p>
+        </li>
+        <li class="timeline-step">
+          <span class="num">02</span>
+          <span class="dot" aria-hidden="true"></span>
+          <svg class="step-icon icon-speak" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="7" cy="17" r="1.8"/>
+            <path class="wave" d="M10 14 A6 6 0 0 1 12 17" fill="none"/>
+            <path class="wave" d="M12.5 11 A10 10 0 0 1 16 17" fill="none"/>
+            <path class="wave" d="M15 8 A14 14 0 0 1 20 17" fill="none"/>
+          </svg>
+          <h3>Speak</h3>
+          <p>A one-second burst of LoRa, kilometres on a whisper of power. Then the radio is switched off entirely. Not napping — off.</p>
+        </li>
+        <li class="timeline-step">
+          <span class="num">03</span>
+          <span class="dot" aria-hidden="true"></span>
+          <svg class="step-icon icon-gather" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 6 L12 12 L20 6" fill="none"/>
+            <path d="M4 12 L12 18 L20 12" fill="none" opacity="0.55"/>
+          </svg>
+          <h3>Gather</h3>
+          <p>The coordinator hears every leaf, stamps the time, and files it — to your own dashboard and to Weather&nbsp;Underground.</p>
+        </li>
+        <li class="timeline-step">
+          <span class="num">04</span>
+          <span class="dot" aria-hidden="true"></span>
+          <svg class="step-icon icon-know" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 13 Q12 4 19 13" fill="none"/>
+            <circle cx="12" cy="16" r="2"/>
+          </svg>
+          <h3>Know</h3>
+          <p>You glance at a graph and move the picnic indoors an hour early. Nobody applauds. That's the point.</p>
+        </li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ THE SENSES ============ -->
+<section class="senses">
+  <div class="wrap">
+    <span class="kicker">The senses</span>
+    <h2 class="headline">Seven ways of paying attention.</h2>
+    <ul class="senses-grid">
+      <li>
+        <h3>Wind speed</h3>
+        <p>A magnet sweeping past a reed switch, counted in hardware while the brain sleeps. Davis has used the same trick for decades; it works.</p>
+      </li>
+      <li>
+        <h3>Wind direction</h3>
+        <p>Eight switches around a circle, read as a single voltage. Three wires up the mast, not ten.</p>
+      </li>
+      <li>
+        <h3>Rain</h3>
+        <p>Counted tip by tip, the same way the wind is counted. Rain is just slower applause.</p>
+      </li>
+      <li>
+        <h3>Temperature &amp; humidity</h3>
+        <p>Its own dedicated sensor, sited to tell the truth — not one that runs warm and flatters the afternoon.</p>
+      </li>
+      <li>
+        <h3>Pressure</h3>
+        <p>The oldest forecast there is. When it falls fast, Forsyth pays closer attention. So should you.</p>
+      </li>
+      <li>
+        <h3>The air itself</h3>
+        <p>A particulate counter spins up its little fan for thirty seconds, takes the air's measure, and goes back to sleep. PM1, PM2.5, PM10.</p>
+      </li>
+      <li class="wide">
+        <h3>Lightning</h3>
+        <p>The one sense that never sleeps. A dedicated listener catches strikes up to forty kilometres out, on less current than a wristwatch. Storms rarely arrive unannounced; announcements are usually just ignored.</p>
+      </li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ============ THE ARRANGEMENT ============ -->
+<section class="text arrangement">
+  <div class="wrap">
+    <div class="cols-two">
+      <div>
+        <span class="kicker">The arrangement</span>
+        <h2 class="headline">Leaves, and the one who listens.</h2>
+      </div>
+      <div class="prose">
+        <p>
+          A <em>leaf</em> is a station: one small board, a battery that likes
+          being outdoors (LiFePO4), a hand-sized solar panel, and whichever
+          senses that site needs. It spends almost its whole life asleep,
+          drawing microamps, everything switched off between sentences.
+        </p>
+        <p>
+          The <em>coordinator</em> is the one with an internet connection and,
+          consequently, responsibilities. It listens for every leaf, keeps the
+          clock, and does the talking to the cloud so the leaves never have to.
+        </p>
+        <p>
+          More ground to cover? Add leaves. A leaf without a rain gauge is
+          still a station; a leaf can grow a new sense later. The mesh is
+          designed to sprawl across a valley, not decorate a single backyard.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ THE NUMBERS ============ -->
+<section class="numbers">
+  <div class="wrap">
+    <span class="kicker">The numbers</span>
+    <h2 class="headline" style="margin-bottom:64px;">Four figures, with their units.</h2>
+    <div class="numbers-grid">
+      <div>
+        <div class="label">Lightning radius</div>
+        <div class="big">40<span class="u">km</span></div>
+        <div class="sub">Heard, not seen. Always listening, on microamps.</div>
+      </div>
+      <div>
+        <div class="label">LoRa reach</div>
+        <div class="big">~10<span class="u">km</span></div>
+        <div class="sub">Line of sight, good antenna, clear day. Physics applies.</div>
+      </div>
+      <div>
+        <div class="label">Solar panel</div>
+        <div class="big">1–2<span class="u">W</span></div>
+        <div class="sub">Hand-sized. Enough, because everything else is off.</div>
+      </div>
+      <div>
+        <div class="label">Radio duty</div>
+        <div class="big">&lt;1<span class="u">s</span></div>
+        <div class="sub">Per report. The rest of the time the radio is unpowered.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ THE LAY OF THE LAND ============ -->
+<section class="compare">
+  <div class="wrap">
+    <span class="kicker">The lay of the land</span>
+    <h2 class="headline">Fine machines, all of them.</h2>
+    <p class="compare-lead">
+      Forsyth exists in a crowded sky. Here is the field, compared honestly —
+      including the parts where somebody else wins.
+    </p>
+    <div class="table-scroll">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th scope="col">Capability</th>
+            <th scope="col" class="us">Forsyth</th>
+            <th scope="col">Davis<br>Vantage&nbsp;Pro2+</th>
+            <th scope="col">WeatherFlow<br>Tempest</th>
+            <th scope="col">Ecowitt<br>Wittboy&nbsp;+</th>
+            <th scope="col">DIY LoRa<br>builds</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Temp · humidity · pressure</th>
+            <td class="us"><span class="y">●</span></td>
+            <td><span class="y">●</span></td>
+            <td><span class="y">●</span></td>
+            <td><span class="y">●</span></td>
+            <td><span class="y">●</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Wind &amp; rain</th>
+            <td class="us"><span class="y">●</span></td>
+            <td><span class="y">●</span></td>
+            <td><span class="y">●</span></td>
+            <td><span class="y">●</span></td>
+            <td><span class="m">◐</span><span class="note">sometimes</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Lightning detection</th>
+            <td class="us"><span class="y">●</span><span class="note">built in</span></td>
+            <td><span class="n">○</span></td>
+            <td><span class="y">●</span></td>
+            <td><span class="m">◐</span><span class="note">add-on</span></td>
+            <td><span class="n">○</span><span class="note">rare</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Particulates / AQI</th>
+            <td class="us"><span class="y">●</span><span class="note">built in</span></td>
+            <td><span class="n">○</span></td>
+            <td><span class="n">○</span></td>
+            <td><span class="m">◐</span><span class="note">add-on</span></td>
+            <td><span class="n">○</span><span class="note">rare</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Kilometres-wide mesh</th>
+            <td class="us"><span class="y">●</span><span class="note">the point</span></td>
+            <td><span class="n">○</span></td>
+            <td><span class="n">○</span></td>
+            <td><span class="n">○</span><span class="note">house-scale RF</span></td>
+            <td><span class="m">◐</span><span class="note">Meshtastic</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Your data, on your server</th>
+            <td class="us"><span class="y">●</span></td>
+            <td><span class="m">◐</span><span class="note">subscription</span></td>
+            <td><span class="m">◐</span><span class="note">their cloud</span></td>
+            <td><span class="m">◐</span><span class="note">local API</span></td>
+            <td><span class="y">●</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Weather Underground</th>
+            <td class="us"><span class="y">●</span></td>
+            <td><span class="y">●</span></td>
+            <td><span class="y">●</span></td>
+            <td><span class="y">●</span></td>
+            <td><span class="m">◐</span></td>
+          </tr>
+          <tr>
+            <th scope="row">Fixable with a soldering iron</th>
+            <td class="us"><span class="y">●</span></td>
+            <td><span class="n">○</span></td>
+            <td><span class="n">○</span><span class="note">sealed</span></td>
+            <td><span class="n">○</span></td>
+            <td><span class="y">●</span></td>
+          </tr>
+          <tr>
+            <th scope="row">NIST-grade accuracy</th>
+            <td class="us"><span class="n">○</span><span class="note">honest amateur</span></td>
+            <td><span class="y">●</span><span class="note">Davis wins</span></td>
+            <td><span class="m">◐</span></td>
+            <td><span class="m">◐</span></td>
+            <td><span class="n">○</span></td>
+          </tr>
+          <tr>
+            <th scope="row">No moving parts</th>
+            <td class="us"><span class="n">○</span><span class="note">reeds, proudly</span></td>
+            <td><span class="n">○</span></td>
+            <td><span class="y">●</span><span class="note">Tempest wins</span></td>
+            <td><span class="y">●</span></td>
+            <td><span class="n">○</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="compare-key">● yes &nbsp;·&nbsp; ◐ partial, with caveats &nbsp;·&nbsp; ○ no.
+      Full sourcing in <a href="https://github.com/m-anish/forsyth/blob/main/research/competitive-landscape.md">the research notes ↗</a>.</p>
+  </div>
+</section>
+
+
+<!-- ============ A SMALL HONESTY ============ -->
+<section class="honesty">
+  <div class="wrap">
+    <span class="kicker">A small honesty</span>
+    <div class="prose">
+      <p>
+        There are, at this moment, <em>zero</em> Forsyth stations on any mast
+        anywhere. There is a design, a bill of materials, a power budget, and
+        a workbench in the lower Himalayas where the first leaves will be
+        soldered by hand.
+      </p>
+      <p>
+        No SKU, no ship date, no promises — beyond this one: when it exists,
+        it will have known about the rain before you did.
+      </p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ LIMITS + FAMILY ============ -->
+<section class="provenance">
+  <div class="wrap">
+    <div class="cols-two">
+      <div>
+        <span class="kicker">Limits</span>
+        <h2>What forsyth can't do.</h2>
+        <ul class="cant-list">
+          <li>
+            <strong>Change the weather.</strong>
+            It observes. The sky remains entirely unsupervised.
+          </li>
+          <li>
+            <strong>Be surprised.</strong>
+            It has strong feelings about surprises. That's the whole product.
+          </li>
+          <li>
+            <strong>Say "I told you so."</strong>
+            It thinks it, quietly, at 868&nbsp;MHz.
+          </li>
+        </ul>
+      </div>
+      <div class="sl-family">
+        <span class="sl-kicker">Family</span>
+        <h2>Part of <a class="sl-link" href="https://starstucklab.com">starstucklab</a>.</h2>
+        <p>A small ecosystem of personal engineering instruments, each built to solve one specific problem and then, ideally, stop demanding attention.</p>
+        <p>Where science met poetry, had a brief fling with engineering, and now raises mildly disillusioned but talented offspring.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ FOOTER ============ -->
+<footer class="sl-footer">
+  <div class="sl-wrap">
+    <div class="sl-footer-cols">
+      <div>
+        <h4>The build</h4>
+        <p>Architecture, BOM, research notes:<br><a href="https://github.com/m-anish/forsyth">github&nbsp;↗</a></p>
+      </div>
+      <div>
+        <h4>The family</h4>
+        <p><a href="https://starstucklab.com">starstucklab&nbsp;↗</a><br>Other small machines.</p>
+      </div>
+    </div>
+    <div class="sl-support">
+      <span class="sl-support-note">Keep the lab caffeinated:</span>
+      <a href="https://buymeachai.ezee.li/anishmg" target="_blank" rel="noopener">☕ Buy me a chai</a>
+      <a href="https://ko-fi.com/P5P7BMO10" target="_blank" rel="noopener">♥ Ko-fi</a>
+    </div>
+    <div class="sl-signoff">
+      <span>⛅ Forsyth / Station 000 / Patient by design</span>
+      <span>Building small machines for an indifferent universe.</span>
+    </div>
+  </div>
+</footer>
+
+</div><!-- /.page -->
+
+<script>
+(function() {
+  'use strict';
+  // timeline: light up sequentially when in view (same pattern as jigawatt)
+  const tlObs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) {
+        e.target.classList.add('in-view');
+        tlObs.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('.timeline').forEach(function(el) { tlObs.observe(el); });
+
+  // status line: a slow rotation of quiet observations
+  const status = document.querySelector('.status-text');
+  if (!status) return;
+  const moods = [
+    'Station 000 · Expecting rain',
+    'Station 000 · Pressure falling',
+    'Station 000 · Smelling ozone',
+    'Station 000 · Unhurried',
+    'Station 000 · Right again'
+  ];
+  let i = 0;
+  setInterval(function() {
+    i = (i + 1) % moods.length;
+    status.textContent = moods[i];
+  }, 9000);
+})();
+</script>
+
+</body>
+</html>

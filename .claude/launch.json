@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "forsyth-site",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4100", "--directory", "site"],
+      "port": 4100
+    },
+    {
+      "name": "starstucklab-hub",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/anish/Documents/GitHub/starstucklab"],
+      "port": 4321
+    }
+  ]
+}

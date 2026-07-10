@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- forsyth mark: a wind-vane needle over a quiet horizon -->
+  <circle cx="16" cy="16" r="14" fill="none" stroke="#7fa2c4" stroke-width="1.5" opacity="0.55"/>
+  <path d="M16 4 L19.5 16 L16 13.5 L12.5 16 Z" fill="#7fa2c4"/>
+  <path d="M16 28 L12.5 16 L16 18.5 L19.5 16 Z" fill="#7fa2c4" opacity="0.35"/>
+  <line x1="7" y1="22.5" x2="25" y2="22.5" stroke="#7fa2c4" stroke-width="1.2" opacity="0.5"/>
+</svg>
