@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>forsyth · board</title>
+  <meta name="description" content="Your own arrangement of the Forsyth weather mesh." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/uplot@1.6.31/dist/uPlot.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/gridstack@10.3.1/dist/gridstack.min.css" />
+  <link rel="stylesheet" href="css/dash.css?v=3" />
+  <link rel="stylesheet" href="css/board.css?v=3" />
+  <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
+  <script src="js/theme.js?v=3"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="/" class="brand"><img src="assets/mark.svg" alt="" aria-hidden="true" />forsyth</a>
+    <span class="crumb">/ live / board</span>
+    <span class="right">
+      <button class="theme-btn" type="button" aria-label="switch color theme">◐ auto</button>
+      <button class="tool-btn" id="btn-login" type="button">sign in</button>
+      <button class="tool-btn" id="btn-edit" type="button" hidden>arrange</button>
+    </span>
+  </div>
+</header>
+
+<!-- edit toolbar (visible in edit mode) -->
+<div class="edit-bar" id="edit-bar" hidden>
+  <div class="wrap edit-bar-inner">
+    <span class="edit-hint">drag · resize · ⚙ configure · ✕ remove</span>
+    <select id="add-widget">
+      <option value="">+ add widget…</option>
+      <option value="now">current conditions</option>
+      <option value="chart">chart</option>
+      <option value="windrose">wind rose</option>
+      <option value="aqi">air quality</option>
+      <option value="lightning">lightning feed</option>
+      <option value="camera">camera & timelapse</option>
+      <option value="map">map</option>
+      <option value="summary">present-weather banner</option>
+      <option value="health">mesh health</option>
+    </select>
+    <input id="board-title" type="text" maxlength="80" placeholder="board title" />
+    <label class="pub"><input type="checkbox" id="set-default" /> publish as the public board</label>
+    <button class="tool-btn save" id="btn-save" type="button">save</button>
+    <button class="tool-btn" id="btn-cancel" type="button">done</button>
+  </div>
+</div>
+
+<main class="wrap board-wrap">
+  <div class="pagehead">
+    <span class="kicker">A board of one's own</span>
+    <h1 class="headline" id="board-heading">…</h1>
+    <p class="sub" id="board-sub"></p>
+  </div>
+  <div class="grid-stack" id="grid"></div>
+</main>
+
+<!-- login dialog -->
+<dialog id="login-dlg">
+  <form method="dialog" id="login-form">
+    <h3>Sign in</h3>
+    <label>username <input name="username" autocomplete="username" required /></label>
+    <label>password <input name="password" type="password" autocomplete="current-password" required /></label>
+    <p class="dlg-err" id="login-err"></p>
+    <div class="dlg-row">
+      <button value="cancel" class="tool-btn" formnovalidate>cancel</button>
+      <button value="ok" class="tool-btn save" id="login-submit">sign in</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- widget config dialog -->
+<dialog id="cfg-dlg">
+  <form method="dialog" id="cfg-form">
+    <h3>Widget settings</h3>
+    <div id="cfg-fields"></div>
+    <div class="dlg-row">
+      <button value="cancel" class="tool-btn" formnovalidate>cancel</button>
+      <button value="ok" class="tool-btn save">apply</button>
+    </div>
+  </form>
+</dialog>
+
+<footer class="sl-footer">
+  <div class="wrap">
+    <div class="sl-signoff">
+      <span>⛅ forsyth / your arrangement of the sky</span>
+      <span><a href="/">overview</a> · <a href="https://forsyth.starstucklab.com">about ↗</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/gridstack@10.3.1/dist/gridstack-all.js"></script>
+<script src="js/common.js?v=3"></script>
+<script src="js/widgets.js?v=3"></script>
+<script src="js/board.js?v=3"></script>
+</body>
+</html>

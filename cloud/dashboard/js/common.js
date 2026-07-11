@@ -108,8 +108,9 @@ function makeChart(el, series, data, opts = {}) {
     ...opts.uplot,
   };
   const u = new uPlot(o, data, el);
-  new ResizeObserver(() => u.setSize({ width: el.clientWidth, height: o.height }))
-    .observe(el);
+  if (el._ro) el._ro.disconnect();   // re-renders must not stack observers
+  el._ro = new ResizeObserver(() => u.setSize({ width: el.clientWidth, height: o.height }));
+  el._ro.observe(el);
   return u;
 }
 

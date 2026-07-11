@@ -1,0 +1,113 @@
+/* forsyth board — gridstack + editing chrome, on top of dash.css tokens */
+
+.board-wrap { max-width: 1320px; }
+.board-wrap .pagehead { padding-bottom: 20px; }
+
+.tool-btn {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em;
+  text-transform: uppercase; cursor: pointer;
+  background: none; color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 999px;
+  padding: 4px 12px;
+}
+.tool-btn:hover { color: var(--accent); border-color: var(--accent); }
+.tool-btn.save { color: var(--accent-2); border-color: color-mix(in srgb, var(--accent-2) 50%, transparent); }
+.tool-btn.save:hover { color: var(--bg); background: var(--accent-2); }
+
+/* edit bar */
+.edit-bar {
+  position: sticky; top: 49px; z-index: 400;
+  background: color-mix(in srgb, var(--bg-elev) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border-2);
+}
+.edit-bar-inner {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding-top: 10px; padding-bottom: 10px;
+}
+.edit-hint { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-mute); }
+.edit-bar select, .edit-bar input[type="text"] {
+  font-family: var(--mono); font-size: 12px;
+  background: var(--bg-card); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px; padding: 5px 8px;
+}
+.edit-bar input[type="text"] { min-width: 220px; }
+.edit-bar .pub { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text-dim); display: inline-flex;
+  align-items: center; gap: 6px; }
+
+/* grid items = panels */
+.grid-stack { margin-bottom: 60px; }
+.grid-stack-item-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border-2);
+  box-shadow: 0 1px 3px var(--shadow);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.wg-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px 0;
+}
+.wg-head h3 {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--text-mute); margin: 0;
+  font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.wg-tools { margin-left: auto; display: none; gap: 4px; }
+.editing .wg-tools { display: inline-flex; }
+.wg-tools button {
+  background: none; border: 1px solid var(--border); color: var(--text-dim);
+  border-radius: 4px; font-size: 11px; cursor: pointer; padding: 1px 7px;
+}
+.wg-tools button:hover { color: var(--accent); border-color: var(--accent); }
+.wg-body { flex: 1; min-height: 0; padding: 8px 14px 12px; overflow: auto; position: relative; }
+.wg-body .leaflet-container { position: absolute; inset: 8px 14px 12px; height: auto; width: auto; }
+.editing .grid-stack-item-content { outline: 1px dashed color-mix(in srgb, var(--accent) 45%, transparent); }
+.editing .wg-body { pointer-events: none; opacity: 0.75; }  /* drag anywhere while editing */
+
+/* widget internals reuse dash.css classes; small extras: */
+.wg-big { font-family: var(--mono); font-size: 40px; letter-spacing: -0.03em; line-height: 1.05; }
+.wg-big .u { font-size: 0.45em; color: var(--text-mute); }
+.wg-sub { color: var(--text-dim); font-size: 13.5px; margin: 4px 0 10px; }
+.wg-banner {
+  font-family: var(--serif); font-style: italic; font-size: 17px; line-height: 1.45;
+  border-left: 3px solid var(--accent-2); padding-left: 14px; margin: 4px 0;
+}
+.wg-empty { color: var(--text-mute); font-style: italic; font-size: 13.5px; }
+.wg-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.wg-table td, .wg-table th { padding: 6px 8px; border-bottom: 1px solid var(--border-2); text-align: left; }
+.wg-table th { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-mute); font-weight: 500; }
+.wg-table .mono { font-family: var(--mono); }
+
+/* dialogs */
+dialog {
+  background: var(--bg-card); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px;
+  box-shadow: 0 20px 60px var(--shadow);
+  padding: 22px 24px; min-width: 320px;
+}
+dialog::backdrop { background: rgba(0,0,0,0.55); backdrop-filter: blur(2px); }
+dialog h3 { font-family: var(--serif); font-weight: 500; margin: 0 0 16px; font-size: 20px; }
+dialog label { display: block; font-size: 13px; color: var(--text-dim); margin: 10px 0; }
+dialog input, dialog select {
+  display: block; width: 100%; margin-top: 4px;
+  font-family: var(--mono); font-size: 13px;
+  background: var(--bg-elev); color: var(--text);
+  border: 1px solid var(--border); border-radius: 4px; padding: 7px 9px;
+}
+dialog .checks { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin-top: 6px; }
+dialog .checks label { display: inline-flex; align-items: center; gap: 6px; margin: 0;
+  font-family: var(--mono); font-size: 11.5px; }
+dialog .checks input { display: inline; width: auto; margin: 0; }
+.dlg-row { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.dlg-err { color: var(--bad); font-size: 12.5px; min-height: 1em; margin: 6px 0 0; }
+
+/* gridstack drag affordance in our palette */
+.grid-stack-item.ui-draggable-dragging .grid-stack-item-content { border-color: var(--accent); }
+.grid-stack-placeholder > .placeholder-content {
+  background: color-mix(in srgb, var(--accent) 12%, transparent) !important;
+  border: 1px dashed var(--accent) !important;
+}

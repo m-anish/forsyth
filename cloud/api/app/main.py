@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 
+from .accounts import router as accounts_router
 from .auth import AdminDep
 from .config import settings
 from .db import init_db
@@ -39,6 +40,7 @@ app = FastAPI(
 app.include_router(ingest_router)
 app.include_router(query_router)
 app.include_router(summary_router)
+app.include_router(accounts_router)
 
 
 @app.post("/api/v1/admin/run/{job}", dependencies=[AdminDep])

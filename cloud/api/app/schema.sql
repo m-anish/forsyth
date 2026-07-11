@@ -54,6 +54,19 @@ CREATE TABLE IF NOT EXISTS camera_frames (
     PRIMARY KEY (station_id, ts)
 );
 
+CREATE TABLE IF NOT EXISTS users (
+    id         SERIAL PRIMARY KEY,
+    username   TEXT UNIQUE NOT NULL,
+    pw_hash    TEXT NOT NULL,           -- scrypt: salthex$hashhex
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS boards (
+    owner      TEXT PRIMARY KEY,        -- username, or '__default__' for the public board
+    layout     JSONB NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS timelapses (
     station_id  INTEGER NOT NULL REFERENCES stations(id) ON DELETE CASCADE,
     day         DATE NOT NULL,

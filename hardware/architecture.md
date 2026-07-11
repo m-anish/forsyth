@@ -15,23 +15,28 @@ HTTP `POST /api/v1/ingest` with a bearer key, or MQTT `forsyth/<slug>/reading`; 
 
 ## 1. System overview
 
-```
-                        LEAF (×N, solar, LiFePO4)                COORDINATOR (×1+, mains + backup)
-  ┌────────────────────────────────────────────────┐       ┌──────────────────────────────────┐
-  │  wind vane ──┐ (1 ADC, resistor ladder)         │       │                                  │
-  │  anemometer ─┤ (1 pulse pin, event system)      │       │   ESP32-S3-WROOM-1               │
-  │  rain gauge ─┘ (pulse, same pattern)            │ LoRa  │     ├─ E22 UART (gated 5V)       │
-  │                                                 │ ~~~~> │     ├─ DS3231 RTC (I2C)          │
-  │  ATtiny3226 ── I2C ── BME280 (pressure)         │ 868M  │     ├─ WiFi → MQTT/HTTPS         │
-  │   (SOIC-20)        ── SHTC3/SHT4x (temp/RH)     │       │     │    ├─ self-hosted dashboard│
-  │      │             ── AS3935 (lightning, +IRQ)  │       │     │    └─ Weather Underground  │
-  │      │             ── [expansion: Qwiic]        │       │     └─ battery backup (LiFePO4)  │
-  │      │                                          │       └──────────────────────────────────┘
-  │      └─ shared UART ─┬─ PMS7003 (gated 5V boost)│
-  │                      └─ E22-900T22D/T30D        │
-  │                          (gated 5V boost)       │
-  │  power: solar 1–2W → CN3801 → LiFePO4 18650     │
-  └────────────────────────────────────────────────┘
+*(Rendered natively by GitHub; the printable system diagram lives at
+[diagrams/leaf-system.svg](diagrams/leaf-system.svg).)*
+
+```mermaid
+flowchart LR
+    subgraph LEAF["LEAF ×N — solar, LiFePO4"]
+        direction TB
+        VANE["wind vane<br/><i>resistor ladder → 1 ADC</i>"] --> MCU
+        ANEMO["anemometer<br/><i>pulse → event system</i>"] --> MCU
+        RAIN["rain gauge<br/><i>pulse</i>"] --> MCU
+        MCU["<b>ATtiny3226</b><br/>SOIC-20 · UPDI<br/>runs directly off the cell"]
+        MCU <-->|I2C| ENV["BME280 · SHTC3<br/>AS3935 (+IRQ)<br/>Qwiic expansion"]
+        MCU <-->|"shared UART<br/>(time-multiplexed)"| PMS["PMS7003<br/><i>gated 5 V boost</i>"]
+        MCU <-->|"shared UART"| E22L["E22-900T22D/T30D<br/><i>gated 5 V boost</i>"]
+        SOLAR["solar 1–2 W"] --> CN["CN3801 MPPT"] --> BATT["LiFePO4 18650"] --> MCU
+    end
+    E22L -.->|"LoRa 868 MHz<br/>private point-to-multipoint"| E22C
+    subgraph COORD["COORDINATOR — mains + backup"]
+        direction TB
+        E22C["E22 (gated)"] <--> ESP["<b>ESP32-S3-WROOM-1</b><br/>DS3231 RTC · LiFePO4 backup"]
+        ESP -->|"WiFi · MQTT/HTTPS"| CLOUD["self-hosted dashboard<br/>+ Weather Underground"]
+    end
 ```
 
 - **Topology:** private point-to-multipoint LoRa. Leaves speak only to the coordinator;
@@ -118,10 +123,11 @@ sensor (I2C, contactless, ~12-bit) is a plausible future drop-in on the expansio
 bus. Nothing in the architecture may preclude it — and nothing does: it's one more I2C
 address on a bus that auto-detects (§7).
 
-**AS3935 siting:** the antenna is layout-sensitive and dislikes switching noise. Per its
-application notes it may want its own small daughter board (§6), away from the boost
-converters, with the SEN0290 module's tuned antenna preferred over untuned clones —
-jigawatt's experience (see `../../jigawatt/README.md`) says the same.
+**AS3935 siting (decided):** the antenna is layout-sensitive and dislikes switching
+noise. It lives on **Board B in the Stevenson screen** (§6), a cable-length away from
+the core board's boost converters — isolation by partition. SEN0290's tuned antenna
+preferred over untuned clones; jigawatt's experience (see `../../jigawatt/README.md`)
+says the same.
 
 ### 2.3 Shared UART — PMS7003 and E22, time-multiplexed
 
@@ -186,11 +192,11 @@ Forsyth's requirements (non-negotiable, applies to **both** leaf and coordinator
      adjustable 2.2–5.5 V; **≥3 A valley switch current limit** — comfortably clears the
      ≥1.3 A input-side requirement for a T30D burst (§3.4/§3.5).
      Source: [TPS61023 datasheet (TI)](https://www.ti.com/lit/ds/symlink/tps61023.pdf).
-     Caveat: SOT-563 package (0.5 mm pitch) is the one fine-pitch part in the design —
-     hand-solderable with flux and patience, or use the **7semi TPS61023 breakout**
-     (sold domestically: [7semi](https://7semi.com/tps61023-3-7a-5v-out-mini-boost-converter-breakout/),
-     [Evelta](https://evelta.com/7semi-tps61023-3-7a-5v-out-mini-boost-converter-breakout/)) —
-     a *module* is acceptable here precisely because this chip's EN is a real gate.
+     **Use the bare IC (decided 2026-07-11; available on Robu per Anish).** The 7semi/
+     Evelta breakout was considered and rejected: it **masks the EN pin** (strapped to
+     VIN), which deletes the one feature this chip was chosen for. Caveat that stands:
+     SOT-563 (0.5 mm pitch) is the design's one fine-pitch part — flux, drag-solder,
+     magnification, and a couple of practice runs on the first board.
    - **Discrete fallback (all parts Robu-stocked):** P-channel MOSFET high-side switch
      (AO3401/SI2301 class, SOT-23, ₹3–7, gate-drivable from 2.5 V —
      [Robu listing](https://robu.in/product/ao3401-hxy-mosfet-30v-4-2a-1-2w-54m%CF%8910v4-2a-700mv-1-p-channel-sot-23-3l-mosfets-rohs/))
@@ -315,22 +321,98 @@ domain, the two I2C ambient sensors, and the AS3935 doing its one perpetual job.
 
 ---
 
-## 6. Modularity — core board + daughter boards
+## 6. Boards, enclosures & interconnect (partition decided 2026-07-11)
 
-Feature modularity is a **PCB and protocol** concern, not an excuse for more MCUs:
+Feature modularity is a **PCB and protocol** concern, not an excuse for more MCUs.
+The physical reality of a station: a **Stevenson screen** holding the quiet sensors, a
+**sealed core box** below it, wind instruments at the **masthead**, a **rain gauge** on
+its own stand, and a **solar panel** on a bracket. The PCB partition follows that:
 
-- **Core/brain board** (every leaf): ATtiny3226 + E22 (+gating) + power path (solar in,
-  CN3801, protection, battery) + **expansion connector**: Qwiic/JST-SH-style 4-pin
-  (3.3 V, GND, SDA, SCL) + a small header carrying a few spare GPIO and the gated rails.
-- **Daughter boards**, optional per site:
-  - *Environmental*: BME280 + SHTC3 (the AS3935 may sit on its own small board for
-    antenna isolation, §2.2).
-  - *Wind/rain interface*: reed debounce RCs + the direction resistor ladder, living at
-    the mast-cable connector.
-  - *Future*: display, soil moisture, extra rain gauge — anything I2C rides the bus;
-    anything pulse-shaped follows the wind/rain pattern on a spare GPIO.
+```mermaid
+flowchart TB
+    subgraph MAST["🌬 masthead"]
+        D["<b>BOARD D · wind interface</b><br/>8 vane reeds + ladder · anemometer RC<br/><i>fully passive — nothing to fry</i>"]
+    end
+    subgraph SCREEN["🌡 Stevenson screen"]
+        B["<b>BOARD B · environment</b><br/>BME280 · SHTC3 · AS3935<br/><i>passive-quiet, no switchers</i>"]
+        P["PMS7003 module<br/><i>needs the airflow</i>"]
+    end
+    subgraph BOX["🔋 sealed core box (under the screen)"]
+        A["<b>BOARD A · core</b><br/>ATtiny3226 · E22 + antenna<br/>CN3801 + 18650 holder · 2× TPS61023<br/>protection row · every port"]
+    end
+    D ==>|"GX16-5 · one shielded 5-core<br/>3V3 · GND · vane · anemo · shield"| A
+    B ==>|"JST-XH-5 (internal)<br/>3V3 · GND · SDA · SCL · IRQ"| A
+    P ==>|"JST-XH-4 (internal)<br/>5V · GND · TXD · RXD"| A
+    S["☀ solar panel"] ==>|"GX12-2"| A
+    R["🌧 rain gauge"] ==>|"GX12-3 · pulse + GND + shield"| A
+```
+
+> Per-board reference sheets (pin maps, sub-circuits with sourced values, designator
+> BOMs, bring-up checklists) live in **[boards/](boards/README.md)**.
+
+**Board A — core** (the only board with switching regulators): MCU, radio, battery,
+charging, both gated boosts, TVS/protection, and every connector. One design, every
+leaf. The 18650 holder is on-board — no battery cable to get wrong.
+
+**Board B — environment** (inside the screen): BME280 + SHTC3 + AS3935 on the I2C bus
+plus the AS3935 IRQ line. **This is why the MCU does *not* live in the screen:** the
+AS3935's application notes want distance from switching noise, and the two boost stages
++ CN3801 are unavoidable neighbours of the MCU's board. Putting B on a short cable buys
+that isolation for free, keeps the I2C run short (≤0.5 m, well within spec at 100 kHz
+with 4.7 kΩ pullups), and keeps the screen containing only quiet, passive-supply parts.
+The PMS7003 mounts beside it in the screen (it needs the airflow) with its own pigtail
+back to the core's gated 5 V port.
+
+**Board D — wind interface** (masthead junction, fully passive): the vane's 8 reeds +
+resistor ladder, the anemometer input's RC debounce, everything commoned onto **one
+5-core shielded run** down the mast. No silicon up top, nothing to fry.
+
+**Rain gauge**: bare reed + magnet on the tipping bucket; its RC debounce lives on
+Board A at the connector (per §8) — the gauge end stays a dumb switch.
+
+### 6.1 Interconnect — connector scheme
+
+Connector options considered:
+
+| Option | Pros | Cons | Verdict |
+|---|---|---|---|
+| **RJ11/RJ12** (user's question) | dirt cheap, latching, tools everywhere | every jack identical → nothing stops the vane cord going into the rain port; flat cords crimped straight *or* reversed (power-pin roulette); unshielded (analog ladder + I2C pickup); oxidizes outdoors | bench prototyping only — **not for the mast** |
+| RJ45 + one universal pinout | 8 cores, cheap shielded cat5e, mis-plug survivable if every port shares one pinout | still not weatherproof without housings; universal pinout wastes cores; couplers corrode | acceptable indoor fallback, second choice |
+| JST-XH (keyed, polarized) | cheap, Robu-ubiquitous, can't reverse, sizes differ by pin count | not weatherproof, not panel-mount — internal use only | **chosen for inside-the-box harnesses** |
+| M12 circular (industrial) | IP67, keyed, the "correct" answer | ₹250–400 per mated pair × 6+ positions; overkill | if the budget ever allows |
+| **GX12/GX16 aviation connectors** | metal, screw-locking, panel-mount, ₹40–90 on Robu/Sharvi, and **pin count = physical key** | splash-resistant not IP67 (mount facing down + boot) | **chosen for all external runs** |
+
+**The mis-plug defence is pin count.** Every external cable gets a *different* GX size,
+so no wrong connection can physically mate:
+
+| Run | Connector | Cores | Pinout |
+|---|---|---|---|
+| Solar panel → core | **GX12-2** | 2 | 1 = panel +, 2 = panel − (reverse-polarity protected on board anyway, §8) |
+| Rain gauge → core | **GX12-3** | 2 + shield | 1 = pulse, 2 = GND, 3 = shield/spare |
+| Masthead (Board D) → core | **GX16-5** | 5, shielded | 1 = 3V3 excitation · 2 = GND · 3 = vane analog · 4 = anemometer pulse · 5 = shield |
+| Board B ↔ core (internal) | **JST-XH-5** | 5 | 3V3 · GND · SDA · SCL · AS3935-IRQ |
+| PMS7003 ↔ core (internal) | **JST-XH-4** | 4 | gated 5 V · GND · TXD · RXD (SET strapped high at the sensor) |
+| Expansion (future daughter boards) | Qwiic/JST-SH-4 | 4 | 3V3 · GND · SDA · SCL — the standard stays |
+
+Rules that keep future-you honest: **GND on pin 2 of every GX connector**; every
+external line enters Board A through its TVS + series-R row (§8); all GX sockets mounted
+on the box's underside; silkscreen + engraved labels at both ends of every cable; cable
+= outdoor UV-stable shielded multicore (security/alarm cable is cheap and fine — the
+longest run carries one analog level and one slow pulse train, not ethernet).
+
+Worst realistic mistakes, walked through: solar into rain (won't mate, 2≠3); masthead
+into anything else (won't mate, 5-pin); swapping the two *internal* XH harnesses (won't
+mate, 4≠5); reversing any JST (polarized shell, can't). The one surviving hazard is
+miswiring inside a plug during assembly — mitigated by the GND-always-pin-2 rule and
+the protection row behind every port.
+
+### 6.2 Growth path
+
+- Anything I2C (display, AS5600 vane upgrade, soil moisture) rides the Qwiic expansion
+  or Board B's bus; anything pulse-shaped follows the rain-gauge pattern on a spare GPIO
+  and, if external, gets the next unused GX size (GX12-4).
 - **Firmware auto-detects population** by I2C scan at boot and builds its payload
-  accordingly (§7). A leaf with no AQI board is still a station; a leaf can grow senses.
+  accordingly (§7). A leaf with no AQI sensor is still a station; a leaf can grow senses.
 
 ---
 
