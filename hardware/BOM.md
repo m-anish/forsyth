@@ -27,7 +27,7 @@ plus off-board items and the interconnect set.
 |---|---|---|---|---|---|
 | A1 | **ATtiny3226-SU** (SOIC-20) | Leaf MCU | **Robu.in — domestic stock confirmed**; LCSC fallback | 150–300 | Bare chip on PCB; UPDI programming (programmer on the bench). Architecture §2.1 |
 | A2 | **Ebyte E22-900T22D** | LoRa radio (default) | Robu.in, HubTronics; Ebyte store | 500–750 | 140 mA TX burst. T30D (₹800–1200) per-site where 22 dBm can't close the link — rail is sized for it either way |
-| A3 | **CN3801** (SOP-8) | Solar MPPT charger, LiFePO4-native | **already on hand** | — | Factory-fixed 3.625 V CV. Supersedes CN3791 breakouts (4.2 V, wrong chemistry) |
+| A3 | **CN3801** (SSOP-10) | Solar MPPT charger, LiFePO4-native | **already on hand** | — | Factory-fixed 3.625 V CV. Full sub-circuit w/ datasheet values in [boards/board-a-core.md §3.1](boards/board-a-core.md) |
 | A4 | **LiFePO4 18650** + on-board holder | Battery | Robu.in LFP category | 200–300 + ~50 | Holder on Board A — no battery cable to get wrong. T30D sites need honest ≥1.5 A discharge |
 | A5 | **TPS61023** ×2 (bare SOT-563) + 1 µH-class inductors + caps | Both gated 5 V rails — **EN pin is the power gate** | **Bare IC on Robu (user-confirmed)**; LCSC/JLCPCB for volume | ~₹40–90 ea + passives | True load disconnect ([datasheet](https://www.ti.com/lit/ds/symlink/tps61023.pdf)). **Bare IC decided** — the 7semi/Evelta breakout masks EN (ties it to VIN), which defeats the entire gating design. SOT-563 fine pitch: flux + drag solder |
 | A5a | *(fallback)* AO3401/SI2301 P-FET + 2N7002 | Discrete high-side gate on a boost's input | [Robu](https://robu.in/product/ao3401-hxy-mosfet-30v-4-2a-1-2w-54m%CF%8910v4-2a-700mv-1-p-channel-sot-23-3l-mosfets-rohs/) ₹3–7 | <₹20/rail | Only if TPS61023 sourcing fails. TPS2041B acceptable on the AQI rail only (0.75–1.25 A limit, [datasheet](https://download.mikroe.com/documents/datasheets/TPS2041B_datasheet.pdf)); TPS22918 not stocked domestically |
@@ -57,7 +57,7 @@ plus off-board items and the interconnect set.
 
 | Item | ~₹ | Notes |
 |---|---|---|
-| Solar panel 1–2 W, 5–6 V | 150–400 | Sized for monsoon overcast once I_avg is measured |
+| Solar panel 1–2 W, **6 V-class** (V_MP ≈ 6 V, Voc ≈ 7.2 V) | 150–400 | 5 V panels sag into the CN3801's UVLO (≤4.4 V) under load — buy 6 V. Sized for monsoon overcast once I_avg is measured |
 | Rain gauge (tipping bucket, bought or printed) | 0–500 | Dumb reed + magnet; debounce lives on Board A |
 | **GX12-2 + GX12-3 + GX16-5 panel/plug pairs** | ~₹200–300 total | Robu/Sharvi/local. **Pin count = physical key** — no two external cables can swap (§6.1). RJ11 rejected for the mast: identical jacks + reversible cords + unshielded |
 | JST-XH-4 + XH-5 harness sets (internal) | <₹50 | Polarized, different sizes — can't reverse, can't swap |

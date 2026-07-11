@@ -51,25 +51,55 @@ Logical assignment (physical pin numbers per the tinyAVR-2 20-pin datasheet tabl
 
 ### 3.1 Solar charging — CN3801 (U3)
 
-Topology: solar in → reverse-polarity P-FET (Q1) → CN3801-controlled buck (external
-P-FET Q2 + catch schottky D1 + power inductor L3) → sense resistor R_CS → cell.
-Sourced facts ([datasheet pages via alldatasheet](https://www.alldatasheet.com/html-pdf/1133240/CONSONANCE/CN3801/698/1/CN3801.html)):
+All values below from the **CN3801 datasheet Rev 1.0** (Consonance, on file) and the
+fadushin/solar-esp32 schematic (both reviewed 2026-07-11). Package correction: CN3801
+is **SSOP-10**, not SOP-8 as earlier drafts said.
 
-- **Charge current:** `I_CH = 120 mV / R_CS` (CSP/CSN sense pins).
-  R_CS = **0.12 Ω → 1.0 A** (our default for a 1.5–2 Ah cell); the
-  [fadushin/solar-esp32](https://github.com/fadushin/solar-esp32) reference design uses
-  0.24 Ω → 0.5 A for a 1.5 Ah cell — either is sane; pick to match the cell bought.
-- **MPPT:** the MPPT pin is regulated to **1.205 V**; a divider from the panel sets the
-  tracked panel voltage: `V_MPP = 1.205 × (1 + R_H/R_L)`. For a "6 V" panel with
-  V_MPP ≈ 5 V: **R_H = 316 k, R_L = 100 k** → 5.01 V (reference design: 300 k/100 k →
-  4.82 V for a 5.2 V-MPP panel). Adjust to the panel actually bought. **[verify panel V_MPP]**
-- **CV point:** fixed **3.625 V ± 40 mV** — the reason this chip was chosen; no divider.
-- Trickle at 17.5 % of I_CH below 66.5 % of CV; termination at 16 % of I_CH; automatic
-  recharge below the datasheet's recharge threshold.
-- L3, Q2, D1 sizing: take the datasheet's typical-application values from your paper
-  copy **[verify — my datasheet mirrors were partial]**; family designs use ~22–33 µH,
-  an SS34-class 3 A schottky, and a SOT-23/SOT-223 P-FET ≥ 2× I_CH.
-- Status: CN3801's charge-status pin → `SPARE3`/LED footprint (DNP by default).
+Topology (datasheet Figure 1): panel → input cap bank → series block schottky D1 →
+P-FET Q2 (gate from DRV) → freewheel schottky D2 to GND → L3 → **R_CS (Kelvin-sensed
+by CSP/BAT)** → cell.
+
+```
+SOL+ ──┬─C_in bank─┬── D1 SS34 ──╥ Q2 AO3407 ──┬── L3 33 µH ──┬─ R_CS 0.24Ω ─┬── BAT+ (cell)
+       │           │      DRV ───╨ (gate)      │              │  CSP ─┘ └─ BAT│ (Kelvin pair)
+      R3 390k     VCC(9)                   D2 SS34            C_out bank      │
+       ├── MPPT(6)                             ▼           10 µF el + 10 µF X7R
+      R4 100k     VG(1)─100nF─VCC          GND
+       │          COM(5)─120Ω+220nF─GND · CHRG(3)/DONE(4)─LEDs+1k (DNP option)
+      GND
+```
+
+- **Charge current:** `I_CH = 120 mV / R_CS` (CSP–BAT pins, 120 mV internal ref).
+  **R_CS = 0.24 Ω 1 % ≥ 1 W → 0.5 A** — matches the reference schematic, and is the
+  right *ceiling* for a 1–2 W panel (I_MP ≈ 0.17–0.33 A: MPPT, not CC, governs).
+  Drop to 0.12 Ω → 1 A only if the panel ever grows to ~5 W.
+- **MPPT:** pin regulated to **1.205 V**; `V_MPP = 1.205 × (1 + R3/R4)`; charging only
+  starts once the MPPT pin exceeds 1.23 V. For the common Indian "6 V" epoxy panel
+  (V_MP ≈ 6 V, Voc ≈ 7.2 V): **R3 = 390 k, R4 = 100 k → 5.90 V**. (fadushin's
+  300 k/100 k → 4.82 V suits a 5 V-MP panel.) Set to the label of the panel bought.
+- **Panel floor — datasheet constraint:** VCC range 4.5–28 V, **UVLO 3.8 V typ /
+  4.4 V max**, and charging needs VCC > V_BAT + 0.32 V. A "5 V" panel sags into UVLO
+  territory under load; **buy a 6 V-class panel**, not 5 V.
+- **CV:** fixed 3.625 V ± 40 mV. Trickle 17.5 % of I_CH below 66.5 % of CV; terminate
+  at 16 % of I_CH; auto-recharge at 91.66 % of CV; sleep mode when panel < battery.
+- **Q2 = AO3407** (SOT-23 P-ch, 30 V/4.1 A, Robu-stocked): the datasheet itself lists
+  "3407A" among suggested FETs. DRV's internal clamp holds V_GS ≤ 8 V — low-voltage
+  FETs are safe by design.
+- **D1, D2 = SS34** (3 A schottky, Robu-ubiquitous). **D1 stays populated:** the
+  datasheet allows omitting it, but without it the cell back-feeds ~18 µA through the
+  FET body diode all night — real money in our sleep budget; D1's cost is one Vf
+  during charging, which the panel margin absorbs.
+- **L3 = 33 µH, I_sat ≥ 1 A** (datasheet method: ΔI_L = V_BAT·(1−V_BAT/VCC)/(f·L) at
+  f = 300 kHz, target ΔI_L ≈ 0.3·I_CH → 32 µH for 0.5 A at VCC = 6 V).
+- **Caps (datasheet-specified structure):** input = electrolytic (100 µF/25 V) ∥
+  10 µF ceramic ∥ 100 nF; output = 10 µF electrolytic ∥ 10 µF ceramic.
+  **VG→VCC: 100 nF** (pins 1→9). **COM: 120 Ω + 220 nF in series to GND** (pin 5).
+- **Status LEDs:** CHRG (red) + DONE (green) via 1 k, populated for bring-up (they
+  draw from the panel only — dark at night); datasheet: an *unused* status output
+  should be tied to GND, so if DNP'd, fit the tie-off jumpers instead.
+- **Layout (datasheet §PCB, feeds §8):** R_CS right at the inductor output; CSP/BAT
+  routed as a tight Kelvin pair on one layer to the resistor's terminals; analog and
+  power grounds return to the star separately; generous copper on GND pins (they heat-sink).
 
 ### 3.2 Gated 5 V rails — TPS61023 ×2 (U4, U5)
 
@@ -152,17 +182,21 @@ line — UPDI is the whole story.
 |---|---|---|---|
 | U1 | ATtiny3226-SU | SOIC-20 | |
 | U2 | E22-900T22D (T30D per site) | DIP module | |
-| U3 | CN3801 | SOP-8 | on hand |
+| U3 | CN3801 | **SSOP-10** | on hand |
 | U4, U5 | TPS61023 | SOT-563 | Robu |
-| Q1 | AO3401 | SOT-23 | reverse-pol |
-| Q2 | P-FET ≥ 2×I_CH | per CN3801 datasheet | **[verify]** |
-| D1 | SS34 schottky | SMA | buck catch |
-| D2… | SMAJ6.0A + PESD row | | protection |
+| Q1 | AO3401 | SOT-23 | reverse-pol (solar input) |
+| Q2 | **AO3407** | SOT-23 | buck pass P-FET — datasheet-suggested "3407A"; Robu |
+| D1, D2 | **SS34** ×2 | SMA | series block + freewheel; D1 stays (night back-feed) |
+| D5… | SMAJ6.0A + PESD row | | protection |
+| D3, D4 | LED red/green + R7,R8 1 k | 0805 | CHRG/DONE status (bring-up; tie-off if DNP) |
 | L1, L2 | 1.0 µH, Isat > 4 A | per TI table | boost |
-| L3 | 22–33 µH power | per CN3801 app | **[verify]** |
-| R_CS | 0.12 Ω 1 % ≥ 0.5 W | 2512 | 1 A charge |
+| L3 | **33 µH power, Isat ≥ 1 A** | CDRH/radial | datasheet ΔI_L method @ 0.5 A |
+| R_CS | **0.24 Ω 1 % ≥ 1 W** | 2512, Kelvin | 0.5 A charge (0.12 Ω if panel ≥5 W) |
 | R1,R3 / R2,R4 | 732 k / 100 k | 1 % | boost FB ×2 |
-| R5, R6 | 316 k / 100 k | 1 % | MPPT divider |
+| R5, R6 | **390 k / 100 k** | 1 % | MPPT → 5.90 V (set to panel V_MP) |
+| R10 + C10 | 120 Ω + 220 nF | | COM compensation (datasheet pin 5) |
+| C11 | 100 µF electrolytic 25 V | | CN3801 input LF |
+| C12 | 10 µF electrolytic | | CN3801 output LF |
 | R14 | 10 k | | UART_RX clamp limiter |
 | R15, R16 | 1 M / 330 k | 1 % | VBAT sense |
 | C1–C4 | 10 µF ×2 (Cin), 22 µF ×4 (Cout) | X5R/X7R ≥ 10 V | boosts |

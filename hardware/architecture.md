@@ -286,6 +286,8 @@ I_avg = (I_sleep × T_sleep + Σ I_active_phase × T_phase) / T_total
 |---|---|---|---|
 | AS3935 listening | 60–80 µA | **continuous** | cannot be duty-cycled; the dominant *sleep-term* line item, larger than the MCU asleep |
 | ATtiny3226 sleep (RTC on ULP osc) | ~1 µA class | continuous | verify on bench |
+| CN3801 sleep path (BAT + CSP pins) | ~8 µA | continuous (panel dark) | datasheet §sleep; series diode D1 blocks the additional ~18 µA body-diode back-feed — keep D1 populated |
+| Battery-sense divider | ~2.7 µA | continuous | 1 M + 330 k (board sheet §3.4) |
 | BME280 / SHTC3 idle | ~0.1–1 µA each | continuous | negligible |
 | PMS7003 reading | ~80 mA at 5 V (boost input side higher) | ~30 s per reading | **the dominant active-term item: ≈0.67 mAh per reading — ~35× one LoRa burst** |
 | E22 T22D TX | 140 mA at 5 V | <1 s | ≈0.02 mAh per report |
@@ -303,8 +305,10 @@ I_avg = (I_sleep × T_sleep + Σ I_active_phase × T_phase) / T_total
   sane schedule — but publish no figure until firmware currents are measured. A
   worked spreadsheet (`power-budget.ods` or `.md` table) belongs here **after** bench
   measurements; placeholder intentionally left, per the brief.
-- Solar: 1–2 W panel, Voc 5–6 V nominal into the CN3801, sized for the worst realistic
-  season (monsoon overcast) — to be checked against the measured I_avg, not guessed.
+- Solar: 1–2 W **6 V-class** panel (V_MP ≈ 6 V, Voc ≈ 7.2 V) into the CN3801 — its
+  UVLO can sit as high as 4.4 V and charging needs VCC > V_BAT + 0.32 V (datasheet),
+  so 5 V panels are marginal under load. Sized for the worst realistic season
+  (monsoon overcast) — to be checked against the measured I_avg, not guessed.
 
 **Leaf charging — CN3801 (decided).** Consonance's LiFePO4-native sibling of the CN3791:
 same MPPT solar-buck topology, CV point **fixed at 3.625 V ±40 mV at the factory** —
