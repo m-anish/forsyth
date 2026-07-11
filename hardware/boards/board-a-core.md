@@ -204,7 +204,32 @@ line — UPDI is the whole story.
 | C6… | 100 nF field | | every VDD pin + RC row |
 | J1–J7, BT1 | per §4 | | |
 
-## 6. Bring-up checklist
+## 6. Schematic review — forsyth-board-a V1.0 (EasyEDA, reviewed 2026-07-12)
+
+**Correct and confirmed ✓:** MCU pin map matches §2 exactly (all 18 GPIO, UPDI, STATUS
+LED on PB5 active-low); 10 k series clamp on `UART_RX` present (R2); M0/M1 MCU-driven;
+E22 bulk 100 µF + 100 nF at module VCC, downstream of the gate; PMS shares the UART with
+its TXD joining on the module side of R2 (so it, too, is clamped); the whole CN3801
+section is right — MPPT 390 k/100 k, R_CS 0.24 Ω with Kelvin CSP/BAT, COM 120 Ω+220 nF,
+VG–VCC 100 nF, input trio 100 µF∥10 µF∥100 nF, D1+D2 SS34 in the correct series/freewheel
+positions, L 33 µH, AO3407, output 2×10 µF, 1 M/330 k battery divider; both TPS61023 FB
+dividers 732 k/100 k; RC conditioning (1 k + 100 nF) on rain/anemo/vane at the connector
+side; UPDI header with 1 k; GND on pin 2 of the GX connectors.
+
+**Issues found (fix before fab):**
+
+| # | Severity | Finding |
+|---|---|---|
+| 1 | ❗ | **U2 is drawn as E220-900T22D — the design says E22-900T22D.** Same pinout, different chip (LLCC68 vs SX1262), different config protocol, and it's the exact module family lokki fought. If the symbol is just a library stand-in, relabel it; if an E220 was actually bought, the firmware plan and §3.4 datasheet numbers need re-basing. Decide explicitly. |
+| 2 | ❗ | **No reverse-polarity protection and no TVS on the solar input** (CN4 → VSOL is bare). §3.6: AO3401 rev-pol P-FET + SMAJ6.0A across the input. |
+| 3 | ❗ | **No ESD/TVS clamps on any external line** (vane, anemo, rain) and the **GX shield pins are left no-connect**. This is a lightning-monitoring project; fit the PESD/TVS row and land shields to GND at this end (§3.6). |
+| 4 | ⚠ | **Verify the boost inductor placement on U3/U4.** TI topology: L sits **between VBAT (VIN) and the SW pin**; VOUT goes only to the output caps + FB divider. In the drawing, L1/L2 appear to hang off SW toward the output side, and no VBAT net label is visible on either VIN — confirm VIN is actually tied to VBAT and L is VIN↔SW (datasheet Figure 8-1). |
+| 5 | ❗ | **VBAT_SENSE tap has no capacitor** — add 100 nF at the divider tap (§3.4) or the ADC will sag the 1 MΩ divider during sampling. |
+| 6 | ⚠ | `UART_TX` drives E22 RXD and PMS RX directly while their rails are gated **off** → back-powering through input-protection diodes. Cheapest fix: 1 k series in the TX line; firmware rule either way: drive TX low before de-asserting EN. |
+| 7 | nit | CN5 "FUTURE" carries VBAT/GND/SPARE1/SPARE2 but no SDA/SCL — the planned Qwiic expansion (§4 J6) is absent. Fine if Board B's connector is the I2C growth path; note the decision. |
+| 8 | nit | One shared 1 k (R7) feeds both CHRG/DONE LEDs — fine (mutually exclusive states), just noting it's intentional. |
+
+## 7. Bring-up checklist
 
 1. Populate power path only (U3, Q1/Q2, D1, L3, R_CS, dividers). Bench supply as
    "panel": confirm CV 3.625 V at the cell node, charge current = 120 mV/R_CS,

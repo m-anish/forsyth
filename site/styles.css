@@ -131,8 +131,20 @@ h2.headline {
   border: none;
 }
 .topbar .brand img { height: 18px; width: auto; }
-.topbar .status {
+.topbar .live-link {
   margin-left: auto;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 999px;
+  padding: 4px 12px;
+  border-bottom-width: 1px;
+}
+.topbar .live-link:hover { border-color: var(--accent); background: rgba(127,162,196,0.08); }
+.topbar .status {
   display: inline-flex;
   align-items: center;
   gap: 8px;
