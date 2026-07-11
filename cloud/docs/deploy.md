@@ -16,6 +16,10 @@ curl -fsSL https://get.docker.com | sh
 usermod -aG docker forsyth
 # firewall: ssh, http/s, mqtt
 ufw allow OpenSSH && ufw allow 80,443/tcp && ufw allow 1883/tcp && ufw enable
+
+# on a 1 GB box: add swap BEFORE building, or docker compose build will OOM
+fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
 ```
 
 ## 2. DNS (Cloudflare)

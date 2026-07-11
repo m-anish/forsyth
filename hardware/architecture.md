@@ -164,10 +164,44 @@ before register writes were reliable. Diagnosis, from lokki's own commit history
 
 Forsyth's requirements (non-negotiable, applies to **both** leaf and coordinator):
 
-1. **Full power gating.** The E22's rail comes from its own 5 V boost converter behind a
-   load switch / P-MOSFET (TPS22918-class), controlled by a dedicated GPIO. In sleep the
-   module is **off** — not in M0/M1 sleep mode, unpowered. (Sleep-mode current would be
-   2 µA, but off is off; no state to go stale, no lesson to relearn.)
+1. **Full power gating — implemented as a boost converter with true load disconnect.**
+   The E22's 5 V rail comes from its own boost stage whose **EN pin is the power gate**,
+   driven by a dedicated GPIO (decided 2026-07-11, superseding the earlier separate
+   load-switch + boost-module pair). In sleep the module is **off** — not in M0/M1
+   sleep mode, unpowered. No state to go stale, no lesson to relearn.
+
+   **The trap this design must avoid:** a generic boost converter is *not* a power
+   switch. Most boosts (including the MT3608-class chips on common breakout modules)
+   have a **pass-through path when disabled** — input stays connected to output through
+   the inductor and the rectifier, so "EN low" leaves ≈ V_batt − V_diode ≈ **2.6–2.9 V**
+   on the rail. The E22-900T22D operates down to **2.1 V** (manual, §3.4 sources) — a
+   "disabled" generic boost therefore leaves a brown-powered zombie radio, which is the
+   lokki failure mode wearing a new hat. Hence the rule: **the boost IC must provide
+   true load disconnect** (output isolated from input in shutdown), or a discrete
+   high-side switch must sit *upstream of the boost's input*.
+
+   - **Default part: TI TPS61023.** Datasheet-confirmed true disconnect — "during
+     shutdown the output is completely disconnected from the input" with **0.1 µA**
+     shutdown current; input 0.5–5.5 V (LiFePO4's 2.5–3.65 V well inside); output
+     adjustable 2.2–5.5 V; **≥3 A valley switch current limit** — comfortably clears the
+     ≥1.3 A input-side requirement for a T30D burst (§3.4/§3.5).
+     Source: [TPS61023 datasheet (TI)](https://www.ti.com/lit/ds/symlink/tps61023.pdf).
+     Caveat: SOT-563 package (0.5 mm pitch) is the one fine-pitch part in the design —
+     hand-solderable with flux and patience, or use the **7semi TPS61023 breakout**
+     (sold domestically: [7semi](https://7semi.com/tps61023-3-7a-5v-out-mini-boost-converter-breakout/),
+     [Evelta](https://evelta.com/7semi-tps61023-3-7a-5v-out-mini-boost-converter-breakout/)) —
+     a *module* is acceptable here precisely because this chip's EN is a real gate.
+   - **Discrete fallback (all parts Robu-stocked):** P-channel MOSFET high-side switch
+     (AO3401/SI2301 class, SOT-23, ₹3–7, gate-drivable from 2.5 V —
+     [Robu listing](https://robu.in/product/ao3401-hxy-mosfet-30v-4-2a-1-2w-54m%CF%8910v4-2a-700mv-1-p-channel-sot-23-3l-mosfets-rohs/))
+     + small NFET/2N7002 level driver, gating the **input** of whatever boost follows.
+   - **Not acceptable:** TPS22918 (fine part, but not stocked domestically — checked
+     Robu 2026-07-11); MT3608-style boost modules as gates (pass-through); and
+     **TPS2041(B) on the radio rail** — it's a 500 mA-continuous USB switch with a
+     0.75–1.25 A current limit
+     ([datasheet](https://download.mikroe.com/documents/datasheets/TPS2041B_datasheet.pdf)),
+     which a 650 mA-typ T30D burst would trip or brown out. It *is* acceptable on the
+     PMS7003 rail (~100 mA max) — see §5.
 2. **Wake sequence, every cycle, not just cold boot:**
    ```
    drive M0/M1 to the intended mode (outputs LOW/defined BEFORE power-en)
@@ -178,9 +212,10 @@ Forsyth's requirements (non-negotiable, applies to **both** leaf and coordinator
    → wait AUX LOW→HIGH two-edge (TX accepted → TX complete), + small guard
    → de-assert power-enable → sleep
    ```
-3. **Bulk capacitance after the switch:** 100–220 µF low-ESR + 100 nF ceramic **at the
-   module's VCC pin, downstream of the load switch** (so it gates off with the module and
-   still absorbs the TX burst). This is the component lokki's Rev0 board was missing.
+3. **Bulk capacitance after the gate:** 100–220 µF low-ESR + 100 nF ceramic **at the
+   module's VCC pin, downstream of the gated boost stage** (so it powers off with the
+   module and still absorbs the TX burst). This is the component lokki's Rev0 board was
+   missing.
 4. **Current sizing — real numbers, pulled 2026-07-11 from current Ebyte manuals:**
    - E22-900**T30D**: TX current **650 mA typ** (instantaneous) at 30 dBm; RX 16 mA;
      operating voltage 3.3–5.5 V with the manual noting **"≥5.0 V ensures output power."**
@@ -270,9 +305,13 @@ same MPPT solar-buck topology, CV point **fixed at 3.625 V ±40 mV at the factor
 no resistor-divider retargeting, unlike the 4.2 V-fixed CN3791 breakouts common in the
 Indian market (wrong chemistry). SOP-8, hand-solderable, already on hand.
 
-**Two gated 5 V boost rails on the leaf** (PMS7003, E22) — both fully off between uses.
-Nothing on a Forsyth leaf is powered while idle except the MCU's sleep domain, the two
-I2C ambient sensors, and the AS3935 doing its one perpetual job.
+**Two gated 5 V boost rails on the leaf** (PMS7003, E22) — both fully off between uses,
+each implemented as a **boost-with-true-load-disconnect stage, EN driven by the MCU**
+(§3.1): TPS61023 on the radio rail (sized for T30D), and either a second TPS61023 or a
+cheaper boost + TPS2041B switch on the AQI rail (PMS7003 draws ≤100 mA — inside the
+TPS2041B's 500 mA rating). One GPIO per rail either way; the pin budget in §2.1 is
+unchanged. Nothing on a Forsyth leaf is powered while idle except the MCU's sleep
+domain, the two I2C ambient sensors, and the AS3935 doing its one perpetual job.
 
 ---
 
@@ -332,10 +371,17 @@ byte 5…     : field groups, in bit order, fixed-width scaled integers each
 - **Decoupling:** 0.1 µF ceramic at every IC power pin, closest component to the pin,
   short low-inductance ground return; one per pin on multi-VDD packages, never shared.
   1–10 µF bulk near each regulator output and each dense IC cluster.
-- **The gated bulk cap goes after the switch:** the 100–220 µF + 100 nF from §3.3 sits
-  **downstream of the load switch, at the E22's VCC pin** — before the switch it would
-  stay energized in sleep and do nothing for the TX burst. Same rule for the PMS7003's
-  bulk cap on its boost rail.
+- **The gated bulk cap goes after the gate:** the 100–220 µF + 100 nF from §3.3 sits
+  **downstream of the boost stage, at the E22's VCC pin** — upstream it would stay
+  energized in sleep and do nothing for the TX burst. Same rule for the PMS7003's
+  bulk cap on its rail. (With the TPS61023's load disconnect, "downstream of the boost
+  output" is automatically downstream of the gate.)
+- **Boost-stage integration** (now that the converters are on-board, not modules):
+  keep the power loop tight — input cap, IC, inductor, output cap in minimum area;
+  the switch node (SW pin ↔ inductor) as short and small as possible; the FB divider
+  and its trace routed away from the inductor and switch node; a solid ground pour
+  under the stage stitched to the plane. Per the TPS61023 datasheet layout guidance;
+  both boost stages live away from the AS3935 and the ADC ladder (see below).
 - **Ground plane:** solid, unbroken under the RF section; no routed traces slicing the
   plane under the E22 or the antenna feed.
 - **RF trace:** module-to-antenna short and at the E22 app-note's controlled impedance
