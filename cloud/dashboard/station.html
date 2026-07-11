@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>forsyth · station</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/uplot@1.6.31/dist/uPlot.min.css" />
+  <link rel="stylesheet" href="css/dash.css?v=2" />
+  <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
+  <script src="js/theme.js?v=2"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="/" class="brand"><img src="assets/mark.svg" alt="" aria-hidden="true" />forsyth</a>
+    <span class="crumb">/ live / <span id="crumb-slug">…</span></span>
+    <span class="right">
+      <button class="theme-btn" type="button" aria-label="switch color theme">◐ auto</button>
+      <span class="dot"></span><span id="seen">…</span>
+    </span>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="pagehead">
+    <span class="kicker" id="head-kicker">Station</span>
+    <h1 class="headline" id="head-name">…</h1>
+    <p class="sub" id="head-sub"></p>
+  </div>
+
+  <div class="wx-banner" id="wx-banner" role="status">
+    <span class="k">Present weather</span>
+    <p></p>
+  </div>
+
+  <div class="grid">
+
+    <section class="panel span4 now">
+      <h3>Right now</h3>
+      <div class="big" id="now-temp">—<span class="u">°C</span></div>
+      <div class="desc" id="now-desc"></div>
+      <div class="kv" id="now-kv"></div>
+    </section>
+
+    <section class="panel span4">
+      <h3>Pressure</h3>
+      <div class="aqi-num" id="pres-now">—</div>
+      <div class="aqi-label">hPa at station</div>
+      <p class="trend flat" id="pres-trend" style="margin:14px 0 0">— over 3 h</p>
+      <p class="aqi-label" id="pres-verdict" style="margin-top:6px"></p>
+    </section>
+
+    <section class="panel span4">
+      <h3>Air quality</h3>
+      <div class="aqi-num" id="aqi-num">—</div>
+      <div class="aqi-label" id="aqi-label">no reading</div>
+      <div class="aqi-band"><span class="pin" id="aqi-pin" style="left:0%"></span></div>
+      <div class="kv">
+        <div><span class="k">PM2.5</span><span class="v" id="pm25">—</span></div>
+        <div><span class="k">PM10</span><span class="v" id="pm10">—</span></div>
+      </div>
+    </section>
+
+    <section class="panel span4">
+      <h3>Wind rose · 24 h</h3>
+      <svg class="rose" id="rose" viewBox="0 0 220 220" width="220" height="220"></svg>
+      <div class="kv">
+        <div><span class="k">Now</span><span class="v" id="wind-now">—</span></div>
+        <div><span class="k">Gust</span><span class="v" id="gust-now">—</span></div>
+      </div>
+    </section>
+
+    <section class="panel span8">
+      <div class="headrow">
+        <h3>Temperature &amp; humidity</h3>
+        <span class="range" data-charts></span>
+        <a class="export" id="csv-link" href="#">csv ↓</a>
+      </div>
+      <div class="chart" id="chart-temp"></div>
+    </section>
+
+    <section class="panel span6">
+      <div class="headrow"><h3>Wind</h3></div>
+      <div class="chart" id="chart-wind"></div>
+    </section>
+
+    <section class="panel span6">
+      <div class="headrow"><h3>Pressure</h3></div>
+      <div class="chart" id="chart-pres"></div>
+    </section>
+
+    <section class="panel span6">
+      <div class="headrow"><h3>Rain</h3></div>
+      <div class="chart" id="chart-rain"></div>
+    </section>
+
+    <section class="panel span6">
+      <div class="headrow"><h3>Particulates</h3></div>
+      <div class="chart" id="chart-pm"></div>
+    </section>
+
+    <section class="panel span4">
+      <h3>Lightning · 48 h</h3>
+      <ul class="feed" id="lightning"></ul>
+    </section>
+
+    <section class="panel span4">
+      <h3>Housekeeping</h3>
+      <div class="chart" id="chart-batt"></div>
+      <div class="kv" style="margin-top:10px">
+        <div><span class="k">Battery</span><span class="v" id="hk-batt">—</span></div>
+        <div><span class="k">Solar</span><span class="v" id="hk-solar">—</span></div>
+        <div><span class="k">LoRa RSSI</span><span class="v" id="hk-rssi">—</span></div>
+        <div><span class="k">Last heard</span><span class="v" id="hk-seen">—</span></div>
+      </div>
+    </section>
+
+    <section class="panel span4 cam" id="cam-panel" hidden>
+      <h3>The sky, as seen</h3>
+      <img id="cam-img" alt="Latest camera frame" />
+      <div class="capt" id="cam-capt"></div>
+      <ul class="tl-list" id="tl-list"></ul>
+      <video id="tl-video" controls hidden></video>
+    </section>
+
+  </div>
+</main>
+
+<footer class="sl-footer">
+  <div class="wrap">
+    <div class="sl-signoff">
+      <span>⛅ forsyth / live readings</span>
+      <span><a href="/">all stations</a> · <a href="https://forsyth.starstucklab.com">about ↗</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
+<script src="js/common.js?v=2"></script>
+<script src="js/station.js?v=2"></script>
+</body>
+</html>

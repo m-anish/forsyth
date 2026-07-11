@@ -1,0 +1,137 @@
+# Forsyth cloud stack.
+#
+# Profiles:
+#   (none)  core: db + api + worker + mosquitto — always on
+#   sim     simulator + skycam — dummy data until real hardware exists
+#   prod    caddy (TLS termination) — only on the VPS, where DNS points here
+#
+# Local dev:   docker compose --profile sim up --build     → http://localhost:8080
+# VPS:         docker compose --profile sim --profile prod up -d
+
+name: forsyth
+
+services:
+  db:
+    image: timescale/timescaledb:2.17.2-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: forsyth
+      POSTGRES_USER: forsyth
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set in .env}
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forsyth -d forsyth"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
+    environment: &app_env
+      DATABASE_URL: postgresql+psycopg://forsyth:${DB_PASSWORD}@db:5432/forsyth
+      ADMIN_KEY: ${ADMIN_KEY:?set in .env}
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      MQTT_USERNAME: ${MQTT_APP_USER:-forsyth-api}
+      MQTT_PASSWORD: ${MQTT_APP_PASSWORD:-}
+      MEDIA_ROOT: /data/media
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      WU_ENABLED: ${WU_ENABLED:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - media:/data/media
+    ports:
+      - "8080:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+
+  worker:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
+    command: python -m app.worker
+    environment: *app_env
+    volumes:
+      - media:/data/media
+      - backups:/data/backups
+    depends_on:
+      db:
+        condition: service_healthy
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    restart: unless-stopped
+    # Seed an empty password file on first boot (mosquitto exits if it's missing),
+    # with the ownership/permissions 2.x insists on.
+    entrypoint: >
+      sh -c "touch /mosquitto/passwd/passwd
+      && chown mosquitto:mosquitto /mosquitto/passwd/passwd
+      && chmod 0700 /mosquitto/passwd/passwd
+      && exec mosquitto -c /mosquitto/config/mosquitto.conf"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-passwd:/mosquitto/passwd
+    ports:
+      - "1883:1883"
+    # First run: create credentials for the api bridge + each device, e.g.
+    #   docker compose exec mosquitto mosquitto_passwd -c -b /mosquitto/passwd/passwd forsyth-api <pw>
+    #   docker compose exec mosquitto mosquitto_passwd -b /mosquitto/passwd/passwd coordinator-01 <pw>
+    #   docker compose restart mosquitto
+
+  simulator:
+    profiles: ["sim"]
+    build: ./simulator
+    restart: unless-stopped
+    environment:
+      API_BASE: http://api:8000
+      ADMIN_KEY: ${ADMIN_KEY}
+      SIM_BACKFILL_DAYS: ${SIM_BACKFILL_DAYS:-7}
+      SIM_INTERVAL_S: ${SIM_INTERVAL_S:-60}
+    depends_on:
+      - api
+
+  skycam:
+    profiles: ["sim"]
+    build: ./simulator
+    restart: unless-stopped
+    command: python skycam.py
+    environment:
+      API_BASE: http://api:8000
+      ADMIN_KEY: ${ADMIN_KEY}
+      SKYCAM_STATION: ridge
+      SKYCAM_INTERVAL_S: ${SKYCAM_INTERVAL_S:-180}
+      SKYCAM_BACKFILL: ${SKYCAM_BACKFILL:-1}
+    depends_on:
+      - api
+
+  caddy:
+    profiles: ["prod"]
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    environment:
+      DOMAIN: ${DOMAIN:-live.forsyth.starstucklab.com}
+    depends_on:
+      - api
+
+volumes:
+  dbdata:
+  media:
+  backups:
+  mosquitto-data:
+  mosquitto-passwd:
+  caddy-data:

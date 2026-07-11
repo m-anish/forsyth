@@ -1,0 +1,23 @@
+[project]
+name = "forsyth-cloud"
+version = "0.1.0"
+description = "Forsyth weather mesh — ingest API, dashboard, and jobs"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    "pydantic>=2.8",
+    "python-multipart>=0.0.9",
+    "paho-mqtt>=2.1",
+    "apscheduler>=3.10",
+    "httpx>=0.27",
+    "pillow>=10.4",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "pytest-timeout>=2"]
+
+[tool.setuptools]
+packages = ["app", "app.jobs"]

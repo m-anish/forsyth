@@ -1,0 +1,211 @@
+"""Read paths: everything the dashboard (and any curious curl) consumes."""
+import csv
+import io
+from datetime import datetime, timedelta, timezone
+
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import StreamingResponse
+from sqlalchemy import text
+
+from .db import engine
+from .ingest import READING_FIELDS
+
+router = APIRouter(prefix="/api/v1")
+
+NUMERIC_METRICS = [f for f in READING_FIELDS if f != "solar_state"]
+
+
+def _station_id(conn, slug: str) -> int:
+    row = conn.execute(text("SELECT id FROM stations WHERE slug = :s"), {"s": slug}).first()
+    if row is None:
+        raise HTTPException(404, "no such station")
+    return row[0]
+
+
+@router.get("/stations")
+def list_stations():
+    """All stations with their latest reading and last-seen time."""
+    sql = text("""
+        SELECT s.slug, s.name, s.lat, s.lon, s.elevation_m, s.is_simulated,
+               r.ts AS last_seen,
+               r.temp_c, r.rh, r.pressure_pa, r.wind_avg_ms, r.wind_gust_ms,
+               r.wind_dir_deg, r.rain_mm, r.pm1, r.pm25, r.pm10,
+               r.batt_v, r.solar_state, r.rssi_dbm
+        FROM stations s
+        LEFT JOIN LATERAL (
+            SELECT * FROM readings WHERE station_id = s.id
+            ORDER BY ts DESC LIMIT 1
+        ) r ON TRUE
+        ORDER BY s.slug
+    """)
+    with engine.connect() as conn:
+        rows = [dict(m) for m in conn.execute(sql).mappings()]
+    return {"stations": rows}
+
+
+@router.get("/stations/{slug}/latest")
+def latest(slug: str):
+    with engine.connect() as conn:
+        sid = _station_id(conn, slug)
+        row = conn.execute(
+            text("SELECT * FROM readings WHERE station_id = :sid ORDER BY ts DESC LIMIT 1"),
+            {"sid": sid},
+        ).mappings().first()
+    if row is None:
+        raise HTTPException(404, "no readings yet")
+    return dict(row)
+
+
+@router.get("/stations/{slug}/series")
+def series(
+    slug: str,
+    metrics: str = Query("temp_c", description="comma-separated reading columns"),
+    hours: float = Query(24, gt=0, le=24 * 366),
+):
+    """uPlot-shaped: {"ts": [epoch...], "series": {metric: [values...]}}.
+    Buckets scale with the window; long windows read the hourly rollup."""
+    cols = [m.strip() for m in metrics.split(",") if m.strip()]
+    bad = [c for c in cols if c not in NUMERIC_METRICS]
+    if bad:
+        raise HTTPException(400, f"unknown metrics: {bad}")
+
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+    if hours <= 48:
+        bucket, source = "5 minutes", "readings"
+    elif hours <= 24 * 14:
+        bucket, source = "1 hour", "readings_hourly"
+    else:
+        bucket, source = "1 day", "readings_hourly"
+    ts_col = "ts" if source == "readings" else "bucket"
+
+    agg = ", ".join(
+        f"{'max' if c == 'wind_gust_ms' else 'sum' if c == 'rain_mm' else 'avg'}({c}) AS {c}"
+        for c in cols
+    )
+    sql = text(f"""
+        SELECT time_bucket(:bucket, {ts_col}) AS t, {agg}
+        FROM {source}
+        WHERE station_id = :sid AND {ts_col} >= :since
+        GROUP BY t ORDER BY t
+    """)
+    with engine.connect() as conn:
+        sid = _station_id(conn, slug)
+        rows = conn.execute(sql, {"bucket": bucket, "sid": sid, "since": since}).all()
+    return {
+        "ts": [int(r[0].timestamp()) for r in rows],
+        "series": {c: [r[i + 1] for r in rows] for i, c in enumerate(cols)},
+        "bucket": bucket,
+    }
+
+
+@router.get("/stations/{slug}/windrose")
+def windrose(slug: str, hours: float = Query(24, gt=0, le=24 * 366)):
+    """16 compass bins: sample count + mean speed per bin."""
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+    sql = text("""
+        SELECT (floor((((wind_dir_deg + 11.25)::numeric % 360) / 22.5))::int) AS bin,
+               count(*) AS n, avg(wind_avg_ms) AS speed
+        FROM readings
+        WHERE station_id = :sid AND ts >= :since AND wind_dir_deg IS NOT NULL
+        GROUP BY bin ORDER BY bin
+    """)
+    with engine.connect() as conn:
+        sid = _station_id(conn, slug)
+        rows = conn.execute(sql, {"sid": sid, "since": since}).all()
+    bins = [{"n": 0, "speed": 0.0} for _ in range(16)]
+    for b, n, speed in rows:
+        bins[int(b)] = {"n": n, "speed": round(speed or 0, 2)}
+    return {"bins": bins, "total": sum(b["n"] for b in bins)}
+
+
+@router.get("/lightning")
+def lightning(hours: float = Query(48, gt=0, le=24 * 366), slug: str | None = None):
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+    sql = """
+        SELECT s.slug, l.ts, l.distance_km, l.energy, l.count
+        FROM lightning_events l JOIN stations s ON s.id = l.station_id
+        WHERE l.ts >= :since
+    """
+    params: dict = {"since": since}
+    if slug:
+        sql += " AND s.slug = :slug"
+        params["slug"] = slug
+    sql += " ORDER BY l.ts DESC LIMIT 500"
+    with engine.connect() as conn:
+        rows = [dict(m) for m in conn.execute(text(sql), params).mappings()]
+    return {"events": rows}
+
+
+@router.get("/stations/{slug}/frames/latest")
+def latest_frame(slug: str):
+    with engine.connect() as conn:
+        sid = _station_id(conn, slug)
+        row = conn.execute(
+            text("""SELECT ts, path FROM camera_frames
+                    WHERE station_id = :sid ORDER BY ts DESC LIMIT 1"""),
+            {"sid": sid},
+        ).mappings().first()
+    if row is None:
+        raise HTTPException(404, "no frames")
+    return {"ts": row["ts"], "url": f"/media/{row['path']}"}
+
+
+@router.get("/stations/{slug}/timelapses")
+def timelapses(slug: str):
+    with engine.connect() as conn:
+        sid = _station_id(conn, slug)
+        rows = conn.execute(
+            text("""SELECT day, path, frame_count, duration_s FROM timelapses
+                    WHERE station_id = :sid ORDER BY day DESC LIMIT 60"""),
+            {"sid": sid},
+        ).mappings().all()
+    return {"timelapses": [
+        {"day": str(r["day"]), "url": f"/media/{r['path']}",
+         "frame_count": r["frame_count"], "duration_s": r["duration_s"]}
+        for r in rows
+    ]}
+
+
+@router.get("/export/{slug}.csv")
+def export_csv(slug: str, hours: float = Query(24 * 7, gt=0, le=24 * 366)):
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
+    cols = ["ts"] + READING_FIELDS
+    sql = text(f"""SELECT {', '.join(cols)} FROM readings
+                   WHERE station_id = :sid AND ts >= :since ORDER BY ts""")
+
+    with engine.connect() as conn:
+        sid = _station_id(conn, slug)
+        rows = conn.execute(sql, {"sid": sid, "since": since}).all()
+
+    def generate():
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(cols)
+        for r in rows:
+            w.writerow([r[0].isoformat()] + list(r[1:]))
+            if buf.tell() > 64 * 1024:
+                yield buf.getvalue(); buf.seek(0); buf.truncate()
+        yield buf.getvalue()
+
+    return StreamingResponse(
+        generate(), media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{slug}.csv"'},
+    )
+
+
+@router.get("/health")
+def health():
+    """Mesh self-monitoring: last-seen, battery, staleness per station."""
+    sql = text("""
+        SELECT s.slug, s.is_simulated, r.ts AS last_seen, r.batt_v, r.rssi_dbm,
+               (r.ts IS NULL OR r.ts < now() - INTERVAL '30 minutes') AS stale
+        FROM stations s
+        LEFT JOIN LATERAL (
+            SELECT ts, batt_v, rssi_dbm FROM readings
+            WHERE station_id = s.id ORDER BY ts DESC LIMIT 1
+        ) r ON TRUE
+        ORDER BY s.slug
+    """)
+    with engine.connect() as conn:
+        rows = [dict(m) for m in conn.execute(sql).mappings()]
+    return {"stations": rows, "ok": all(not r["stale"] for r in rows) if rows else True}

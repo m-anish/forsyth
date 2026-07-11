@@ -1,0 +1,6 @@
+# TLS termination on the VPS. Cloudflare DNS should point {$DOMAIN} at this box
+# ("DNS only" / grey cloud, or set Cloudflare SSL mode to Full (strict)).
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy api:8000
+}
