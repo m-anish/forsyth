@@ -46,6 +46,48 @@ SELECT add_continuous_aggregate_policy('readings_hourly',
 _CAGG_REALTIME = "ALTER MATERIALIZED VIEW readings_hourly SET (timescaledb.materialized_only = false)"
 
 
+def _migrate_boards_v1(conn) -> None:
+    """boards v1 was keyed by owner with '__default__' for the site board.
+    v2 is slug-addressed with visibility. One-way, loses nothing."""
+    has_slug = conn.execute(text(
+        "SELECT 1 FROM information_schema.columns "
+        "WHERE table_name = 'boards' AND column_name = 'slug'")).first()
+    exists = conn.execute(text(
+        "SELECT 1 FROM information_schema.tables WHERE table_name = 'boards'")).first()
+    if not exists or has_slug:
+        return
+    log.info("migrating boards v1 → v2")
+    conn.execute(text("ALTER TABLE boards RENAME TO boards_v1"))
+    conn.execute(text("""
+        CREATE TABLE boards (
+            slug TEXT PRIMARY KEY,
+            owner TEXT REFERENCES users(username) ON DELETE CASCADE,
+            title TEXT NOT NULL DEFAULT '',
+            is_public BOOLEAN NOT NULL DEFAULT FALSE,
+            layout JSONB NOT NULL,
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT now())"""))
+    rows = conn.execute(text("SELECT owner, layout, updated_at FROM boards_v1")).all()
+    for owner, layout, updated in rows:
+        title = (layout or {}).get("title", "")
+        if owner == "__default__":
+            conn.execute(text(
+                "INSERT INTO boards (slug, owner, title, is_public, layout, updated_at) "
+                "VALUES ('default', NULL, :t, TRUE, :l, :u) ON CONFLICT DO NOTHING"),
+                {"t": title or "The mesh, at a glance", "l": json_dumps(layout), "u": updated})
+        else:
+            conn.execute(text(
+                "INSERT INTO boards (slug, owner, title, is_public, layout, updated_at) "
+                "VALUES (:s, :o, :t, FALSE, :l, :u) ON CONFLICT DO NOTHING"),
+                {"s": f"{owner}-board", "o": owner, "t": title or f"{owner}'s board",
+                 "l": json_dumps(layout), "u": updated})
+    conn.execute(text("DROP TABLE boards_v1"))
+
+
+def json_dumps(obj) -> str:
+    import json
+    return json.dumps(obj)
+
+
 def init_db() -> None:
     schema = (Path(__file__).parent / "schema.sql").read_text()
     # psycopg3 speaks the extended protocol: one statement per execute — and
@@ -53,7 +95,10 @@ def init_db() -> None:
     bare = "\n".join(line.split("--", 1)[0] for line in schema.splitlines())
     statements = [s.strip() for s in bare.split(";") if s.strip()]
     with engine.begin() as conn:
+        # users table must exist before the boards FK; run migration between
         for stmt in statements:
+            if stmt.startswith("CREATE TABLE IF NOT EXISTS boards"):
+                _migrate_boards_v1(conn)
             conn.execute(text(stmt))
     # continuous aggregate + policy must run outside a transaction block
     with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:

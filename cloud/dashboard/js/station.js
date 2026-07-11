@@ -134,6 +134,23 @@ async function drawCharts() {
 /* charts follow the theme */
 window.addEventListener('themechange', () => { if (Object.keys(S.charts).length) drawCharts(); });
 
+/* ---------- data download ---------- */
+
+function dlTarget() {
+  return document.getElementById('dl-all').checked ? 'all' : slug;
+}
+document.querySelectorAll('[data-dl-hours]').forEach(b => b.onclick = () => {
+  location.href = `${API}/export/${dlTarget()}.csv?hours=${b.dataset.dlHours}`;
+});
+document.getElementById('dl-custom-btn').onclick = () => {
+  const s = document.getElementById('dl-start').value;
+  const e = document.getElementById('dl-end').value;
+  if (!s) { alert('Pick a start date.'); return; }
+  let url = `${API}/export/${dlTarget()}.csv?start=${s}T00:00:00Z`;
+  if (e) url += `&end=${e}T23:59:59Z`;
+  location.href = url;
+};
+
 /* range picker */
 const rangeEl = document.querySelector('.range');
 for (const [label, hours] of [['24 h', 24], ['7 d', 168], ['30 d', 720]]) {

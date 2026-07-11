@@ -61,8 +61,15 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- boards v2: many per user, slug-addressed, public/private.
+-- The site homepage board is the special slug 'default' (owner NULL, admin-managed).
 CREATE TABLE IF NOT EXISTS boards (
-    owner      TEXT PRIMARY KEY,        -- username, or '__default__' for the public board
+    slug       TEXT PRIMARY KEY,
+    owner      TEXT REFERENCES users(username) ON DELETE CASCADE,
+    title      TEXT NOT NULL DEFAULT '',
+    is_public  BOOLEAN NOT NULL DEFAULT FALSE,
     layout     JSONB NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

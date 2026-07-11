@@ -1,22 +1,27 @@
-"""User accounts + custom dashboards ("boards").
+"""User accounts, admin management, and dashboards ("boards").
 
-Deliberately light: scrypt password hashes and HMAC-signed session cookies from
-the stdlib — no new dependencies, no OAuth, no roles. Users are created by the
-admin key; every logged-in user may edit their own board and publish it as the
-public default (small, trusted userbase by design).
+Model:
+- users: scrypt hashes, HMAC-signed session cookie, optional is_admin.
+- boards: many per user, slug-addressed. Private (owner only) or public
+  (anyone with the link). The site homepage arrangement is the special slug
+  'default' — owner NULL, editable by admins only.
+- Admin actions accept EITHER an is_admin session OR the ADMIN_KEY bearer
+  (bootstrap path, and what the simulator uses).
 
-    POST /api/v1/auth/login     {username, password} → session cookie (30 days)
-    POST /api/v1/auth/logout
-    GET  /api/v1/auth/me
-    POST /api/v1/users          (admin bearer) {username, password}
-    GET  /api/v1/boards/default          public default layout
-    GET  /api/v1/boards/mine             (session) own layout, falls back to default
-    PUT  /api/v1/boards/mine[?set_default=1]  (session) save layout
+    POST /api/v1/auth/login|logout · GET /auth/me
+    GET/POST /api/v1/users · DELETE /users/{name}          (admin)
+    GET  /api/v1/boards                    my boards       (session)
+    POST /api/v1/boards {title}            create          (session)
+    GET  /api/v1/boards/{slug}             owner|public|default
+    PUT  /api/v1/boards/{slug}             owner (admin for 'default')
+    DELETE /api/v1/boards/{slug}           owner
+    POST /api/v1/boards/{slug}/publish-home  copy layout → 'default' (admin)
 """
 import hashlib
 import hmac
 import json
 import logging
+import re
 import secrets
 import time
 
@@ -24,7 +29,6 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
-from .auth import AdminDep
 from .config import settings
 from .db import engine
 
@@ -50,6 +54,8 @@ DEFAULT_LAYOUT = {
     ],
 }
 
+
+# ---------- crypto plumbing ----------
 
 def _secret() -> bytes:
     return hashlib.sha256(b"forsyth-session:" + settings.admin_key.encode()).digest()
@@ -90,19 +96,45 @@ def _verify_token(token: str) -> str | None:
         return None
 
 
-def current_user(request: Request) -> str | None:
+# ---------- auth dependencies ----------
+
+def current_user(request: Request) -> dict | None:
     tok = request.cookies.get(COOKIE)
-    return _verify_token(tok) if tok else None
+    name = _verify_token(tok) if tok else None
+    if not name:
+        return None
+    with engine.connect() as conn:
+        row = conn.execute(text(
+            "SELECT username, is_admin FROM users WHERE username = :u"), {"u": name}
+        ).mappings().first()
+    return dict(row) if row else None
 
 
-def require_user(request: Request) -> str:
+def require_user(request: Request) -> dict:
     user = current_user(request)
     if not user:
         raise HTTPException(401, "not signed in")
     return user
 
 
-# ---------- auth ----------
+def _has_admin_key(request: Request) -> bool:
+    auth = request.headers.get("authorization", "")
+    token = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
+    return bool(settings.admin_key and token
+                and secrets.compare_digest(token, settings.admin_key))
+
+
+def require_admin(request: Request) -> str:
+    """Admin session user OR the raw ADMIN_KEY bearer (bootstrap)."""
+    if _has_admin_key(request):
+        return "__admin_key__"
+    user = current_user(request)
+    if user and user["is_admin"]:
+        return user["username"]
+    raise HTTPException(403, "admin only")
+
+
+# ---------- auth endpoints ----------
 
 class LoginBody(BaseModel):
     username: str
@@ -135,25 +167,57 @@ def me(request: Request):
     user = current_user(request)
     if not user:
         raise HTTPException(401, "not signed in")
-    return {"username": user}
+    return user
 
+
+# ---------- user management (admin) ----------
 
 class UserBody(BaseModel):
     username: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{1,30}$")
     password: str = Field(min_length=8)
+    is_admin: bool = False
 
 
-@router.post("/users", dependencies=[AdminDep], status_code=201)
-def create_user(body: UserBody):
-    """Create a user, or reset their password if they exist (admin key)."""
+@router.get("/users")
+def list_users(request: Request):
+    require_admin(request)
+    with engine.connect() as conn:
+        rows = conn.execute(text("""
+            SELECT u.username, u.is_admin, u.created_at,
+                   count(b.slug) AS boards
+            FROM users u LEFT JOIN boards b ON b.owner = u.username
+            GROUP BY u.username, u.is_admin, u.created_at
+            ORDER BY u.created_at""")).mappings().all()
+    return {"users": [dict(r) for r in rows]}
+
+
+@router.post("/users", status_code=201)
+def create_user(body: UserBody, request: Request):
+    """Create a user, or reset password/admin flag if they exist."""
+    require_admin(request)
     with engine.begin() as conn:
         conn.execute(
-            text("""INSERT INTO users (username, pw_hash) VALUES (:u, :h)
-                    ON CONFLICT (username) DO UPDATE SET pw_hash = EXCLUDED.pw_hash"""),
-            {"u": body.username, "h": _hash_pw(body.password)},
+            text("""INSERT INTO users (username, pw_hash, is_admin)
+                    VALUES (:u, :h, :a)
+                    ON CONFLICT (username) DO UPDATE
+                        SET pw_hash = EXCLUDED.pw_hash, is_admin = EXCLUDED.is_admin"""),
+            {"u": body.username, "h": _hash_pw(body.password), "a": body.is_admin},
         )
-    log.info("user %s created/reset", body.username)
-    return {"ok": True, "username": body.username}
+    log.info("user %s created/reset (admin=%s)", body.username, body.is_admin)
+    return {"ok": True, "username": body.username, "is_admin": body.is_admin}
+
+
+@router.delete("/users/{username}")
+def delete_user(username: str, request: Request):
+    actor = require_admin(request)
+    if actor == username:
+        raise HTTPException(400, "not while you're signed in as them")
+    with engine.begin() as conn:
+        n = conn.execute(text("DELETE FROM users WHERE username = :u"),
+                         {"u": username}).rowcount
+    if not n:
+        raise HTTPException(404, "no such user")
+    return {"ok": True}  # their boards cascade
 
 
 # ---------- boards ----------
@@ -176,40 +240,131 @@ def _validate_layout(layout: dict) -> dict:
     return {"title": title, "widgets": widgets}
 
 
-def _get_board(owner: str) -> dict | None:
+def _slugify(title: str, conn) -> str:
+    base = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:24] or "board"
+    slug = base
+    while conn.execute(text("SELECT 1 FROM boards WHERE slug = :s"), {"s": slug}).first():
+        slug = f"{base}-{secrets.token_hex(2)}"
+    return slug
+
+
+def _board_row(conn, slug: str):
+    return conn.execute(text(
+        "SELECT slug, owner, title, is_public, layout, updated_at "
+        "FROM boards WHERE slug = :s"), {"s": slug}).mappings().first()
+
+
+@router.get("/boards")
+def my_boards(request: Request):
+    user = require_user(request)
     with engine.connect() as conn:
-        row = conn.execute(text("SELECT layout FROM boards WHERE owner = :o"),
-                           {"o": owner}).first()
-    return row[0] if row else None
+        rows = conn.execute(text(
+            "SELECT slug, title, is_public, updated_at FROM boards "
+            "WHERE owner = :o ORDER BY updated_at DESC"), {"o": user["username"]}
+        ).mappings().all()
+    return {"boards": [dict(r) for r in rows], "is_admin": user["is_admin"]}
 
 
-@router.get("/boards/default")
-def default_board():
-    return {"layout": _get_board("__default__") or DEFAULT_LAYOUT, "owner": "__default__"}
+class BoardCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=80)
 
 
-@router.get("/boards/mine")
-def my_board(request: Request):
+@router.post("/boards", status_code=201)
+def create_board(body: BoardCreate, request: Request):
     user = require_user(request)
-    layout = _get_board(user) or _get_board("__default__") or DEFAULT_LAYOUT
-    return {"layout": layout, "owner": user}
-
-
-class BoardBody(BaseModel):
-    layout: dict
-
-
-@router.put("/boards/mine")
-def save_board(body: BoardBody, request: Request, set_default: bool = False):
-    user = require_user(request)
-    layout = _validate_layout(body.layout)
+    layout = dict(DEFAULT_LAYOUT, title=body.title)
     with engine.begin() as conn:
-        for owner in ([user, "__default__"] if set_default else [user]):
-            conn.execute(
-                text("""INSERT INTO boards (owner, layout, updated_at)
-                        VALUES (:o, :l, now())
-                        ON CONFLICT (owner) DO UPDATE
-                            SET layout = EXCLUDED.layout, updated_at = now()"""),
-                {"o": owner, "l": json.dumps(layout)},
-            )
-    return {"ok": True, "set_default": set_default}
+        slug = _slugify(body.title, conn)
+        conn.execute(text(
+            "INSERT INTO boards (slug, owner, title, is_public, layout) "
+            "VALUES (:s, :o, :t, FALSE, :l)"),
+            {"s": slug, "o": user["username"], "t": body.title, "l": json.dumps(layout)})
+    return {"slug": slug, "title": body.title}
+
+
+@router.get("/boards/{slug}")
+def get_board(slug: str, request: Request):
+    with engine.connect() as conn:
+        row = _board_row(conn, slug)
+    if row is None:
+        if slug == "default":   # first boot: synthesize the site board
+            return {"slug": "default", "owner": None, "title": DEFAULT_LAYOUT["title"],
+                    "is_public": True, "layout": DEFAULT_LAYOUT, "can_edit": False}
+        raise HTTPException(404, "no such board")
+    user = current_user(request)
+    is_owner = user and user["username"] == row["owner"]
+    is_admin = bool(user and user["is_admin"])
+    if not (row["is_public"] or slug == "default" or is_owner or is_admin):
+        raise HTTPException(403, "this board is private")
+    can_edit = is_owner or (slug == "default" and is_admin)
+    return {**dict(row), "can_edit": can_edit}
+
+
+class BoardUpdate(BaseModel):
+    layout: dict | None = None
+    title: str | None = Field(None, max_length=80)
+    is_public: bool | None = None
+
+
+@router.put("/boards/{slug}")
+def update_board(slug: str, body: BoardUpdate, request: Request):
+    user = require_user(request)
+    with engine.begin() as conn:
+        row = _board_row(conn, slug)
+        if row is None:
+            if slug != "default" or not user["is_admin"]:
+                raise HTTPException(404, "no such board")
+            conn.execute(text(
+                "INSERT INTO boards (slug, owner, title, is_public, layout) "
+                "VALUES ('default', NULL, :t, TRUE, :l)"),
+                {"t": DEFAULT_LAYOUT["title"], "l": json.dumps(DEFAULT_LAYOUT)})
+            row = _board_row(conn, "default")
+        may = user["username"] == row["owner"] or (slug == "default" and user["is_admin"])
+        if not may:
+            raise HTTPException(403, "not your board")
+        sets, params = [], {"s": slug}
+        if body.layout is not None:
+            params["l"] = json.dumps(_validate_layout(body.layout))
+            sets.append("layout = :l")
+        if body.title is not None:
+            params["t"] = body.title
+            sets.append("title = :t")
+        if body.is_public is not None and slug != "default":
+            params["p"] = body.is_public
+            sets.append("is_public = :p")
+        if sets:
+            conn.execute(text(
+                f"UPDATE boards SET {', '.join(sets)}, updated_at = now() WHERE slug = :s"),
+                params)
+    return {"ok": True}
+
+
+@router.delete("/boards/{slug}")
+def delete_board(slug: str, request: Request):
+    user = require_user(request)
+    if slug == "default":
+        raise HTTPException(400, "the homepage board is not deletable")
+    with engine.begin() as conn:
+        n = conn.execute(text(
+            "DELETE FROM boards WHERE slug = :s AND owner = :o"),
+            {"s": slug, "o": user["username"]}).rowcount
+    if not n:
+        raise HTTPException(404, "no such board of yours")
+    return {"ok": True}
+
+
+@router.post("/boards/{slug}/publish-home")
+def publish_home(slug: str, request: Request):
+    """Copy this board's layout onto the site homepage board (admins)."""
+    require_admin(request)
+    with engine.begin() as conn:
+        row = _board_row(conn, slug)
+        if row is None:
+            raise HTTPException(404, "no such board")
+        conn.execute(text(
+            "INSERT INTO boards (slug, owner, title, is_public, layout) "
+            "VALUES ('default', NULL, :t, TRUE, :l) "
+            "ON CONFLICT (slug) DO UPDATE SET layout = EXCLUDED.layout, "
+            "title = EXCLUDED.title, updated_at = now()"),
+            {"t": row["title"], "l": json.dumps(row["layout"])})
+    return {"ok": True}

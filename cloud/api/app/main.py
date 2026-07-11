@@ -3,11 +3,10 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 
 from .accounts import router as accounts_router
-from .auth import AdminDep
 from .config import settings
 from .db import init_db
 from .ingest import router as ingest_router
@@ -43,9 +42,12 @@ app.include_router(summary_router)
 app.include_router(accounts_router)
 
 
-@app.post("/api/v1/admin/run/{job}", dependencies=[AdminDep])
-def run_job(job: str):
-    """Manually trigger a worker job (verification & catch-up). Runs inline."""
+@app.post("/api/v1/admin/run/{job}")
+def run_job(job: str, request: Request):
+    """Manually trigger a worker job (verification & catch-up). Runs inline.
+    Auth: ADMIN_KEY bearer or an is_admin session (the admin console)."""
+    from .accounts import require_admin
+    require_admin(request)
     from .jobs import backup, retention, timelapse, wunderground
     jobs = {
         "timelapse": timelapse.run,

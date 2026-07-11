@@ -1,26 +1,30 @@
-/* forsyth board — layout engine: GridStack + widget registry + auth. */
+/* forsyth board — layout engine: GridStack + widget registry + auth + multi-boards.
+   URL: board.html            → the site homepage board ('default')
+        board.html?b=<slug>   → a specific board (owner always; others if public) */
 'use strict';
 
-const B = { user: null, grid: null, editing: false, meta: new Map(), title: '' };
+const B = { user: null, grid: null, editing: false, meta: new Map(),
+            slug: new URLSearchParams(location.search).get('b') || 'default',
+            board: null };
 let widSeq = 0;
 
 /* ---------- api ---------- */
 
-async function postJSON(path, body) {
+async function apiJSON(path, opts = {}) {
   const r = await fetch(API + path, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body), credentials: 'same-origin',
+    credentials: 'same-origin',
+    headers: opts.body ? { 'Content-Type': 'application/json' } : {},
+    ...opts,
   });
-  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.status);
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `HTTP ${r.status}`);
   return r.json();
 }
 
 async function whoami() {
-  try { return (await (await fetch(API + '/auth/me', { credentials: 'same-origin' })).json()).username || null; }
-  catch { return null; }
+  try { return await apiJSON('/auth/me'); } catch { return null; }
 }
 
-/* ---------- widget DOM ---------- */
+/* ---------- widget DOM (unchanged mechanics) ---------- */
 
 function widgetEl(w) {
   const el = document.createElement('div');
@@ -62,14 +66,35 @@ function renderAll() {
 /* ---------- board load/save ---------- */
 
 async function loadBoard() {
-  const path = B.user ? '/boards/mine' : '/boards/default';
-  const { layout } = await (await fetch(API + path, { credentials: 'same-origin' })).json();
-  B.title = layout.title || 'The mesh, at a glance';
-  document.getElementById('board-heading').textContent = B.title;
-  document.getElementById('board-title').value = B.title;
-  document.getElementById('board-sub').textContent = B.user
-    ? `Signed in as ${B.user}. This board is yours to rearrange.`
-    : 'The public arrangement. Sign in to make your own.';
+  let board;
+  try {
+    board = await apiJSON(`/boards/${B.slug}`);
+  } catch (e) {
+    document.getElementById('board-heading').textContent = 'No such board.';
+    document.getElementById('board-sub').textContent =
+      e.message.includes('private') ? 'This board is private. Its owner likes it that way.'
+                                    : 'Nothing lives at this address.';
+    return;
+  }
+  B.board = board;
+  const layout = board.layout;
+  document.getElementById('board-heading').textContent = board.title || layout.title || 'Board';
+  document.getElementById('board-title').value = board.title || '';
+  document.getElementById('is-public').checked = !!board.is_public;
+  document.getElementById('vis-wrap').style.display = B.slug === 'default' ? 'none' : '';
+  document.getElementById('btn-delete-board').hidden = B.slug === 'default';
+  document.getElementById('btn-publish-home').hidden = !(B.user && B.user.is_admin && B.slug !== 'default');
+  document.getElementById('btn-edit').hidden = !board.can_edit;
+
+  const sub = document.getElementById('board-sub');
+  if (B.slug === 'default') {
+    sub.textContent = B.user
+      ? (B.user.is_admin ? 'The homepage board. What visitors see; you can edit it.'
+                         : 'The homepage board. Make your own with “+ board”.')
+      : 'The public arrangement. Sign in to make your own.';
+  } else {
+    sub.textContent = `${board.owner}'s board · ${board.is_public ? 'public — anyone with this link' : 'private'}`;
+  }
 
   B.grid.removeAll();
   B.meta.clear();
@@ -81,6 +106,20 @@ async function loadBoard() {
   renderAll();
 }
 
+async function loadPicker() {
+  const picker = document.getElementById('board-picker');
+  if (!B.user) { picker.hidden = true; return; }
+  const { boards } = await apiJSON('/boards');
+  picker.innerHTML =
+    `<option value="default" ${B.slug === 'default' ? 'selected' : ''}>· homepage board ·</option>` +
+    boards.map(b => `<option value="${b.slug}" ${b.slug === B.slug ? 'selected' : ''}>
+        ${b.title}${b.is_public ? ' ⚭' : ''}</option>`).join('');
+  picker.hidden = false;
+  picker.onchange = () => {
+    location.href = picker.value === 'default' ? 'board.html' : `board.html?b=${picker.value}`;
+  };
+}
+
 function collectLayout() {
   const widgets = [];
   for (const node of B.grid.engine.nodes) {
@@ -90,17 +129,20 @@ function collectLayout() {
     widgets.push({ id, type: meta.type, x: node.x, y: node.y, w: node.w, h: node.h,
                    config: meta.config });
   }
-  return { title: document.getElementById('board-title').value || B.title, widgets };
+  const title = document.getElementById('board-title').value || B.board.title || 'Board';
+  return { title, widgets };
 }
 
 async function saveBoard() {
-  const setDefault = document.getElementById('set-default').checked;
-  await fetch(API + '/boards/mine?set_default=' + setDefault, {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin', body: JSON.stringify({ layout: collectLayout() }),
-  }).then(r => { if (!r.ok) throw new Error('save failed: ' + r.status); });
-  document.getElementById('board-heading').textContent =
-    document.getElementById('board-title').value || B.title;
+  const layout = collectLayout();
+  await apiJSON(`/boards/${B.slug}`, {
+    method: 'PUT',
+    body: JSON.stringify({
+      layout, title: layout.title,
+      is_public: B.slug === 'default' ? null : document.getElementById('is-public').checked,
+    }),
+  });
+  document.getElementById('board-heading').textContent = layout.title;
   const btn = document.getElementById('btn-save');
   btn.textContent = 'saved ✓';
   setTimeout(() => { btn.textContent = 'save'; }, 1800);
@@ -121,14 +163,14 @@ async function openConfig(el) {
   const reg = Widgets.REGISTRY[meta.type];
   const fields = document.getElementById('cfg-fields');
   const stations = await Widgets.stations();
-  const opt = (slug, cur) => stations.map(s =>
+  const opt = (cur) => stations.map(s =>
     `<option value="${s.slug}" ${s.slug === cur ? 'selected' : ''}>${s.name}</option>`).join('');
   const METRICS = ['temp_c','rh','pressure_pa','wind_avg_ms','wind_gust_ms','rain_mm','pm25','pm10','batt_v','rssi_dbm'];
 
   let html = '';
   for (const f of reg.fields) {
-    if (f === 'station') html += `<label>station <select name="station">${opt('station', meta.config.station || stations[0]?.slug)}</select></label>`;
-    if (f === 'stationOrAll') html += `<label>station <select name="station"><option value="">all stations</option>${opt('station', meta.config.station)}</select></label>`;
+    if (f === 'station') html += `<label>station <select name="station">${opt(meta.config.station || stations[0]?.slug)}</select></label>`;
+    if (f === 'stationOrAll') html += `<label>station <select name="station"><option value="">all stations</option>${opt(meta.config.station)}</select></label>`;
     if (f === 'hours') html += `<label>window <select name="hours">
         ${[24, 48, 168, 720].map(h => `<option value="${h}" ${Number(meta.config.hours || 24) === h ? 'selected' : ''}>${h < 48 ? h + ' h' : (h/24) + ' d'}</option>`).join('')}
       </select></label>`;
@@ -163,18 +205,21 @@ async function openConfig(el) {
 
 /* ---------- login ---------- */
 
-function wireLogin() {
-  const btn = document.getElementById('btn-login');
+function applyAuthUI() {
+  document.getElementById('btn-login').textContent = B.user ? `sign out (${B.user.username})` : 'sign in';
+  document.getElementById('btn-new-board').hidden = !B.user;
+  document.getElementById('admin-link').hidden = !(B.user && B.user.is_admin);
+}
+
+function wireChrome() {
+  const loginBtn = document.getElementById('btn-login');
   const dlg = document.getElementById('login-dlg');
   const err = document.getElementById('login-err');
 
-  btn.onclick = async () => {
-    if (B.user) {                       // acting as logout
-      await postJSON('/auth/logout', {});
-      B.user = null;
-      applyAuthUI();
-      setEditing(false);
-      loadBoard();
+  loginBtn.onclick = async () => {
+    if (B.user) {
+      await apiJSON('/auth/logout', { method: 'POST' });
+      location.href = 'board.html';
       return;
     }
     err.textContent = '';
@@ -185,32 +230,46 @@ function wireLogin() {
     ev.preventDefault();
     const form = document.getElementById('login-form');
     try {
-      const r = await postJSON('/auth/login', {
-        username: form.username.value.trim(), password: form.password.value,
-      });
-      B.user = r.username;
+      await apiJSON('/auth/login', { method: 'POST', body: JSON.stringify({
+        username: form.username.value.trim(), password: form.password.value }) });
       dlg.close('done');
+      B.user = await whoami();
       applyAuthUI();
-      loadBoard();
+      await Promise.all([loadBoard(), loadPicker()]);
     } catch (e) {
       err.textContent = 'The station does not recognise you. (' + e.message + ')';
     }
   };
-}
 
-function applyAuthUI() {
-  document.getElementById('btn-login').textContent = B.user ? `sign out (${B.user})` : 'sign in';
-  document.getElementById('btn-edit').hidden = !B.user;
-}
+  document.getElementById('btn-new-board').onclick = async () => {
+    const title = prompt('Name the new board:', 'My corner of the sky');
+    if (!title) return;
+    const r = await apiJSON('/boards', { method: 'POST', body: JSON.stringify({ title }) });
+    location.href = `board.html?b=${r.slug}`;
+  };
 
-/* ---------- boot ---------- */
+  document.getElementById('btn-share').onclick = async (ev) => {
+    const url = B.slug === 'default'
+      ? location.origin + '/board.html'
+      : location.origin + '/board.html?b=' + B.slug;
+    await navigator.clipboard.writeText(url);
+    ev.target.textContent = 'copied ✓';
+    setTimeout(() => { ev.target.textContent = 'copy link'; }, 1500);
+  };
 
-async function boot() {
-  B.grid = GridStack.init({
-    column: 12, cellHeight: 80, margin: 8, staticGrid: true, float: false,
-  }, '#grid');
+  document.getElementById('btn-publish-home').onclick = async () => {
+    if (!confirm('Copy this board onto the site homepage board?')) return;
+    await saveBoard();
+    await apiJSON(`/boards/${B.slug}/publish-home`, { method: 'POST' });
+    alert('The homepage now shows this arrangement.');
+  };
 
-  wireLogin();
+  document.getElementById('btn-delete-board').onclick = async () => {
+    if (!confirm(`Delete "${B.board.title}"? There is no undo.`)) return;
+    await apiJSON(`/boards/${B.slug}`, { method: 'DELETE' });
+    location.href = 'board.html';
+  };
+
   document.getElementById('btn-edit').onclick = () => setEditing(!B.editing);
   document.getElementById('btn-cancel').onclick = () => setEditing(false);
   document.getElementById('btn-save').onclick = () => saveBoard().catch(e => alert(e.message));
@@ -224,10 +283,19 @@ async function boot() {
     B.grid.makeWidget(el);
     renderWidget(el);
   };
+}
 
+/* ---------- boot ---------- */
+
+async function boot() {
+  B.grid = GridStack.init({
+    column: 12, cellHeight: 80, margin: 8, staticGrid: true, float: false,
+  }, '#grid');
+
+  wireChrome();
   B.user = await whoami();
   applyAuthUI();
-  await loadBoard();
+  await Promise.all([loadBoard(), loadPicker()]);
 
   window.addEventListener('themechange', renderAll);
   setInterval(() => { Widgets.invalidate(); if (!B.editing) renderAll(); }, 60_000);

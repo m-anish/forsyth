@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>forsyth · admin</title>
+  <meta name="robots" content="noindex" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/dash.css?v=4" />
+  <link rel="stylesheet" href="css/board.css?v=4" />
+  <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
+  <script src="js/theme.js?v=4"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="/" class="brand"><img src="assets/mark.svg" alt="" aria-hidden="true" />forsyth</a>
+    <span class="crumb">/ live / admin</span>
+    <span class="right">
+      <a href="board.html" class="nav-chip">boards →</a>
+      <button class="theme-btn" type="button" aria-label="switch color theme">◐ auto</button>
+      <button class="tool-btn" id="btn-login" type="button">sign in</button>
+    </span>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="pagehead">
+    <span class="kicker">The back office</span>
+    <h1 class="headline">Admin.</h1>
+    <p class="sub" id="gate-msg">Checking who you are…</p>
+  </div>
+
+  <div id="console" hidden>
+
+    <section class="panel" style="margin-bottom:18px">
+      <div class="headrow"><h3>Users</h3></div>
+      <table class="wg-table" id="users-table">
+        <thead><tr><th>username</th><th>role</th><th>boards</th><th>since</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <form id="user-form" class="admin-form">
+        <input name="username" placeholder="username" pattern="[a-z0-9][a-z0-9_-]{1,30}" required />
+        <input name="password" type="password" placeholder="password (min 8)" minlength="8" required />
+        <label class="pub"><input type="checkbox" name="is_admin" /> admin</label>
+        <button class="tool-btn save" type="submit">create / reset password</button>
+      </form>
+      <p class="wg-empty" style="margin-top:6px">Submitting an existing username resets its password (and admin flag).</p>
+    </section>
+
+    <section class="panel" style="margin-bottom:18px">
+      <div class="headrow"><h3>Stations</h3></div>
+      <table class="wg-table" id="stations-table">
+        <thead><tr><th>slug</th><th>name</th><th>kind</th><th>last heard</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <form id="station-form" class="admin-form">
+        <input name="slug" placeholder="slug" pattern="[a-z0-9][a-z0-9-]{1,30}" required />
+        <input name="name" placeholder="display name" required />
+        <input name="lat" placeholder="lat" type="number" step="any" style="width:90px" />
+        <input name="lon" placeholder="lon" type="number" step="any" style="width:90px" />
+        <input name="elevation_m" placeholder="elev m" type="number" step="any" style="width:80px" />
+        <button class="tool-btn save" type="submit">create / rotate key</button>
+      </form>
+      <div class="key-reveal" id="key-reveal" hidden>
+        <span class="k">API key (shown once — put it in the coordinator now):</span>
+        <code id="key-value"></code>
+      </div>
+      <p class="wg-empty" style="margin-top:6px">Deleting a station cascades its readings, frames and timelapses. Rotating a key breaks the old one immediately.</p>
+    </section>
+
+    <section class="panel">
+      <div class="headrow"><h3>Housekeeping</h3></div>
+      <p class="wg-empty">Manual job runs (also on the worker's schedule):</p>
+      <div class="admin-form">
+        <button class="tool-btn" data-job="timelapse">run timelapse</button>
+        <button class="tool-btn" data-job="retention">run retention</button>
+        <button class="tool-btn" data-job="backup">run backup</button>
+        <button class="tool-btn" data-job="wunderground">run WU push</button>
+      </div>
+      <pre class="job-out" id="job-out"></pre>
+    </section>
+
+  </div>
+</main>
+
+<!-- login dialog (same as board page) -->
+<dialog id="login-dlg">
+  <form method="dialog" id="login-form">
+    <h3>Sign in</h3>
+    <label>username <input name="username" autocomplete="username" required /></label>
+    <label>password <input name="password" type="password" autocomplete="current-password" required /></label>
+    <p class="dlg-err" id="login-err"></p>
+    <div class="dlg-row">
+      <button value="cancel" class="tool-btn" formnovalidate>cancel</button>
+      <button value="ok" class="tool-btn save" id="login-submit">sign in</button>
+    </div>
+  </form>
+</dialog>
+
+<footer class="sl-footer">
+  <div class="wrap">
+    <div class="sl-signoff">
+      <span>⛅ forsyth / the back office</span>
+      <span><a href="/">overview</a> · <a href="board.html">boards</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/common.js?v=4"></script>
+<script src="js/admin.js?v=4"></script>
+</body>
+</html>

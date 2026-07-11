@@ -169,8 +169,10 @@ class StationCreate(BaseModel):
     wu_station_key: str | None = None
 
 
-@router.post("/stations", dependencies=[AdminDep], status_code=201)
-def create_station(body: StationCreate):
+@router.post("/stations", status_code=201)
+def create_station(body: StationCreate, request: Request):
+    from .accounts import require_admin
+    require_admin(request)  # ADMIN_KEY bearer or is_admin session
     """Create a station (or rotate its key if the slug exists).
     Returns the plaintext API key — the only time it is ever shown."""
     key = new_station_key()
@@ -197,8 +199,10 @@ def create_station(body: StationCreate):
     return {"id": row[0], "slug": body.slug, "api_key": key}
 
 
-@router.delete("/stations/{slug}", dependencies=[AdminDep])
-def delete_station(slug: str):
+@router.delete("/stations/{slug}")
+def delete_station(slug: str, request: Request):
+    from .accounts import require_admin
+    require_admin(request)
     with engine.begin() as conn:
         n = conn.execute(text("DELETE FROM stations WHERE slug = :s"), {"s": slug}).rowcount
     if not n:

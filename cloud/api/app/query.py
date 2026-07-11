@@ -167,29 +167,60 @@ def timelapses(slug: str):
 
 
 @router.get("/export/{slug}.csv")
-def export_csv(slug: str, hours: float = Query(24 * 7, gt=0, le=24 * 366)):
-    since = datetime.now(timezone.utc) - timedelta(hours=hours)
-    cols = ["ts"] + READING_FIELDS
-    sql = text(f"""SELECT {', '.join(cols)} FROM readings
-                   WHERE station_id = :sid AND ts >= :since ORDER BY ts""")
+def export_csv(
+    slug: str,
+    hours: float = Query(24 * 7, gt=0, le=24 * 366),
+    start: datetime | None = Query(None, description="ISO start; overrides hours"),
+    end: datetime | None = Query(None, description="ISO end; default now"),
+):
+    """Historical CSV. `slug` may be a station or `all` (adds a station column).
+    Range: either ?hours=N back from now, or explicit ?start=&end= (max 366 days)."""
+    until = end or datetime.now(timezone.utc)
+    if until.tzinfo is None:
+        until = until.replace(tzinfo=timezone.utc)
+    if start:
+        since = start if start.tzinfo else start.replace(tzinfo=timezone.utc)
+    else:
+        since = until - timedelta(hours=hours)
+    if since >= until:
+        raise HTTPException(400, "start must be before end")
+    if until - since > timedelta(days=366):
+        raise HTTPException(400, "range capped at 366 days")
 
     with engine.connect() as conn:
-        sid = _station_id(conn, slug)
-        rows = conn.execute(sql, {"sid": sid, "since": since}).all()
+        if slug == "all":
+            cols = ["station", "ts"] + READING_FIELDS
+            sql = text(f"""
+                SELECT s.slug, r.ts, {', '.join('r.' + f for f in READING_FIELDS)}
+                FROM readings r JOIN stations s ON s.id = r.station_id
+                WHERE r.ts >= :since AND r.ts < :until ORDER BY r.ts, s.slug""")
+            rows = conn.execute(sql, {"since": since, "until": until}).all()
+        else:
+            cols = ["ts"] + READING_FIELDS
+            sid = _station_id(conn, slug)
+            sql = text(f"""SELECT ts, {', '.join(READING_FIELDS)} FROM readings
+                           WHERE station_id = :sid AND ts >= :since AND ts < :until
+                           ORDER BY ts""")
+            rows = conn.execute(sql, {"sid": sid, "since": since, "until": until}).all()
+
+    ts_idx = cols.index("ts")
 
     def generate():
         buf = io.StringIO()
         w = csv.writer(buf)
         w.writerow(cols)
         for r in rows:
-            w.writerow([r[0].isoformat()] + list(r[1:]))
+            out = list(r)
+            out[ts_idx] = out[ts_idx].isoformat()
+            w.writerow(out)
             if buf.tell() > 64 * 1024:
                 yield buf.getvalue(); buf.seek(0); buf.truncate()
         yield buf.getvalue()
 
+    fname = f"forsyth-{slug}-{since.date()}-to-{until.date()}.csv"
     return StreamingResponse(
         generate(), media_type="text/csv",
-        headers={"Content-Disposition": f'attachment; filename="{slug}.csv"'},
+        headers={"Content-Disposition": f'attachment; filename="{fname}"'},
     )
 
 

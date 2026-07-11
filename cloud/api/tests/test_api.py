@@ -108,4 +108,15 @@ def test_export_csv(client, station):
 
 def test_station_create_requires_admin(client):
     r = client.post("/api/v1/stations", json={"slug": "nope", "name": "Nope"})
-    assert r.status_code == 401
+    assert r.status_code == 403  # admin key or admin session required
+
+
+def test_boards_default_public(client):
+    r = client.get("/api/v1/boards/default")
+    assert r.status_code == 200
+    assert "widgets" in r.json()["layout"]
+
+
+def test_export_range_validation(client):
+    r = client.get("/api/v1/export/all.csv?start=2026-01-02T00:00:00Z&end=2026-01-01T00:00:00Z")
+    assert r.status_code == 400
