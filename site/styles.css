@@ -149,22 +149,38 @@ h2.headline {
   50%      { opacity: 0.35; }
 }
 
-/* ---------- hero (no photography yet — sky built from CSS) ---------- */
+/* ---------- hero ---------- */
 
 .hero {
   position: relative;
   min-height: 100vh;
   width: 100%;
-  background:
-    radial-gradient(ellipse 120% 60% at 50% 108%, rgba(184,160,106,0.10) 0%, transparent 55%),
-    radial-gradient(ellipse 80% 45% at 70% 20%, rgba(127,162,196,0.10) 0%, transparent 60%),
-    linear-gradient(180deg, #0d1016 0%, #0b0c0e 55%, #0b0c0e 100%);
+  background-image:
+    linear-gradient(180deg,
+      rgba(11,12,14,0.62) 0%,
+      rgba(11,12,14,0.18) 38%,
+      rgba(11,12,14,0.55) 74%,
+      rgba(11,12,14,0.96) 100%),
+    url("assets/hero.webp");
+  background-size: cover;
+  background-position: center;
   display: flex;
   align-items: flex-end;
   overflow: hidden;
 }
+@media (max-width: 700px) {
+  .hero {
+    background-image:
+      linear-gradient(180deg,
+        rgba(11,12,14,0.62) 0%,
+        rgba(11,12,14,0.18) 38%,
+        rgba(11,12,14,0.55) 74%,
+        rgba(11,12,14,0.96) 100%),
+      url("assets/hero-mobile.webp");
+  }
+}
 
-/* fine slanted drizzle, barely there */
+/* fine slanted drizzle — it holds off until the barometer has had its say */
 .hero .rain {
   position: absolute;
   inset: -10% -10%;
@@ -173,17 +189,121 @@ h2.headline {
     112deg,
     transparent 0px,
     transparent 46px,
-    rgba(127,162,196,0.075) 46px,
-    rgba(127,162,196,0.075) 47px
+    rgba(200,214,226,0.10) 46px,
+    rgba(200,214,226,0.10) 47px
   );
-  animation: drizzle 26s linear infinite;
+  opacity: 0;
+  animation:
+    rain-arrive 5s ease 6.8s forwards,
+    drizzle 26s linear infinite;
 }
+@keyframes rain-arrive { to { opacity: 1; } }
 @keyframes drizzle {
   from { transform: translate3d(0, -48px, 0); }
   to   { transform: translate3d(-120px, 48px, 0); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero .rain { animation: none; }
+  .hero .rain { animation: none; opacity: 1; }
+}
+
+/* ---------- the aneroid (hero instrument) ---------- */
+
+.hero-inst {
+  position: absolute;
+  right: clamp(20px, 5vw, 72px);
+  bottom: 96px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+@media (max-width: 900px) {
+  .hero-inst { display: none; }  /* small screens: the sky is the show */
+}
+
+.baro { filter: drop-shadow(0 6px 22px rgba(0,0,0,0.55)); }
+.baro-face {
+  fill: rgba(11,12,14,0.72);
+  backdrop-filter: blur(2px);
+}
+.baro-rim {
+  fill: none;
+  stroke: var(--accent-2);
+  stroke-width: 1.6;
+  opacity: 0.85;
+}
+.baro-ticks line { stroke: var(--text-dim); stroke-width: 0.8; }
+.baro-ticks line.major { stroke: var(--text); stroke-width: 1.2; }
+.baro-word {
+  font-family: var(--mono);
+  font-size: 6.5px;
+  letter-spacing: 0.12em;
+  fill: var(--text-dim);
+}
+.baro-word-rain { fill: var(--accent); }
+.baro-needle path { fill: var(--accent-2); stroke: var(--accent-2); }
+.baro-hub { fill: var(--accent-2); }
+
+/* The needle starts on FAIR and, over several unhurried seconds, settles on
+   RAIN — with a small mechanical overshoot. The drizzle starts only after. */
+.baro-needle {
+  transform-origin: 60px 60px;
+  transform: rotate(58deg);
+  animation: baro-fall 6.5s cubic-bezier(0.55, 0.02, 0.35, 1) 1.4s forwards;
+}
+@keyframes baro-fall {
+  0%   { transform: rotate(58deg); }
+  78%  { transform: rotate(-52deg); }
+  88%  { transform: rotate(-45deg); }
+  100% { transform: rotate(-49deg); }
+}
+
+.baro-note {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  opacity: 0;
+  animation: baro-note-in 1.6s ease 8.2s forwards;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.7);
+}
+@keyframes baro-note-in { to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .baro-needle { animation: none; transform: rotate(-49deg); }
+  .baro-note { animation: none; opacity: 1; }
+}
+
+/* ---------- the downpour (scroll moment) ---------- */
+/* forsyth's version of jigawatt's lightning strike: no flash, no shake —
+   the promised rain simply arrives, harder, for about five seconds. */
+.downpour {
+  position: fixed;
+  inset: -12% -12%;
+  pointer-events: none;
+  z-index: 40;
+  background:
+    repeating-linear-gradient(112deg,
+      transparent 0px, transparent 14px,
+      rgba(200,214,226,0.13) 14px, rgba(200,214,226,0.13) 15px),
+    repeating-linear-gradient(112deg,
+      transparent 0px, transparent 31px,
+      rgba(200,214,226,0.08) 31px, rgba(200,214,226,0.08) 33px);
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+.downpour.on {
+  opacity: 1;
+  animation: downpour-fall 0.9s linear infinite;
+}
+@keyframes downpour-fall {
+  from { transform: translate3d(0, -60px, 0); }
+  to   { transform: translate3d(-46px, 60px, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .downpour { display: none !important; }
 }
 
 .hero-inner {
@@ -272,9 +392,11 @@ section.text .kicker { margin-bottom: 14px; }
   align-items: center;
 }
 .band.mood {
-  background:
-    radial-gradient(ellipse 90% 80% at 50% 120%, rgba(127,162,196,0.09) 0%, transparent 60%),
-    var(--bg-elev);
+  background-image:
+    linear-gradient(180deg, rgba(11,12,14,0.55), rgba(11,12,14,0.88)),
+    url("assets/mood.webp");
+  background-size: cover;
+  background-position: center;
   border-top: 1px solid var(--border-2);
   border-bottom: 1px solid var(--border-2);
 }
@@ -498,7 +620,39 @@ section.text .kicker { margin-bottom: 14px; }
   .senses-grid li.wide { grid-column: span 1; }
 }
 
-/* ---------- the numbers ---------- */
+/* ---------- feature (the arrangement, with the unit on the bench) ---------- */
+
+.feature {
+  padding: 120px 0;
+  border-top: 1px solid var(--border-2);
+}
+.feature-grid {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 64px;
+  align-items: center;
+}
+@media (max-width: 800px) {
+  .feature-grid { grid-template-columns: 1fr; gap: 36px; }
+}
+.feature-image {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background:
+    radial-gradient(ellipse at 60% 40%, rgba(184,160,106,0.06), transparent 60%),
+    var(--bg-elev);
+  border: 1px solid var(--border-2);
+  overflow: hidden;
+}
+.feature-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.feature-text .kicker { margin-bottom: 14px; }
+
+/* ---------- the almanac ---------- */
 
 .numbers {
   padding: 140px 0;

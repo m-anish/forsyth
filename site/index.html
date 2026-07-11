@@ -7,6 +7,7 @@
   <meta name="description" content="A solar-powered mesh of small weather stations — wind, rain, pressure, air, lightning — that talk over LoRa and tell you what the sky is planning. A starstucklab project." />
   <meta property="og:title" content="forsyth" />
   <meta property="og:description" content="A scatter of quiet machines that know what the sky is planning. A starstucklab project." />
+  <meta property="og:image" content="https://forsyth.starstucklab.com/assets/hero.webp" />
   <meta property="og:type" content="website" />
   <meta name="theme-color" content="#0b0c0e" />
 
@@ -48,6 +49,26 @@
     <h1>forsyth<span class="tail">.</span></h1>
     <p class="hero-tag">A scatter of quiet machines that know what the sky is planning.</p>
   </div>
+
+  <!-- The aneroid: the needle falls first, then — only then — the rain starts. -->
+  <div class="hero-inst" aria-hidden="true">
+    <svg class="baro" viewBox="0 0 120 120" width="132" height="132">
+      <circle class="baro-face" cx="60" cy="60" r="54"/>
+      <circle class="baro-rim" cx="60" cy="60" r="54"/>
+      <g class="baro-ticks"></g>
+      <text class="baro-word" x="24" y="82" text-anchor="middle">STORM</text>
+      <text class="baro-word baro-word-rain" x="34" y="42" text-anchor="middle">RAIN</text>
+      <text class="baro-word" x="60" y="28" text-anchor="middle">CHANGE</text>
+      <text class="baro-word" x="90" y="46" text-anchor="middle">FAIR</text>
+      <g class="baro-needle">
+        <path d="M60 60 L60 17 L57.6 22 L60 60 Z"/>
+        <path d="M60 60 L60 74" stroke-width="1.6"/>
+      </g>
+      <circle class="baro-hub" cx="60" cy="60" r="3.2"/>
+    </svg>
+    <span class="baro-note">the needle moved first</span>
+  </div>
+
   <div class="hero-scroll">scroll ↓</div>
 </section>
 
@@ -97,8 +118,8 @@
 <!-- ============ HOW IT WORKS ============ -->
 <section class="timeline-section">
   <div class="wrap">
-    <span class="kicker">How it works</span>
-    <h2 class="headline">Four moves, mostly asleep.</h2>
+    <span class="kicker">A leaf's day</span>
+    <h2 class="headline">Wake, measure, murmur, sleep.</h2>
 
     <div class="timeline" aria-label="How forsyth works, in four steps">
       <div class="timeline-track" aria-hidden="true"></div>
@@ -192,41 +213,44 @@
 
 
 <!-- ============ THE ARRANGEMENT ============ -->
-<section class="text arrangement">
+<section class="feature arrangement">
   <div class="wrap">
-    <div class="cols-two">
-      <div>
+    <div class="feature-grid">
+      <div class="feature-image">
+        <img src="assets/unit.webp" alt="A hand-built forsyth leaf on a workbench: small grey enclosure, solar panel, brass wind vane and anemometer cups, battery cell." loading="lazy" />
+      </div>
+      <div class="feature-text">
         <span class="kicker">The arrangement</span>
         <h2 class="headline">Leaves, and the one who listens.</h2>
-      </div>
-      <div class="prose">
-        <p>
-          A <em>leaf</em> is a station: one small board, a battery that likes
-          being outdoors (LiFePO4), a hand-sized solar panel, and whichever
-          senses that site needs. It spends almost its whole life asleep,
-          drawing microamps, everything switched off between sentences.
-        </p>
-        <p>
-          The <em>coordinator</em> is the one with an internet connection and,
-          consequently, responsibilities. It listens for every leaf, keeps the
-          clock, and does the talking to the cloud so the leaves never have to.
-        </p>
-        <p>
-          More ground to cover? Add leaves. A leaf without a rain gauge is
-          still a station; a leaf can grow a new sense later. The mesh is
-          designed to sprawl across a valley, not decorate a single backyard.
-        </p>
+        <div class="prose">
+          <p>
+            A <em>leaf</em> is a station: one small board, a battery that likes
+            being outdoors (LiFePO4), a hand-sized solar panel, and whichever
+            senses that site needs. It spends almost its whole life asleep,
+            drawing microamps, everything switched off between sentences.
+          </p>
+          <p>
+            The <em>coordinator</em> is the one with an internet connection and,
+            consequently, responsibilities. It listens for every leaf, keeps the
+            clock, and does the talking to the cloud so the leaves never have to.
+          </p>
+          <p>
+            More ground to cover? Add leaves. A leaf without a rain gauge is
+            still a station; a leaf can grow a new sense later. The mesh is
+            designed to sprawl across a valley, not decorate a single backyard.
+          </p>
+        </div>
       </div>
     </div>
   </div>
 </section>
 
 
-<!-- ============ THE NUMBERS ============ -->
+<!-- ============ THE ALMANAC ============ -->
 <section class="numbers">
   <div class="wrap">
-    <span class="kicker">The numbers</span>
-    <h2 class="headline" style="margin-bottom:64px;">Four figures, with their units.</h2>
+    <span class="kicker">The almanac</span>
+    <h2 class="headline" style="margin-bottom:64px;">Numbers it lives by.</h2>
     <div class="numbers-grid">
       <div>
         <div class="label">Lightning radius</div>
@@ -444,10 +468,30 @@
 
 </div><!-- /.page -->
 
+<!-- ============ THE DOWNPOUR (scroll moment overlay) ============ -->
+<div class="downpour" aria-hidden="true"></div>
+
 <script>
 (function() {
   'use strict';
-  // timeline: light up sequentially when in view (same pattern as jigawatt)
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---------- barometer dial: draw the tick marks ----------
+  const ticks = document.querySelector('.baro-ticks');
+  if (ticks) {
+    let t = '';
+    for (let a = -120; a <= 120; a += 12) {
+      const rad = (a - 90) * Math.PI / 180;
+      const major = (a % 60 === 0);
+      const r1 = major ? 44 : 47, r2 = 50;
+      t += `<line x1="${60 + r1 * Math.cos(rad)}" y1="${60 + r1 * Math.sin(rad)}"
+                  x2="${60 + r2 * Math.cos(rad)}" y2="${60 + r2 * Math.sin(rad)}"
+                  ${major ? 'class="major"' : ''}/>`;
+    }
+    ticks.innerHTML = t;
+  }
+
+  // ---------- timeline: light up sequentially when in view ----------
   const tlObs = new IntersectionObserver(function(entries) {
     entries.forEach(function(e) {
       if (e.isIntersecting) {
@@ -458,21 +502,45 @@
   }, { threshold: 0.5 });
   document.querySelectorAll('.timeline').forEach(function(el) { tlObs.observe(el); });
 
-  // status line: a slow rotation of quiet observations
+  // ---------- status line: a slow rotation of quiet observations ----------
   const status = document.querySelector('.status-text');
   if (!status) return;
   const moods = [
     'Station 000 · Expecting rain',
     'Station 000 · Pressure falling',
     'Station 000 · Smelling ozone',
-    'Station 000 · Unhurried',
-    'Station 000 · Right again'
+    'Station 000 · Unhurried'
   ];
-  let i = 0;
+  let i = 0, holdUntil = 0;
   setInterval(function() {
+    if (Date.now() < holdUntil) return;
     i = (i + 1) % moods.length;
     status.textContent = moods[i];
   }, 9000);
+
+  // ---------- the rain arrives: forsyth's quiet version of a strike ----------
+  // Scrolling into the mood band, the promised rain shows up. The page does
+  // not flash or shake — it just rains a little harder for a moment, and the
+  // station allows itself one small remark.
+  const band = document.querySelector('.band.mood');
+  const downpour = document.querySelector('.downpour');
+  if (!band || !downpour) return;
+  let rained = false;
+  const bandObs = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting && !rained) {
+        rained = true;
+        status.textContent = 'Station 000 · Right again';
+        holdUntil = Date.now() + 14000;
+        if (!reduced) {
+          downpour.classList.add('on');
+          setTimeout(function() { downpour.classList.remove('on'); }, 5200);
+        }
+        bandObs.disconnect();
+      }
+    });
+  }, { threshold: 0.45 });
+  bandObs.observe(band);
 })();
 </script>
 

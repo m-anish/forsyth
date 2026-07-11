@@ -8,6 +8,12 @@
       "port": 4100
     },
     {
+      "name": "forsyth-dashboard",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["/private/tmp/claude-502/-Users-anish-Documents-GitHub-forsyth/a0faf4f3-f1d5-4760-a09e-87a1c1fb6422/scratchpad/proxy.py"],
+      "port": 4180
+    },
+    {
       "name": "starstucklab-hub",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "/Users/anish/Documents/GitHub/starstucklab"],

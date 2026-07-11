@@ -7,7 +7,9 @@ this document is the reference to design against.
 
 Companion documents: [BOM.md](BOM.md) (parts + India sourcing),
 [../research/competitive-landscape.md](../research/competitive-landscape.md) (datasheet
-numbers with sources).
+numbers with sources), [../cloud/](../cloud/) (the server the coordinator talks to —
+HTTP `POST /api/v1/ingest` with a bearer key, or MQTT `forsyth/<slug>/reading`; see
+[../cloud/docs/deploy.md](../cloud/docs/deploy.md)).
 
 ---
 
