@@ -404,6 +404,32 @@ stand a step back. R8 touches L3's output pad (datasheet rule). MPPT island (R9,
 Q3 drain) within a few mm of U6 pin 6, away from switch nodes. Analog ground vias
 (R12, R14/C16, R13/C20) near U6's GND pin, offset from the D2/C_in power-ground vias.
 
+### Layout review — REV0 fab print, 2026-07-12
+
+**Verified good:** commutation cluster tight; C10 at U6; R8+L3 adjacent; sense divider
+at MCU; TVS+RC rows at connectors; D3 at solar entry; both boost stages per the U4
+pattern; LEDs on a visible edge; E220 is the SMA-whip DIP → under-module pour correct;
+battery moved **off-board** (holder + BMS strip + pigtail — supersedes the bottom-side
+holder plan; strip rides with the holder, system side on P+).
+
+**Must-fix before fab:**
+1. **C5 + C6 migrate to U2's VCC pin** (currently ~25–30 mm away in U3's cluster) —
+   the bulk-at-the-module-pin rule is the lokki lesson; 1 mm 5V_RADIO run between
+   clusters.
+2. **BATTERY vs SOLAR keying**: identical adjacent 2-pin connectors; a swap puts panel
+   Voc (~7.2 V) on VBAT (> ATtiny 5.5 V abs max). Different families or a 3-pin solar
+   header — physical unmateability, not silkscreen.
+
+**RST button (PB4, added):** software debounce (10–20 ms) is sufficient — internal
+pull-up, no hardware needed inside the box. It is a *service button*, not a hardware
+reset (PA0 stays UPDI): firmware assigns meaning (hold = soft reboot/safe mode).
+
+**Pour/via spec:** solid pours both layers, 0.3 mm clearance; direct-connect GND pads
+inside hot loops (C12/C13, D2, C7/C8, C2/C3, C15), thermal reliefs elsewhere; vias
+0.6/0.3 at ~5 mm global grid, 2–3 mm around boost stages/CN3801 loop/module pin row/
+connector grounds, flanking every long bottom trace each ~5 mm; perimeter ring ~5 mm;
+then orphan-island sweep + DRC.
+
 **Bring-up hooks:** test points on VBAT, VSOL, both 5 V rails, UART_TX/RX, AUX, both
 EN lines, MPPT, VBAT_SENSE; the DNP 10 k anemometer pull-up pads; LED1 visible once
 boxed.
