@@ -158,12 +158,16 @@ line — UPDI is the whole story.
 
 ### 3.6 Protection row (per architecture §8) — wiring detail (2026-07-12)
 
-- **Solar reverse-polarity, Q1 = AO3401 high-side:** panel + → **drain**, **source** →
-  VSOL, **gate** → GND. Correct polarity: body diode conducts momentarily, V_GS goes
-  negative, FET enhances and shorts its own diode (mΩ, no drop). Reversed: blocks
-  completely. Drain-toward-panel is the part everyone gets backwards. V_GS stays under
-  the panel voltage (~7 V) — inside ±12 V, no gate zener needed at 6 V-class panels.
-  (SOT-23 pinout: 1 = G, 2 = S, 3 = D.)
+- **Solar reverse-polarity, Q1 = AO3407 high-side** *(changed from AO3401,
+  2026-07-12)*: panel + → **drain**, **source** → VSOL, **gate** → GND. Correct
+  polarity: body diode conducts momentarily, V_GS goes negative, FET enhances and
+  shorts its own diode (mΩ, no drop). Reversed: blocks completely. Drain-toward-panel
+  is the part everyone gets backwards. **Why AO3407 not AO3401:** during a clamped
+  surge the SMAJ8.5A holds the line at up to ~14.4 V, and with the gate at GND that
+  entire voltage appears as V_GS — over the AO3401's ±12 V abs max, inside the
+  AO3407's ±20 V ([AOS datasheet](https://www.aosmd.com/res/datasheets/AO3407.pdf)).
+  Bonus: AO3407 is already on this BOM as Q2 — one P-FET part number for the board.
+  (SOT-23 pinout: 1 = G, 2 = S, 3 = D — verify pin 3 faces the connector.)
 - **Solar TVS = SMAJ8.5A**, line-to-GND at the connector, cathode to panel +.
   *(Corrects the earlier SMAJ6.0A call — a 6 V-class panel's Voc ≈ 7.2 V sits inside
   the 6.0A's 6.67 V min breakdown; the 8.5A stands off any realistic Voc and clamps
@@ -196,7 +200,7 @@ line — UPDI is the whole story.
 | U2 | E22-900T22D (T30D per site) | DIP module | |
 | U3 | CN3801 | **SSOP-10** | on hand |
 | U4, U5 | TPS61023 | SOT-563 | Robu |
-| Q1 | AO3401 | SOT-23 | reverse-pol (solar input) |
+| Q1 | **AO3407** | SOT-23 | reverse-pol (solar input) — ±20 V V_GS survives the TVS clamp; same part as Q2 |
 | Q2 | **AO3407** | SOT-23 | buck pass P-FET — datasheet-suggested "3407A"; Robu |
 | D1, D2 | **SS34** ×2 | SMA | series block + freewheel; D1 stays (night back-feed) |
 | D5 | **SMAJ8.5A** | SMA | solar input TVS (Voc-safe for 6 V panels; supersedes SMAJ6.0A) |
