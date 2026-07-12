@@ -291,6 +291,15 @@ side; UPDI header with 1 k; GND on pin 2 of the GX connectors.
 | 8 | nit | Shared LED resistor. | intentional, fine |
 | 9 | nit | Solar connector. | **FIXED ✓** (CN4 is now GX12-2 — keying story restored) |
 
+### Rev-e changes (2026-07-12, user-found + verified)
+
+- **CHG_INHIBIT added** per §3.5a (2N7002 on the MPPT node, 100 k pulldown, PA3).
+- **Bug found by Anish, fixed:** C10 (the VG–VCC 100 nF) was tied to the post-R18 LED
+  node instead of VSOL/VCC. That reference bounces ~1–2 V with LED current and puts
+  1 k inside the decoupling loop — weak/erratic gate drive to Q2 as the failure mode.
+  Datasheet is explicit: 100 nF between VG (1) and VCC (9). Now correct. Related rule:
+  the post-R18 node carries **LED anodes only**; VCC and the input trio live on VSOL.
+
 ### Final review — rev-d, 2026-07-12: **CLEARED FOR LAYOUT** ✓
 
 Full-sheet pass (MCU · LoRa · connectors · charger · boosts · surge row): every finding
