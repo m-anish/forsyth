@@ -322,11 +322,20 @@ No circuit changes remain. Carry-forward items (verify, don't redraw):
 
 ## 6a. Pre-routing layout checklist (Board A specifics; general rules in architecture §8)
 
-**Two-layer strategy:** all components top-side; the bottom layer is an (almost)
+**Two-layer strategy:** all *circuitry* top-side; the bottom layer is an (almost)
 unbroken **ground plane** — every bottom-side part or long bottom trace slices the
 return path for three switching loops. If cornered, only flat quiet R/C (FB dividers,
 sense divider, connector RC/TVS) may go bottom-side; never magnetics, module,
-connectors, holder, LEDs. Route top, jog-under short, stitch vias generously.
+connectors, LEDs. Route top, jog-under short, stitch vias generously.
+
+**Exception (decided 2026-07-12): BT1 + the BMS strip go bottom-side.** The cell is a
+pure DC node (no switching loop touches it) and the holder's plastic body doesn't cut
+the plane — only two through-holes do. Rules: position under the **quiet middle**, not
+the power corner and never under the E220 antenna end (45 g of metal detunes it);
+**through-hole-pin holder only** (bottom-side SMD pads + 45 g + mast vibration = pad
+tear), with mounting holes near the holder ends; 2–3 vias each for cell+ → VBAT and
+P− → plane; "CELL− VIA BMS" moves to bottom silk; standoff height (~18–20 mm) and the
+battery-swap face become enclosure inputs.
 
 **Zone map** (three neighbourhoods on one face, connectors along one wall — the wall
 that becomes the box's downward-facing gland/bulkhead face):
