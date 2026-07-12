@@ -30,7 +30,7 @@ Logical assignment (physical pin numbers per the tinyAVR-2 20-pin datasheet tabl
 | 16 | PA0 | `UPDI` | programming (J7) |
 | 17 | PA1 | `EN_RADIO` | TPS61023 #1 enable |
 | 18 | PA2 | `EN_AQI` | TPS61023 #2 enable |
-| 19 | PA3 | `SPARE1` | future (display CS?) |
+| 19 | PA3 | `CHG_INHIBIT` | charge-inhibit NFET gate (§3.5a; 100 k pulldown = fail-safe charge-on) |
 | 2 | PA4 | `ANEMO` | anemometer pulse → Event System |
 | 3 | PA5 | `RAIN` | rain-gauge pulse |
 | 4 | PA6 | `VANE_ADC` | wind-direction ladder (AIN6) |
@@ -156,6 +156,42 @@ matters.
 resistor; a 1 k series on the target pad is harmless insurance. No crystal, no reset
 line — UPDI is the whole story.
 
+### 3.5a Charge inhibit — cold-weather protection (added 2026-07-12)
+
+LiFePO4 must not be charged below 0 °C (lithium plating). Mechanism: **one 2N7002 on
+the CN3801's MPPT pin node** — datasheet: charging requires MPPT > 1.23 V, so grounding
+the pin is a clean enable/disable that never touches the power path.
+
+```
+MPPT node (R9/R12 junction) ── D  2N7002  S ── GND
+            CHG_INHIBIT (PA3) ──┬── G
+                                └── R19 100 k → GND    ← the fail-safe
+```
+
+- Drive high → charging inhibited. MCU dead/reset/tri-state → 100 k holds the FET off
+  → **charging proceeds** (the dead-battery + sun edge case is satisfied structurally).
+- **Do NOT gate Q1 for this** — its body diode (drain-to-panel by design) conducts
+  panel→load regardless of gate state; inhibiting there needs back-to-back FETs.
+- Temp source: the ATtiny3226's internal sensor (box interior ≈ cell temperature;
+  the screen's SHTC3 is a cross-check, not the primary). Firmware policy, thresholds
+  LoRa-configurable: inhibit < ~0 °C, resume > +3 °C (hysteresis); optional survival
+  override if VBAT < ~2.9 V in a prolonged cold snap (accepts cell wear to keep the
+  station alive — a policy knob, logged when used).
+- Pin map change: **PA3 = `CHG_INHIBIT`** (was SPARE1).
+
+### 3.5b Cell protection (added 2026-07-12)
+
+Covered already: overcharge + charge current (CN3801 CV/OVP + R_CS). Not covered until
+now: over-discharge and discharge short-circuit. Two layers:
+
+1. **DW01A + FS8205A** in the cell− → board-GND path, at the holder. The DW01's Li-ion
+   4.25 V overcharge threshold never fires (CN3801's LFP limits act first); what it
+   buys is the **~2.40 V undervoltage cutoff + short-circuit protection**. 2.40 V is a
+   parachute, not a cycling threshold — LFP holds almost nothing between 2.8 and 2.4 V.
+   Recovery from UV lockout happens through the FS8205 body diode when solar returns.
+2. **Firmware soft-UVLO** via `VBAT_SENSE`: park radio/PMS below ~2.9 V, deep-sleep
+   below ~2.8 V — the DW01 should never be the routine path.
+
 ### 3.6 Protection row (per architecture §8) — wiring detail (2026-07-12)
 
 - **Solar reverse-polarity, Q1 = AO3407 high-side** *(changed from AO3401,
@@ -202,6 +238,8 @@ line — UPDI is the whole story.
 | U4, U5 | TPS61023 | SOT-563 | Robu |
 | Q1 | **AO3407** | SOT-23 | reverse-pol (solar input) — ±20 V V_GS survives the TVS clamp; same part as Q2 |
 | Q2 | **AO3407** | SOT-23 | buck pass P-FET — datasheet-suggested "3407A"; Robu |
+| Q3 | 2N7002 | SOT-23 | charge-inhibit, MPPT-pin pulldown (§3.5a) + R19 100 k |
+| U8 | **DW01A + FS8205A** | SOT-23-6 + TSSOP-8 | cell UV/short protection at the holder (§3.5b); Robu combo |
 | D1, D2 | **SS34** ×2 | SMA | series block + freewheel; D1 stays (night back-feed) |
 | D5 | **SMAJ8.5A** | SMA | solar input TVS (Voc-safe for 6 V panels; supersedes SMAJ6.0A) |
 | D6–D8 | **SMAJ5.0A** ×3 | SMA | vane/anemo/rain line clamps |
