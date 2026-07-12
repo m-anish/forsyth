@@ -367,6 +367,18 @@ flowchart TB
 charging, both gated boosts, TVS/protection, and every connector. One design, every
 leaf. The 18650 holder is on-board — no battery cable to get wrong.
 
+**Core box siting — decided 2026-07-12: a separate sealed box, *not* the screen's
+floor.** The board dissipates ~0.1–0.3 W while charging (worst at peak sun) plus TX
+bursts; a box forming the screen's bottom cap would feed that plume straight into the
+louvre intake — worst on calm sunny days, when radiation error is already largest
+(shield self-heating studies: 0.1–0.2 W ⇒ +0.1–0.5 °C in calm air). Mount the box on
+the mast **below and offset ~30–50 cm** from the screen, shaded side. Side benefits:
+cooler battery (LiFePO4 calendar life), antenna clear of the screen. Consequence: the
+Board-B and PMS runs cross open air — they become **glanded fixed pigtails** (XH
+connectors inside each enclosure, after the gland), *not* additional GX connectors,
+which would collide with the pin-count keying. The wake order already reads temp/RH
+before the PMS fan spins, so the screen's own transient heat source is sequenced away.
+
 **Board B — environment** (inside the screen): BME280 + SHTC3 + AS3935 on the I2C bus
 plus the AS3935 IRQ line. **This is why the MCU does *not* live in the screen:** the
 AS3935's application notes want distance from switching noise, and the two boost stages
@@ -403,8 +415,8 @@ so no wrong connection can physically mate:
 | Solar panel → core | **GX12-2** | 2 | 1 = panel +, 2 = panel − (reverse-polarity protected on board anyway, §8) |
 | Rain gauge → core | **GX12-3** | 2 + shield | 1 = pulse, 2 = GND, 3 = shield/spare |
 | Masthead (Board D) → core | **GX16-5** | 5, shielded | 1 = 3V3 excitation · 2 = GND · 3 = vane analog · 4 = anemometer pulse · 5 = shield |
-| Board B ↔ core (internal) | **JST-XH-5** | 5 | 3V3 · GND · SDA · SCL · AS3935-IRQ |
-| PMS7003 ↔ core (internal) | **JST-XH-4** | 4 | gated 5 V · GND · TXD · RXD (SET strapped high at the sensor) |
+| Board B ↔ core (box→screen, **glanded pigtail**, XH-5 inside each enclosure) | **JST-XH-5** + 2 glands | 5 | 3V3 · GND · SDA · SCL · AS3935-IRQ |
+| PMS7003 ↔ core (box→screen, **glanded pigtail**, XH-4 inside) | **JST-XH-4** + gland | 4 | gated 5 V · GND · TXD · RXD (SET strapped high at the sensor) |
 | Expansion (future daughter boards) | Qwiic/JST-SH-4 | 4 | 3V3 · GND · SDA · SCL — the standard stays |
 
 Rules that keep future-you honest: **GND on pin 2 of every GX connector**; every

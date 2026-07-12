@@ -269,6 +269,30 @@ No circuit changes remain. Carry-forward items (verify, don't redraw):
 
 ## 6a. Pre-routing layout checklist (Board A specifics; general rules in architecture §8)
 
+**Two-layer strategy:** all components top-side; the bottom layer is an (almost)
+unbroken **ground plane** — every bottom-side part or long bottom trace slices the
+return path for three switching loops. If cornered, only flat quiet R/C (FB dividers,
+sense divider, connector RC/TVS) may go bottom-side; never magnetics, module,
+connectors, holder, LEDs. Route top, jog-under short, stitch vias generously.
+
+**Zone map** (three neighbourhoods on one face, connectors along one wall — the wall
+that becomes the box's downward-facing gland/bulkhead face):
+
+```
+│ POWER CORNER          │ QUIET MIDDLE       │ RF END              │
+│ CN4 → D3/Q1 →         │ U1 + C1            │ U2 E220 + C5/C6     │
+│ U6·Q2·D1·D2·L3·R8     │ sense divider+C20  │ U3 boost (SW away   │
+│ C11-C13 · LEDs · BT1  │ R11/UPDI           │  from antenna)      │
+│                       │ U4 boost → CN2     │ SMA edge + keep-out │
+│ CONNECTOR WALL: CN4 · U5 · CN3 · CN1 · CN2 · J1 · U7 · CN5      │
+```
+
+No-copper keep-out (both layers) under the E220's antenna end and around the SMA;
+unbroken plane under the rest of the module. Nothing top-side under BT1's body; nothing
+under the module body. Enclosure note (architecture §6): the box is **separate from the
+screen**, below and offset on the mast — thermal plume must not feed the louvres; CN1/
+CN2 leave the box through glands as fixed pigtails.
+
 **Hot loops first — place these before anything else:**
 - CN3801 buck loop: Q2 → D2 → L3 with C11/C12/C13 at Q2's source node — minimum area,
   no via detours. D2's anode-to-ground and the caps' grounds into one tight pour.
