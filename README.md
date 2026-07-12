@@ -35,6 +35,7 @@ A [starstucklab](https://starstucklab.com) project. Site:
 |---|---|
 | [`site/`](site/) | Marketing/landing site (Cloudflare Pages → forsyth.starstucklab.com) |
 | [`cloud/`](cloud/) | The cloud side: ingest API + multi-station dashboard + timelapse worker (docker compose, one small VPS) — see [cloud/docs/deploy.md](cloud/docs/deploy.md) |
+| [`firmware/`](firmware/) | Leaf firmware (ATtiny3226, bare-metal C) + coordinator (ESP32-S3, MicroPython) + the [FLP wire protocol](firmware/PROTOCOL.md) between them |
 | [`hardware/architecture.md`](hardware/architecture.md) | Block-level architecture, power gating discipline, payload schema, layout notes |
 | [`hardware/BOM.md`](hardware/BOM.md) | First-pass BOM with India sourcing and pricing |
 | [`hardware/enclosures/`](hardware/enclosures/) | Onshape exports land here (placeholder) |
@@ -43,9 +44,11 @@ A [starstucklab](https://starstucklab.com) project. Site:
 ## Status
 
 **Station 000 · Expecting rain.** There are currently zero Forsyth stations on any mast.
-There is a design, a bill of materials, a power budget methodology, and a workbench in
-the lower Himalayas. Firmware and PCB layout come next; the PCB is designed by hand in
-KiCad (deliberately not generated), and enclosures in Onshape.
+There is a design, a bill of materials, a power budget methodology, firmware for both
+ends of the LoRa link (bench-untested, written against the reviewed REV0 schematic),
+and a workbench in the lower Himalayas. Board A REV0 layout is in its final pre-fab
+pass; the PCB is designed by hand in EasyEDA (deliberately not generated), and
+enclosures in Onshape.
 
 The **cloud platform runs ahead of the hardware**: `cloud/` stands up the full pipeline
 (ingest → TimescaleDB → dashboard → Weather Underground → daily sky timelapses) with
