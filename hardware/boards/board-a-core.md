@@ -39,7 +39,7 @@ Logical assignment (physical pin numbers per the tinyAVR-2 20-pin datasheet tabl
 | 10 | PB1 | `SDA` | TWI0 |
 | 9 | PB2 | `UART_TX` | shared UART → E22 RXD / PMS RX |
 | 8 | PB3 | `UART_RX` | shared UART ← E22 TXD / PMS TX |
-| 7 | PB4 | `SPARE2` | future |
+| 7 | PB4 | `BTN` (silk: RST) | service button to GND — internal pull-up, software debounce (10–20 ms); NOT a hardware reset (PA0 stays UPDI) |
 | 6 | PB5 | `SPARE3` | future (status LED?) |
 | 12 | PC0 | `AS3935_IRQ` | lightning interrupt (from Board B) |
 | 13 | PC1 | `E22_M0` | mode select — driven, never floated |
