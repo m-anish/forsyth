@@ -245,7 +245,63 @@ side; UPDI header with 1 k; GND on pin 2 of the GX connectors.
 | 6 | ⚠ | UART_TX back-powering gated-off peripherals. | **FIXED ✓** (R7 1 k series; PMS joined on the _H side — clamped symmetrically) |
 | 7 | nit | Qwiic expansion missing. | **FIXED ✓** (J1 added; confirm physical pin order GND·3V3·SDA·SCL before fab) |
 | 8 | nit | Shared LED resistor. | intentional, fine |
-| 9 | nit | Solar enters via board-side XH-2A — fine if the enclosure wall carries the GX12-2 bulkhead wired to it (keying story lives at the box surface). | note |
+| 9 | nit | Solar connector. | **FIXED ✓** (CN4 is now GX12-2 — keying story restored) |
+
+### Final review — rev-d, 2026-07-12: **CLEARED FOR LAYOUT** ✓
+
+Full-sheet pass (MCU · LoRa · connectors · charger · boosts · surge row): every finding
+from rounds 1–3 verified fixed in the drawing — Q1 = AO3407, D3 = SMAJ8.5A at the
+connector, SMAJ5.0A ×3 + RC on all field lines, shields grounded, boost topology
+correct, Kelvin CSP/BAT, VBAT_SENSE cap, UART series pair, Qwiic, GX12-2 solar entry.
+No circuit changes remain. Carry-forward items (verify, don't redraw):
+
+1. **Q1/Q2 pin orientation** — hover pins in EasyEDA: pin 3 (D) toward CN4 on Q1 /
+   toward VSOL on Q2. Bring-up check: millivolts across Q1 under load, not 0.6 V.
+2. **TVS footprints** — SMA package band = cathode = toward the line on all four.
+3. **Qwiic physical pin order** — GND · 3V3 · SDA · SCL against the JST-SH footprint.
+4. Firmware notes born from this schematic: enable PB3 (UART_RX) internal pull-up while
+   both peripherals are gated off (the 10 k leaves it floating otherwise); drive
+   UART_TX low before de-asserting either EN.
+5. Anemometer line note: the pulse line now carries **two** 100 nF (Board D + C18)
+   against the MCU's ~35 k internal pull-up → τ ≈ 7 ms. Fine for expected pulse rates;
+   if bench edges look lazy at high RPM, fit a 10 k external pull-up at `ANEMO_CON`
+   (pad it in the layout now, DNP).
+
+## 6a. Pre-routing layout checklist (Board A specifics; general rules in architecture §8)
+
+**Hot loops first — place these before anything else:**
+- CN3801 buck loop: Q2 → D2 → L3 with C11/C12/C13 at Q2's source node — minimum area,
+  no via detours. D2's anode-to-ground and the caps' grounds into one tight pour.
+- Each TPS61023: C4(C9) at VIN, L1(L2) VIN↔SW short and fat, C2/C3 (C7/C8) at VOUT —
+  the whole stage in ~1 cm²; FB divider and its trace away from L and SW.
+- **SW nodes and DRV small** — they're the noisiest copper on the board.
+
+**Precision analog:**
+- R8 (240 mΩ) right at L3's output; **CSP/BAT routed as a tight pair** (same layer,
+  minimum spacing) to R8's pads — Kelvin, per CN3801 datasheet §PCB.
+- VBAT_SENSE divider + C20 near the MCU's PA7, away from both boosts.
+- `VANE_ADC` from R17 to PA6: shortest practical, not parallel to any SW node.
+
+**RF:**
+- E220 antenna pin → SMA: 50 Ω trace, ground pour keep-out around the connector,
+  unbroken plane under the module; C5/C6 at the module's VCC pin, not at the boost.
+
+**Zoning (one board, three neighbourhoods):**
+- Power (CN3801 + both boosts) in one corner near CN4/BT1; MCU + logic in the middle;
+  the E220 + antenna at the far edge; all field connectors (GX/XH) along one face with
+  their TVS + RC parts **at the connector pins**, not near the MCU.
+- Battery holder: silkscreen polarity oversized; holder pads carry charge current —
+  thick traces to R8/GND.
+
+**Grounding:**
+- One solid plane; CN3801's analog returns (MPPT divider, COM network, CSP/BAT) tie in
+  near U6's GND pin rather than across the buck loop, per datasheet ("analog and power
+  ground return separately").
+- GX shield pins → plane at the connector.
+
+**Bring-up hooks:** test points on VBAT, VSOL, both 5 V rails, UART_TX/RX, AUX, both
+EN lines, MPPT, VBAT_SENSE; the DNP 10 k anemometer pull-up pads; LED1 visible once
+boxed.
 
 ## 7. Bring-up checklist
 
