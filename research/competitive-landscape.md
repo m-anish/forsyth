@@ -154,6 +154,14 @@ From the **Ebyte E22-900T30D user manual** ([cdebyte PDF](https://www.cdebyte.co
 
 (T22D figures from the [E22-900T22D user manual](https://www.cdebyte.com/pdf-down.aspx?id=1463), same date.)
 
+> **Superseded 2026-07-12:** the design moved to the **E220 family (LLCC68)** — the
+> part actually in hand. From the E220 manuals: T22D TX **110 mA** typ @22 dBm, T30D TX
+> **620 mA** typ @30 dBm ([manual](https://www.cdebyte.com/pdf-down.aspx?id=349)),
+> both 3.0–5.5 V with "≥5.0 V ensures output power", logic fixed 3.3 V, sleep 5 µA,
+> M0/M1 weak pull-ups, 200-byte packets. Same sizing conclusions; current numbers in
+> [hardware/architecture.md §3.4](../hardware/architecture.md). The E22 rows above are
+> kept for the record.
+
 Notes that feed §5.3 of the project brief directly:
 
 - **2× peak-current rule:** T30D ⇒ design the 5 V rail + LiFePO4 discharge path for

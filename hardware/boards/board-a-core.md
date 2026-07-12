@@ -127,17 +127,19 @@ VBAT ──┬── L 1.0 µH ──┬── SW│TPS61023│VOUT ──┬─
   Cout + 100 nF at the PMS connector.
 - Package SOT-563: the one fine-pitch part — flux + drag solder.
 
-### 3.3 E22 interface (U2)
+### 3.3 Radio interface — E220-900T22D (U2; decided 2026-07-12)
 
-- `E22_M0`/`E22_M1` **driven at all times** (module has weak pull-ups; floating = deep
-  sleep = the lokki trap). `E22_AUX` is an input; wait for its rising edge after
-  power-up, two-edge (LOW→HIGH) around TX. Sequence in architecture §3.2.
-- UART is 3.3 V logic on the module regardless of VCC (manual). **Design note found
-  while writing this sheet:** our MCU runs at VBAT (2.5–3.65 V), so (a) when the cell
-  is low, MCU-high ≈ 2.6 V into the E22's Vih — expected fine but unspecified,
-  bring-up check; (b) the E22's 3.3 V TXD into an MCU pin powered at < 3 V exceeds
-  VDD + 0.3: **fit R14 = 10 k in series with `UART_RX`** to limit pin-clamp current to
-  a safe < 100 µA. Costs nothing at 9600 baud.
+- LLCC68-based Ebyte E220 family. Manual-confirmed: TX 110 mA typ @22 dBm (T30D
+  variant: 620 mA @30 dBm — the rail is sized for it), sleep 5 µA (moot — we hard-gate),
+  logic fixed at 3.3 V, "≥5.0 V ensures output power", M0/M1 weak pull-ups, 200-byte
+  packets. **lokki's E220 config code and register map
+  (`../../lokki/firmware/micropython/src/comms/lora_config.py`) are the working
+  reference** — same family, already debugged.
+- `E22_M0`/`E22_M1` (net names kept) **driven at all times**; `E22_AUX` input; two-edge
+  AUX wait around TX. Sequence in architecture §3.2.
+- MCU-at-VBAT notes stand: (a) low cell ⇒ MCU-high ≈ 2.6 V into the module's Vih —
+  bring-up check; (b) module 3.3 V TXD into a <3 V-powered MCU pin exceeds VDD + 0.3:
+  the **10 k series in `UART_RX` (R2)** limits clamp current. Costs nothing at 9600 baud.
 - Antenna: SMA edge or u.FL per enclosure choice; 50 Ω trace per §8.
 
 ### 3.4 Battery sense
@@ -231,7 +233,7 @@ side; UPDI header with 1 k; GND on pin 2 of the GX connectors.
 
 | # | Severity | Finding | Status |
 |---|---|---|---|
-| 1 | ❗ | **U2 drawn as E220-900T22D — design says E22-900T22D** (LLCC68 vs SX1262, different config protocol). Symbol stand-in, or actual part? | **OPEN — decide** |
+| 1 | ❗ | U2 drawn as E220-900T22D vs the design's E22. | **RESOLVED ✓ — E220 is the part in hand (decided 2026-07-12); all docs re-based** (architecture §1 decision note, §3.4 numbers: T22D 110 mA / T30D 620 mA TX). Net names `E22_*` in the schematic are cosmetic; rename at leisure |
 | 2 | ❗ | No reverse-polarity FET + TVS on solar input. Wiring detail now in §3.6 (AO3401 drain-to-panel + **SMAJ8.5A**). | open — wiring supplied |
 | 3 | ❗ | No TVS on vane/anemo/rain lines; GX shield pins NC. §3.6: SMAJ5.0A each + shields to GND. | open — user fixing |
 | 4 | ⚠ | Boost inductor placement / VIN net. | **FIXED ✓** (VBAT→L→SW, FB at divider midpoint, verified rev-b) |

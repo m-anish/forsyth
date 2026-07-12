@@ -28,13 +28,13 @@ flowchart LR
         MCU["<b>ATtiny3226</b><br/>SOIC-20 · UPDI<br/>runs directly off the cell"]
         MCU <-->|I2C| ENV["BME280 · SHTC3<br/>AS3935 (+IRQ)<br/>Qwiic expansion"]
         MCU <-->|"shared UART<br/>(time-multiplexed)"| PMS["PMS7003<br/><i>gated 5 V boost</i>"]
-        MCU <-->|"shared UART"| E22L["E22-900T22D/T30D<br/><i>gated 5 V boost</i>"]
+        MCU <-->|"shared UART"| E22L["E220-900T22D/T30D<br/><i>gated 5 V boost</i>"]
         SOLAR["solar 1–2 W"] --> CN["CN3801 MPPT"] --> BATT["LiFePO4 18650"] --> MCU
     end
     E22L -.->|"LoRa 868 MHz<br/>private point-to-multipoint"| E22C
     subgraph COORD["COORDINATOR — mains + backup"]
         direction TB
-        E22C["E22 (gated)"] <--> ESP["<b>ESP32-S3-WROOM-1</b><br/>DS3231 RTC · LiFePO4 backup"]
+        E22C["E220 (gated)"] <--> ESP["<b>ESP32-S3-WROOM-1</b><br/>DS3231 RTC · LiFePO4 backup"]
         ESP -->|"WiFi · MQTT/HTTPS"| CLOUD["self-hosted dashboard<br/>+ Weather Underground"]
     end
 ```
@@ -42,11 +42,21 @@ flowchart LR
 - **Topology:** private point-to-multipoint LoRa. Leaves speak only to the coordinator;
   the coordinator timestamps on receipt and uploads. No multi-hop routing in v1 (payload
   schema leaves room for it, §7).
-- **Not LoRaWAN — documented decision.** The E22 "D" variants run Ebyte's own UART
-  protocol over the SX1262 radio, not the LoRaWAN MAC. For a single-owner mesh this is
+- **Not LoRaWAN — documented decision.** The Ebyte "D" modules run Ebyte's own UART
+  protocol over a LoRa radio, not the LoRaWAN MAC. For a single-owner mesh this is
   simpler and sufficient. If TTN/Helium interop is ever wanted, that is a different radio
   firmware stack (or module), not a config change — noted here so it's a choice, not an
   accident.
+- **Module family: Ebyte E220 (LLCC68) — decided 2026-07-12,** superseding the brief's
+  E22 (SX1262). What's traded away: SF12 (LLCC68 tops out at SF11 — ~one SF step less
+  extreme-range headroom) and the E22's relay-network feature (an explicit non-goal
+  anyway). What's gained: current-generation silicon, lower cost, a 200-byte packet cap
+  that matches the payload schema in §7 — and, decisively, **lokki runs this exact
+  family**, so its debugged register map, config sequences, and AUX discipline
+  (`../../lokki/firmware/micropython/src/comms/`) are a direct working reference rather
+  than an analogy. Everything in this section (gating, AUX two-edge, M0/M1 weak
+  pull-ups, 3.3 V fixed logic, "≥5.0 V ensures output power") is confirmed in the E220
+  manuals and applies unchanged.
 
 ---
 
@@ -82,8 +92,8 @@ Decided, with rationale recorded:
 | Function | Pins |
 |---|---|
 | I2C (SDA/SCL): BME280, SHTC3, AS3935, expansion | 2 |
-| Shared UART (TX/RX): E22 + PMS7003, time-multiplexed | 2 |
-| E22 control: M0, M1, AUX (in), power-gate EN | 4 |
+| Shared UART (TX/RX): E220 + PMS7003, time-multiplexed | 2 |
+| E220 control: M0, M1, AUX (in), power-gate EN | 4 |
 | PMS7003 power-gate / boost EN | 1 |
 | Wind speed pulse (Event System input) | 1 |
 | Wind direction ADC (resistor ladder) | 1 |
@@ -137,7 +147,7 @@ is behind its own power gate, and the wake cycle sequences them:
 ```
 wake → read I2C sensors + pulse counters
      → gate PMS7003 boost ON → wait 30 s warm-up → read frame(s) over UART → gate OFF
-     → gate E22 boost ON → (E22 sequence, §3) → transmit → gate OFF
+     → gate E220 boost ON → (radio sequence, §3) → transmit → gate OFF
      → sleep
 ```
 
@@ -160,7 +170,7 @@ before register writes were reliable. Diagnosis, from lokki's own commit history
    corrupted borderline-timing register exchanges. (The same module on a clean USB supply
    worked first try, every time.)
 2. **Non-atomic M0/M1 GPIO init** — pins driven OUT before being driven LOW glitched the
-   module through a hidden mode bounce. The E22 datasheet confirms M0/M1 have **weak
+   module through a hidden mode bounce. The E220 manual confirms M0/M1 have **weak
    pull-ups**: floating pins = M0=M1=1 = deep sleep. During MCU reset, tri-stated pins
    float high. Drive them, always, from before the module has power.
 3. **Blind delays instead of AUX edges** — the fix that worked was a two-edge wait
@@ -180,7 +190,7 @@ Forsyth's requirements (non-negotiable, applies to **both** leaf and coordinator
    switch. Most boosts (including the MT3608-class chips on common breakout modules)
    have a **pass-through path when disabled** — input stays connected to output through
    the inductor and the rectifier, so "EN low" leaves ≈ V_batt − V_diode ≈ **2.6–2.9 V**
-   on the rail. The E22-900T22D operates down to **2.1 V** (manual, §3.4 sources) — a
+   on the rail. The E220-900T22D operates down to **3.0 V** and the radio family generally below that (manual, §3.4 sources) — a
    "disabled" generic boost therefore leaves a brown-powered zombie radio, which is the
    lokki failure mode wearing a new hat. Hence the rule: **the boost IC must provide
    true load disconnect** (output isolated from input in shutdown), or a discrete
@@ -222,15 +232,14 @@ Forsyth's requirements (non-negotiable, applies to **both** leaf and coordinator
    module's VCC pin, downstream of the gated boost stage** (so it powers off with the
    module and still absorbs the TX burst). This is the component lokki's Rev0 board was
    missing.
-4. **Current sizing — real numbers, pulled 2026-07-11 from current Ebyte manuals:**
-   - E22-900**T30D**: TX current **650 mA typ** (instantaneous) at 30 dBm; RX 16 mA;
-     operating voltage 3.3–5.5 V with the manual noting **"≥5.0 V ensures output power."**
-   - E22-900**T22D**: TX current **140 mA typ** at 22 dBm; RX 11 mA; "≥3.3 V ensures
-     output power."
-   - Applying the ≥2× datasheet-peak rule: **T30D ⇒ design the 5 V rail and battery
-     discharge path for ≥1.3 A momentary; T22D ⇒ ≥300 mA.** The T30D requirement lands
-     right where the brief predicted ("clears 500 mA, headroom toward 1 A" — in fact
-     beyond it; 1.3 A capability is the design target).
+4. **Current sizing — real numbers from the E220 manuals (module decision below):**
+   - E220-900**T30D**: TX current **620 mA typ** (instantaneous) at 30 dBm; RX 17.2 mA;
+     sleep 5 µA; operating voltage 3.0–5.5 V, **"≥5.0 V ensures output power."**
+   - E220-900**T22D**: TX current **110 mA typ** at 22 dBm; RX 16.8 mA; sleep 5 µA;
+     same voltage row.
+   - Applying the ≥2× datasheet-peak rule: **T30D ⇒ ≥1.25 A momentary (design target
+     stays 1.3 A); T22D ⇒ ≥250 mA.** The TPS61023 stage covers both unchanged.
+   *(Historical: the earlier E22/SX1262 numbers were 650/140 mA — same sizing either way.)*
 5. **5 V boost rail for the E22** (own gated boost, same pattern as the PMS7003): the PA
    runs at the top of its supply range, which the manual explicitly ties to delivering
    rated output power — this matters most for the T30D. **Boost converters reflect
@@ -290,8 +299,8 @@ I_avg = (I_sleep × T_sleep + Σ I_active_phase × T_phase) / T_total
 | Battery-sense divider | ~2.7 µA | continuous | 1 M + 330 k (board sheet §3.4) |
 | BME280 / SHTC3 idle | ~0.1–1 µA each | continuous | negligible |
 | PMS7003 reading | ~80 mA at 5 V (boost input side higher) | ~30 s per reading | **the dominant active-term item: ≈0.67 mAh per reading — ~35× one LoRa burst** |
-| E22 T22D TX | 140 mA at 5 V | <1 s | ≈0.02 mAh per report |
-| E22 T30D TX | 650 mA at 5 V | <1 s | ≈0.09 mAh per report; sizing case, not energy case |
+| E220 T22D TX | 110 mA at 5 V | <1 s | ≈0.015 mAh per report |
+| E220 T30D TX | 620 mA at 5 V | <1 s | ≈0.09 mAh per report; sizing case, not energy case |
 | MCU awake + I2C reads | ~few mA | ~1 s | small |
 
 **Consequences already visible without fabricated precision:**
@@ -342,7 +351,7 @@ flowchart TB
         P["PMS7003 module<br/><i>needs the airflow</i>"]
     end
     subgraph BOX["🔋 sealed core box (under the screen)"]
-        A["<b>BOARD A · core</b><br/>ATtiny3226 · E22 + antenna<br/>CN3801 + 18650 holder · 2× TPS61023<br/>protection row · every port"]
+        A["<b>BOARD A · core</b><br/>ATtiny3226 · E220 + antenna<br/>CN3801 + 18650 holder · 2× TPS61023<br/>protection row · every port"]
     end
     D ==>|"GX16-5 · one shielded 5-core<br/>3V3 · GND · vane · anemo · shield"| A
     B ==>|"JST-XH-5 (internal)<br/>3V3 · GND · SDA · SCL · IRQ"| A
@@ -444,7 +453,7 @@ byte 5…     : field groups, in bit order, fixed-width scaled integers each
 - **Routing headroom:** flags bits are reserved for a future hop/TTL nibble, and leaf id
   0 is reserved for the coordinator — enough space that adding relay metadata later is
   an extension, not a redesign. (Explicit non-goal now.)
-- Transport addressing (E22 fixed mode `[ADDH][ADDL][CHAN]` prefix, ≤200-byte payloads,
+- Transport addressing (E220 fixed mode `[ADDH][ADDL][CHAN]` prefix, ≤200-byte payloads,
   optional trailing RSSI byte) follows the same conventions lokki proved out — see
   `../../lokki/docs/lora-protocol.md` for the working precedent.
 - The coordinator ACKs configuration pushes only; routine reports are fire-and-forget
@@ -469,8 +478,8 @@ byte 5…     : field groups, in bit order, fixed-width scaled integers each
   under the stage stitched to the plane. Per the TPS61023 datasheet layout guidance;
   both boost stages live away from the AS3935 and the ADC ladder (see below).
 - **Ground plane:** solid, unbroken under the RF section; no routed traces slicing the
-  plane under the E22 or the antenna feed.
-- **RF trace:** module-to-antenna short and at the E22 app-note's controlled impedance
+  plane under the E220 or the antenna feed.
+- **RF trace:** module-to-antenna short and at the E220 app-note's controlled impedance
   for the chosen stack-up; no digital lines near or under it; component/pour keep-out
   around the antenna.
 - **Crystals:** the leaf has none (internal ULP oscillator — that's the point). The
@@ -485,7 +494,7 @@ byte 5…     : field groups, in bit order, fixed-width scaled integers each
 - **Boost converters vs quiet things:** keep both 5 V boosts (and the CN3801's switch
   node) physically away from the AS3935 and the ADC ladder input; the lightning sensor's
   application notes are explicit about switching-noise isolation.
-- **Test points:** battery voltage, 3.3 V rail, both gated 5 V rails, E22 VCC, UART
+- **Test points:** battery voltage, 3.3 V rail, both gated 5 V rails, radio VCC, UART
   TX/RX, both power-gate control lines, AUX. Bring-up happens on pads, not on SOIC legs.
 - **Silkscreen:** label every connector pinout and the battery/solar polarity. Future
   daughter boards — and future you — should not have to consult this file to plug in

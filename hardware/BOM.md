@@ -5,7 +5,7 @@ before ordering anything.** Prices are INR, qty 1–10, rounded. Sourcing is Ind
 (assembly happens there); LCSC+JLCPCB noted where it's the practical fallback.
 
 Decisions already made (see [architecture.md](architecture.md) for rationale):
-ATtiny3226 leaf MCU · ESP32-S3 coordinator · E22 UART LoRa on both · CN3801 charging ·
+ATtiny3226 leaf MCU · ESP32-S3 coordinator · E220 (LLCC68) UART LoRa on both · CN3801 charging ·
 BME280-for-pressure + SHTC3/SHT4x for temp/RH · PMS7003 AQI · DFRobot SEN0290 lightning.
 
 ---
@@ -26,7 +26,7 @@ plus off-board items and the interconnect set.
 | # | Component | Function | India availability | ~₹ (qty 1–10) | Rationale / notes |
 |---|---|---|---|---|---|
 | A1 | **ATtiny3226-SU** (SOIC-20) | Leaf MCU | **Robu.in — domestic stock confirmed**; LCSC fallback | 150–300 | Bare chip on PCB; UPDI programming (programmer on the bench). Architecture §2.1 |
-| A2 | **Ebyte E22-900T22D** | LoRa radio (default) | Robu.in, HubTronics; Ebyte store | 500–750 | 140 mA TX burst. T30D (₹800–1200) per-site where 22 dBm can't close the link — rail is sized for it either way |
+| A2 | **Ebyte E220-900T22D** (LLCC68) | LoRa radio (default) | Robu.in, HubTronics; Ebyte store | 450–650 | **In hand (decided 2026-07-12).** 110 mA TX burst. E220-900T30D (620 mA, ₹700–1100) per-site where 22 dBm can't close the link — rail sized for it either way |
 | A3 | **CN3801** (SSOP-10) | Solar MPPT charger, LiFePO4-native | **already on hand** | — | Factory-fixed 3.625 V CV. Full sub-circuit w/ datasheet values in [boards/board-a-core.md §3.1](boards/board-a-core.md) |
 | A4 | **LiFePO4 18650** + on-board holder | Battery | Robu.in LFP category | 200–300 + ~50 | Holder on Board A — no battery cable to get wrong. T30D sites need honest ≥1.5 A discharge |
 | A5 | **TPS61023** ×2 (bare SOT-563) + 1 µH-class inductors + caps | Both gated 5 V rails — **EN pin is the power gate** | **Bare IC on Robu (user-confirmed)**; LCSC/JLCPCB for volume | ~₹40–90 ea + passives | True load disconnect ([datasheet](https://www.ti.com/lit/ds/symlink/tps61023.pdf)). **Bare IC decided** — the 7semi/Evelta breakout masks EN (ties it to VIN), which defeats the entire gating design. SOT-563 fine pitch: flux + drag solder |
@@ -71,7 +71,7 @@ connector set. A met-only leaf (no PMS7003, no SEN0290) lands nearer ₹1,900–
 | # | Component | Function | India availability | ~₹ | Notes |
 |---|---|---|---|---|---|
 | 1 | **ESP32-S3-WROOM-1** (N8R8 or N16R8) | Coordinator MCU | Robu.in, Campus Component — same-day dispatch | 300–500 | Module, not bare chip (RF done). PSRAM variant for TLS headroom |
-| 2 | **Ebyte E22-900T22D** (or T30D) | LoRa | as above | 500–1200 | Same gating circuit as leaf — one design, twice used |
+| 2 | **Ebyte E220-900T22D** (or T30D) | LoRa | as above | 450–1100 | Same gating circuit as leaf — one design, twice used |
 | 3 | **DS3231 breakout** | RTC | ubiquitous | 80–150 | Survives reboots; bridges NTP gaps |
 | 4 | **LiFePO4 cell + charger/boost path** | Backup (hours) | Robu.in | 250–450 | Chemistry-consistent with leaves by default; formally open |
 | 5 | Load switch, bulk caps, USB-C 5 V input, protection | Power path | as above | 150–300 | Same §3 discipline |
