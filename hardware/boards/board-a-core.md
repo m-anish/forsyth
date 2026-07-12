@@ -154,13 +154,23 @@ matters.
 resistor; a 1 k series on the target pad is harmless insurance. No crystal, no reset
 line — UPDI is the whole story.
 
-### 3.6 Protection row (per architecture §8)
+### 3.6 Protection row (per architecture §8) — wiring detail (2026-07-12)
 
-- Solar input: Q1 reverse-polarity P-FET (AO3401, gate to GND) + **SMAJ6.0A** TVS
-  across the input (panel Voc ≈ 6–7 V — verify against the panel; use SMAJ10A if Voc
-  is higher). **[verify panel Voc]**
-- Every signal entering from outside (`VANE_ADC`, `ANEMO`, `RAIN`): 1 k series +
-  100 nF to GND at the connector + bidirectional TVS/PESD to GND.
+- **Solar reverse-polarity, Q1 = AO3401 high-side:** panel + → **drain**, **source** →
+  VSOL, **gate** → GND. Correct polarity: body diode conducts momentarily, V_GS goes
+  negative, FET enhances and shorts its own diode (mΩ, no drop). Reversed: blocks
+  completely. Drain-toward-panel is the part everyone gets backwards. V_GS stays under
+  the panel voltage (~7 V) — inside ±12 V, no gate zener needed at 6 V-class panels.
+  (SOT-23 pinout: 1 = G, 2 = S, 3 = D.)
+- **Solar TVS = SMAJ8.5A**, line-to-GND at the connector, cathode to panel +.
+  *(Corrects the earlier SMAJ6.0A call — a 6 V-class panel's Voc ≈ 7.2 V sits inside
+  the 6.0A's 6.67 V min breakdown; the 8.5A stands off any realistic Voc and clamps
+  ~14 V, far under the CN3801's 28 V max.)*
+- **Signal lines (`VANE_ADC`, `ANEMO`, `RAIN`): SMAJ5.0A each**, line-to-GND at the
+  connector (cathode to signal), alongside the existing 1 k + 100 nF. Standoff 5 V >
+  3.65 V logic; ~9.2 V clamp through 1 k series ⇒ <1 mA into MCU clamps during events;
+  unidirectional also clamps negative excursions at −0.7 V. Capacitance irrelevant at
+  these speeds; one part number to stock.
 - GX shield pins: to GND at this end only.
 
 ## 4. Connectors (all on Board A)
@@ -187,7 +197,8 @@ line — UPDI is the whole story.
 | Q1 | AO3401 | SOT-23 | reverse-pol (solar input) |
 | Q2 | **AO3407** | SOT-23 | buck pass P-FET — datasheet-suggested "3407A"; Robu |
 | D1, D2 | **SS34** ×2 | SMA | series block + freewheel; D1 stays (night back-feed) |
-| D5… | SMAJ6.0A + PESD row | | protection |
+| D5 | **SMAJ8.5A** | SMA | solar input TVS (Voc-safe for 6 V panels; supersedes SMAJ6.0A) |
+| D6–D8 | **SMAJ5.0A** ×3 | SMA | vane/anemo/rain line clamps |
 | D3, D4 | LED red/green + R7,R8 1 k | 0805 | CHRG/DONE status (bring-up; tie-off if DNP) |
 | L1, L2 | 1.0 µH, Isat > 4 A | per TI table | boost |
 | L3 | **33 µH power, Isat ≥ 1 A** | CDRH/radial | datasheet ΔI_L method @ 0.5 A |
@@ -216,18 +227,19 @@ positions, L 33 µH, AO3407, output 2×10 µF, 1 M/330 k battery divider; both T
 dividers 732 k/100 k; RC conditioning (1 k + 100 nF) on rain/anemo/vane at the connector
 side; UPDI header with 1 k; GND on pin 2 of the GX connectors.
 
-**Issues found (fix before fab):**
+**Issues found — status after V1.0-rev-b (2026-07-12):**
 
-| # | Severity | Finding |
-|---|---|---|
-| 1 | ❗ | **U2 is drawn as E220-900T22D — the design says E22-900T22D.** Same pinout, different chip (LLCC68 vs SX1262), different config protocol, and it's the exact module family lokki fought. If the symbol is just a library stand-in, relabel it; if an E220 was actually bought, the firmware plan and §3.4 datasheet numbers need re-basing. Decide explicitly. |
-| 2 | ❗ | **No reverse-polarity protection and no TVS on the solar input** (CN4 → VSOL is bare). §3.6: AO3401 rev-pol P-FET + SMAJ6.0A across the input. |
-| 3 | ❗ | **No ESD/TVS clamps on any external line** (vane, anemo, rain) and the **GX shield pins are left no-connect**. This is a lightning-monitoring project; fit the PESD/TVS row and land shields to GND at this end (§3.6). |
-| 4 | ⚠ | **Verify the boost inductor placement on U3/U4.** TI topology: L sits **between VBAT (VIN) and the SW pin**; VOUT goes only to the output caps + FB divider. In the drawing, L1/L2 appear to hang off SW toward the output side, and no VBAT net label is visible on either VIN — confirm VIN is actually tied to VBAT and L is VIN↔SW (datasheet Figure 8-1). |
-| 5 | ❗ | **VBAT_SENSE tap has no capacitor** — add 100 nF at the divider tap (§3.4) or the ADC will sag the 1 MΩ divider during sampling. |
-| 6 | ⚠ | `UART_TX` drives E22 RXD and PMS RX directly while their rails are gated **off** → back-powering through input-protection diodes. Cheapest fix: 1 k series in the TX line; firmware rule either way: drive TX low before de-asserting EN. |
-| 7 | nit | CN5 "FUTURE" carries VBAT/GND/SPARE1/SPARE2 but no SDA/SCL — the planned Qwiic expansion (§4 J6) is absent. Fine if Board B's connector is the I2C growth path; note the decision. |
-| 8 | nit | One shared 1 k (R7) feeds both CHRG/DONE LEDs — fine (mutually exclusive states), just noting it's intentional. |
+| # | Severity | Finding | Status |
+|---|---|---|---|
+| 1 | ❗ | **U2 drawn as E220-900T22D — design says E22-900T22D** (LLCC68 vs SX1262, different config protocol). Symbol stand-in, or actual part? | **OPEN — decide** |
+| 2 | ❗ | No reverse-polarity FET + TVS on solar input. Wiring detail now in §3.6 (AO3401 drain-to-panel + **SMAJ8.5A**). | open — wiring supplied |
+| 3 | ❗ | No TVS on vane/anemo/rain lines; GX shield pins NC. §3.6: SMAJ5.0A each + shields to GND. | open — user fixing |
+| 4 | ⚠ | Boost inductor placement / VIN net. | **FIXED ✓** (VBAT→L→SW, FB at divider midpoint, verified rev-b) |
+| 5 | ❗ | VBAT_SENSE tap capacitor. | **FIXED ✓** (C20 100 nF) |
+| 6 | ⚠ | UART_TX back-powering gated-off peripherals. | **FIXED ✓** (R7 1 k series; PMS joined on the _H side — clamped symmetrically) |
+| 7 | nit | Qwiic expansion missing. | **FIXED ✓** (J1 added; confirm physical pin order GND·3V3·SDA·SCL before fab) |
+| 8 | nit | Shared LED resistor. | intentional, fine |
+| 9 | nit | Solar enters via board-side XH-2A — fine if the enclosure wall carries the GX12-2 bulkhead wired to it (keying story lives at the box surface). | note |
 
 ## 7. Bring-up checklist
 
