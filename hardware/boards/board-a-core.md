@@ -385,6 +385,19 @@ CN2 leave the box through glands as fixed pigtails.
   ground return separately").
 - GX shield pins → plane at the connector.
 
+**Trace widths (1 oz outer copper):** charge path (VSOL→Q1→Q2→D1→L3→R8→VBAT, D2 leg,
+cell connections) 1.0–1.5 mm (2 mm where free); VBAT trunk to boost VINs 1.5 mm (TX
+bursts); boost VIN→L→SW and VOUT 1.0–1.5 mm and short; 5V_RADIO 1.0 mm; all signals
+0.25–0.3 mm; **CSP/BAT Kelvin pair deliberately thin (0.25 mm)** and landed on R8 pad
+ends away from the power entry; GND is pours + stitching, never traces; power-path
+vias 0.6/0.3 mm, 2–3 in parallel.
+
+**The one loop that matters (CN3801 buck):** the commutation ring is
+C_in(ceramics) → Q2 → D1 → D2 → C_in ground — close it in ~1 cm²; C11 electrolytic may
+stand a step back. R8 touches L3's output pad (datasheet rule). MPPT island (R9, R12,
+Q3 drain) within a few mm of U6 pin 6, away from switch nodes. Analog ground vias
+(R12, R14/C16, R13/C20) near U6's GND pin, offset from the D2/C_in power-ground vias.
+
 **Bring-up hooks:** test points on VBAT, VSOL, both 5 V rails, UART_TX/RX, AUX, both
 EN lines, MPPT, VBAT_SENSE; the DNP 10 k anemometer pull-up pads; LED1 visible once
 boxed.
