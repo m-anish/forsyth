@@ -188,7 +188,13 @@ now: over-discharge and discharge short-circuit. Two layers:
    2026-07-12: reserve a footprint on Board A beside BT1 rather than laying out the
    discrete circuit). Wiring: `B+` → cell+/VBAT node, `B−` → BT1 negative terminal,
    `P−` → board GND; on most strips B+ doubles as P+ (only the − path is switched) —
-   **verify the pad markings on the actual unit** before finalizing the footprint
+   **verify the pad markings on the actual unit** before finalizing the footprint.
+   Convention: the strip is the boundary — **all system-side copper (CN3801 output,
+   VBAT distribution) lands on P+; only the cell touches B+/B−** (on this strip + is
+   straight-through so it's electrically moot, but it makes the design
+   substitution-proof against high-side-switching protectors). Note: CN3801's CV is
+   sensed at its BAT pin, so − -path resistance adds ~25–50 mV of early-taper at
+   0.5 A — negligible, self-correcting at termination
    (~46 × 6 mm typical; measure). BT1− must reach the plane **only through the strip**
    — silkscreen "CELL− VIA BMS". The DW01's Li-ion 4.25 V overcharge threshold never
    fires (CN3801's LFP limits act first); what it buys is the **~2.40 V undervoltage
