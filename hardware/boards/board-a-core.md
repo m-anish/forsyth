@@ -184,11 +184,17 @@ MPPT node (R9/R12 junction) ── D  2N7002  S ── GND
 Covered already: overcharge + charge current (CN3801 CV/OVP + R_CS). Not covered until
 now: over-discharge and discharge short-circuit. Two layers:
 
-1. **DW01A + FS8205A** in the cell− → board-GND path, at the holder. The DW01's Li-ion
-   4.25 V overcharge threshold never fires (CN3801's LFP limits act first); what it
-   buys is the **~2.40 V undervoltage cutoff + short-circuit protection**. 2.40 V is a
-   parachute, not a cycling threshold — LFP holds almost nothing between 2.8 and 2.4 V.
-   Recovery from UV lockout happens through the FS8205 body diode when solar returns.
+1. **DW01A + FS8205A, as a ready-made 1S PCM strip** (KTRON/Robu ₹30–60 — decided
+   2026-07-12: reserve a footprint on Board A beside BT1 rather than laying out the
+   discrete circuit). Wiring: `B+` → cell+/VBAT node, `B−` → BT1 negative terminal,
+   `P−` → board GND; on most strips B+ doubles as P+ (only the − path is switched) —
+   **verify the pad markings on the actual unit** before finalizing the footprint
+   (~46 × 6 mm typical; measure). BT1− must reach the plane **only through the strip**
+   — silkscreen "CELL− VIA BMS". The DW01's Li-ion 4.25 V overcharge threshold never
+   fires (CN3801's LFP limits act first); what it buys is the **~2.40 V undervoltage
+   cutoff + short-circuit protection** (parachute — LFP holds almost nothing between
+   2.8 and 2.4 V). Recovery from UV lockout happens through the 8205 body diode when
+   solar returns; adds ~3 µA to the sleep floor.
 2. **Firmware soft-UVLO** via `VBAT_SENSE`: park radio/PMS below ~2.9 V, deep-sleep
    below ~2.8 V — the DW01 should never be the routine path.
 
@@ -239,7 +245,7 @@ now: over-discharge and discharge short-circuit. Two layers:
 | Q1 | **AO3407** | SOT-23 | reverse-pol (solar input) — ±20 V V_GS survives the TVS clamp; same part as Q2 |
 | Q2 | **AO3407** | SOT-23 | buck pass P-FET — datasheet-suggested "3407A"; Robu |
 | Q3 | 2N7002 | SOT-23 | charge-inhibit, MPPT-pin pulldown (§3.5a) + R19 100 k |
-| U8 | **DW01A + FS8205A** | SOT-23-6 + TSSOP-8 | cell UV/short protection at the holder (§3.5b); Robu combo |
+| U8 | **1S PCM strip (DW01A + 8205A)** | ~46×6 mm module | soldered onto reserved footprint beside BT1 (§3.5b); KTRON/Robu ₹30–60; verify B+/B−/P− pads |
 | D1, D2 | **SS34** ×2 | SMA | series block + freewheel; D1 stays (night back-feed) |
 | D5 | **SMAJ8.5A** | SMA | solar input TVS (Voc-safe for 6 V panels; supersedes SMAJ6.0A) |
 | D6–D8 | **SMAJ5.0A** ×3 | SMA | vane/anemo/rain line clamps |
