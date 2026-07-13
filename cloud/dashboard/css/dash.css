@@ -301,6 +301,9 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 .wx-modes button:last-child, .wx-tools button:last-child { border-right: none; }
 .wx-modes button.on, .wx-tools button.on { background: var(--accent); color: #fff; }
 .wx-modes button:hover, .wx-tools button:hover { filter: brightness(1.15); }
+/* the tools row is emoji glyphs — they read ~20% smaller than the text in the
+   modes row at the same size, so bump them up to match visual weight */
+.wx-tools button { font-size: 13.5px; padding: 6px 10px; }
 
 .wx-legend {
   background: var(--panel, #1c2430); color: var(--ink, #e8edf4);
