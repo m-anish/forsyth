@@ -265,8 +265,8 @@ now: over-discharge and discharge short-circuit. Two layers:
 | D5 | **SMAJ8.5A** (or **8.5CA**, see §3.6) | SMA | solar input TVS (Voc-safe for 6 V panels; supersedes SMAJ6.0A) |
 | D6–D8 | **SMAJ5.0A** ×3 | SMA | vane/anemo/rain line clamps |
 | D3, D4 | LED red/green + R7,R8 1 k | 0805 | CHRG/DONE status (bring-up; tie-off if DNP) |
-| L1, L2 | 1.0 µH, Isat > 4 A | per TI table | boost |
-| L3 | **33 µH power, Isat ≥ 1 A** | CDRH/radial | datasheet ΔI_L method @ 0.5 A |
+| L1, L2 | 1.0 µH, Isat > 4 A — **Sunlord SWPA5040S1R0NT** (selected 2026-07-13; substitutes in BOM.md A5L) | 5.0×5.0×4.0 shielded | boost; marking `1R0` |
+| L3 | **33 µH power, Isat ≥ 1 A — Sunlord SWPA6045S330MT** (1.6 A, [Robu](https://robu.in/product/swpa6045s330mt-sunlord-33uh-20-1-6a-100khz-6x6x4-5mm-wire-wound-power-inductor-smd/), selected 2026-07-13) | 6×6×4.5 shielded | datasheet ΔI_L method @ 0.5 A; peak ≈ 0.58 A → ~3× margin (thins to ~40 % at the 0.12 Ω/1 A upgrade); marking `330` — don't swap with the `1R0` boost parts |
 | R_CS | **0.24 Ω 1 % ≥ 1 W** | 2512, Kelvin | 0.5 A charge (0.12 Ω if panel ≥5 W) |
 | R1,R3 / R2,R4 | 732 k / 100 k | 1 % | boost FB ×2 |
 | R5, R6 | **390 k / 100 k** | 1 % | MPPT → 5.90 V (set to panel V_MP) |
