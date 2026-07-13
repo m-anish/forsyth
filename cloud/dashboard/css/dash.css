@@ -288,9 +288,6 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 .wx-chip.stale { opacity: .65; }
 .wx-chip .wc-a { display: inline-block; font-size: 11px; line-height: 1; }
 
-/* zoom column and the mode/tool block sit side by side, not stacked */
-.leaflet-top.leaflet-left { display: flex; flex-direction: row; align-items: flex-start; }
-.wx-ctl { display: flex; flex-direction: column; gap: 8px; }
 .wx-modes, .wx-tools { display: flex; overflow: hidden; }
 .wx-modes button, .wx-tools button {
   border: none; background: var(--panel, #1c2430); color: var(--ink, #e8edf4);
@@ -341,12 +338,6 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
   padding: 2px 9px; cursor: pointer;
 }
 .wx-scrub .live:hover { background: var(--accent); color: #fff; }
-.wx-scrub .play {
-  border: 1px solid var(--accent); background: none; color: var(--accent);
-  font: 600 10px 'JetBrains Mono', monospace; border-radius: 999px;
-  padding: 2px 8px; cursor: pointer; line-height: 1;
-}
-.wx-scrub .play:hover, .wx-scrub .play.on { background: var(--accent); color: #fff; }
 .wx-scrub .t { min-width: 42px; text-align: right; opacity: .85; }
 .pop-cam img { width: 100%; border-radius: 6px; margin: 6px 0 2px; display: block; }
 
