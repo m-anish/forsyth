@@ -1,4 +1,4 @@
-# Forsyth coordinator firmware — ESP32-S3 (Waveshare mini), MicroPython
+# Forsyth coordinator firmware — ESP32-S3, MicroPython
 
 The always-on translator: E220 LoRa frames in, MQTT JSON out, ACKs (with
 piggybacked config) back down. MicroPython on purpose — it's the lokki
@@ -37,19 +37,38 @@ The repo copy of `config.py` holds placeholders; real credentials live only on
 the device. The MQTT credential is the `coordinator-01` mosquitto user created
 during droplet deployment (cloud/docs/deploy.md).
 
-## Wiring (config.py `LORA_PINS`, adjust to taste)
+## Carrier board
 
-| E220 pin | ESP32-S3 GPIO | note |
-|---|---|---|
-| RXD | 11 (TX) | |
-| TXD | 12 (RX) | |
-| M0 | 13 | driven, never floated |
-| M1 | 14 | driven, never floated |
-| AUX | 15 | input |
-| VCC | 5 V | **with 100–220 µF bulk + 100 nF at the module** — the lokki rule applies to the coordinator too |
-| GND | GND | |
+Any ESP32-S3 board with ~14 free GPIOs works. Selected 2026-07-13:
+**DFRobot FireBeetle 2 ESP32-S3** — onboard Li-ion charging with proper load
+sharing (mains loss → seamless cell switchover, no reboot), VBAT connector,
+India-stocked. Budget alternative: DevKitC-1 clone + TP4056 *load-sharing*
+module. Rejected: XIAO S3 (pin-starved), T3-S3/Heltec V3 (SPI LLCC68 radio —
+wrong interface for the E220 modules in hand).
 
-Defaults avoid the S3's strapping pins (0/3/45/46) and USB pins (19/20).
+**Octal-PSRAM warning:** on any "R8" board (FireBeetle 2, DevKitC N16R8),
+**GPIO 33–37 are reserved by the PSRAM** — do not assign them. The defaults
+below are safe on both quad- and octal-PSRAM parts, and also avoid strapping
+pins (0/3/45/46) and the USB pair (19/20).
+
+## Wiring (config.py `LORA_PINS` / `NETWORK["eth"]` / `OLED`, adjust to taste)
+
+| Module | Signal | ESP32-S3 GPIO | note |
+|---|---|---|---|
+| E220 | RXD | 17 (TX) | |
+| E220 | TXD | 18 (RX) | |
+| E220 | M0 / M1 | 8 / 9 | driven, never floated |
+| E220 | AUX | 10 | input |
+| E220 | VCC | 5 V | **with 100–220 µF bulk + 100 nF at the module** — the lokki rule applies to the coordinator too |
+| W5500 | SCK / MOSI / MISO | 12 / 11 / 13 | |
+| W5500 | CS / INT | 14 / 21 | |
+| W5500 | VCC | 3.3 V | module draws ~130–180 mA |
+| OLED SSD1306 | SDA / SCL | 1 / 2 | 0.96" I2C, addr 0x3C; `OLED["enabled"] = True` |
+| status LED | — | `STATUS_LED_PIN` | one flash per received frame |
+
+The OLED and LED are fully optional (`display.py` degrades to headless with a
+console note); when fitted, the panel shows the last frame's slug, RSSI, leaf
+battery, and uplink state — enough to diagnose a site visit without a laptop.
 
 ## Data flow
 

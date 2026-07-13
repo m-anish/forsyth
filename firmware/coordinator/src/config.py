@@ -22,13 +22,22 @@ NETWORK = {
     "min_rssi_dbm": -85,      # below this, RSSI logs carry a WEAK warning
     # W5500 SPI ethernet module wiring — only read in the eth modes.
     # ADJUST TO YOUR WIRING; needs a MicroPython build with network.PHY_W5500.
+    # Same pin rules as LORA_PINS above (octal-PSRAM-safe defaults).
     "eth": {
         "spi_id": 2,
-        "sck": 36, "mosi": 35, "miso": 37,
-        "cs": 38, "int": 39,
+        "sck": 12, "mosi": 11, "miso": 13,
+        "cs": 14, "int": 21,
         "phy_addr": 1, "baud": 20000000,
     },
 }
+
+# ---- optional 0.96" SSD1306 OLED + status LED (I2C shares nothing above) --------
+OLED = {
+    "enabled": False,       # flip on when the display is fitted
+    "sda": 1, "scl": 2,     # octal-PSRAM-safe; any free pair works
+    "addr": 0x3C,
+}
+STATUS_LED_PIN = None       # e.g. 47; None = use console logging only
 
 # ---- MQTT uplink (matches cloud/docs/deploy.md broker setup) -------------------
 MQTT_HOST = "live.forsyth.starstucklab.com"
@@ -56,16 +65,18 @@ LORA = {
     "crypt_l": 0x57,
 }
 
-# ---- E220 wiring on the Waveshare ESP32-S3 mini --------------------------------
-# ADJUST TO YOUR WIRING. Any free GPIOs work; these avoid the strapping pins
-# (GPIO0/3/45/46) and the USB pair (19/20).
+# ---- E220 wiring ----------------------------------------------------------------
+# ADJUST TO YOUR WIRING. Any free GPIOs work; these defaults avoid the S3's
+# strapping pins (GPIO0/3/45/46), the USB pair (19/20), AND GPIO33-37 — which
+# are reserved by octal PSRAM on any "R8" board (FireBeetle 2 ESP32-S3,
+# DevKitC N16R8, etc.). Pins here are safe on both quad- and octal-PSRAM parts.
 LORA_PINS = {
     "uart_id": 1,
-    "tx": 11,               # ESP TX  -> E220 RXD
-    "rx": 12,               # ESP RX  <- E220 TXD
-    "m0": 13,
-    "m1": 14,
-    "aux": 15,
+    "tx": 17,               # ESP TX  -> E220 RXD
+    "rx": 18,               # ESP RX  <- E220 TXD
+    "m0": 8,
+    "m1": 9,
+    "aux": 10,
 }
 
 # ---- behavior -------------------------------------------------------------------

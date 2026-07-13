@@ -11,6 +11,7 @@ import json
 import time
 
 import config
+import display
 import protocol
 import uplink as uplink_mod
 from e220 import E220
@@ -20,6 +21,9 @@ from net import Net
 _pending_tlvs = {}
 # unit_id -> last seq seen (dedupe of TX retries)
 _last_seq = {}
+# optional OLED/LED panel + per-slug frame counter for its display
+_panel = None
+_frames = {}
 # persisted state: rain baselines per unit_id
 _state = {}
 _slug_to_unit = {st["slug"]: uid for uid, st in config.STATIONS.items()}
@@ -94,6 +98,15 @@ def _handle_frame(radio, up, payload, rssi):
         return
     _last_seq[unit] = msg["seq"]
 
+    _frames[slug] = _frames.get(slug, 0) + 1
+    if _panel:
+        _panel.blink()
+        _panel.show(["forsyth coord",
+                     "%s #%d" % (slug, _frames[slug]),
+                     "rssi %d dBm" % rssi,
+                     "batt %.2fV" % msg.get("batt_v", 0),
+                     "net %s" % ("up" if up.connected else "SPOOL")])
+
     flags = msg["flags"]
     if msg["type"] == protocol.T_READING:
         r = {"ts": uplink_mod.iso_now(), "rssi_dbm": rssi}
@@ -138,8 +151,11 @@ def _handle_frame(radio, up, payload, rssi):
 
 
 def run():
+    global _panel
     print("forsyth coordinator — %s" % config.COORDINATOR_ID)
     _load_state()
+    _panel = display.Panel()
+    _panel.show(["forsyth coord", config.COORDINATOR_ID, "starting..."])
     net = Net()
     if net.ensure(block_s=90):        # boot: give the link a real chance
         uplink_mod.ntp_sync()

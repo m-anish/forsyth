@@ -29,9 +29,10 @@ command -v mpremote >/dev/null 2>&1 || {
 
 echo "== dependency: umqtt.simple"
 mpremote "${PORT_ARGS[@]+"${PORT_ARGS[@]}"}" mip install umqtt.simple
+mpremote "${PORT_ARGS[@]+"${PORT_ARGS[@]}"}" mip install ssd1306
 
 echo "== code"
-for f in protocol.py e220.py net.py uplink.py boot.py main.py; do
+for f in protocol.py e220.py net.py uplink.py display.py boot.py main.py; do
   echo "   $f"
   mpremote "${PORT_ARGS[@]+"${PORT_ARGS[@]}"}" cp "src/$f" ":$f"
 done
