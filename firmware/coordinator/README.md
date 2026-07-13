@@ -39,8 +39,10 @@ during droplet deployment (cloud/docs/deploy.md).
 
 ## Carrier board
 
-**Decided 2026-07-13: ESP32-S3-DevKitC-1 clone (prefer N8R2) on a hand-soldered
-perfboard** carrying the W5500 module and the E220. Scope rationale: the
+**Decided 2026-07-13: ESP32-S3-DevKitC-1 clone on a hand-soldered perfboard**
+carrying the W5500 module and the E220. **Ordered: N8R2 variant, dual USB-C**
+(quad PSRAM — GPIO 33–37 fully usable; one port is native USB, the other the
+CH343 UART bridge — flash/REPL on either). Scope rationale: the
 coordinator exists to push frames to the internet (and someday to config
 leaves locally) — pins + USB + 3.3 V is the whole requirement; battery backup
 and integrated anything were gold-plating. Socket the DevKit on female

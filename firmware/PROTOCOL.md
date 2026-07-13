@@ -155,3 +155,90 @@ delta × mm-per-tip; after coordinator state loss the first frame only re-baseli
 `{"report_interval_s": 600, "as3935": {"noise_floor": 3}}`) — the coordinator
 converts it to TLVs and holds them until that leaf's next uplink. See
 `coordinator/README.md` for the full key map.
+
+---
+
+## 4. Future: relaying (design of record, 2026-07-13 — NOT implemented)
+
+Motivation: one or two leaves may sit on hilltops with far better coverage than
+the coordinator's valley floor. Strategies considered, cheapest first — all
+share the same bones (verbatim inner frame, dedupe on (station, seq), local
+ACK), so building the simple one is a rung, not a dead end:
+
+**4.1 Hardcoded tree (build this first, for 1–2 repeaters).** A repeater is a
+full leaf whose radio stays on (WOR receiver mode preferred — ~1–3 mA average,
+fits the stock power design; continuous RX ≈ 17 mA needs a bigger panel).
+Relayed leaves set `UPLINK_DEST = 0x00<repeater_id>` (directed — the E220
+hardware-filters everything else); the repeater validates, dedupes,
+**ACKs the leaf itself immediately** with TLVs it has cached, then relays the
+frame *verbatim* upstream to 0x0000. The coordinator's ACK (fresh TLVs,
+addressed to the repeater with the ACK's station_id = the leaf) is cached for
+the leaf's next uplink — OTA config costs one extra report cycle. Loop-free by
+construction: each repeater relays only its compiled whitelist. Coordinator
+adds `ROUTES = {leaf: repeater}` so downlink is addressed to the repeater.
+Leaves in WOR uplink pay ~5× TX airtime (long preamble) and +2 s latency.
+Effort: ~1 line leaf, ~200 lines repeater (REPEATER_MODE build of the same
+codebase; standby sleep with UART start-of-frame wake), ~20 lines coordinator.
+
+**4.2 Ordered fallback destinations.** Leaf tries repeater A → B → direct on
+missing ACKs. Zero protocol change (pure radio addressing); covers path
+*loss*, not path *discovery*. Composes with 4.1.
+
+**4.3 Controlled flooding with hop limit.** FLP v2 adds a `ttl` byte to the
+header (flags byte is fully allocated); leaves send ttl = 2; every repeater
+rebroadcasts unseen frames with ttl−1. Requires: per-repeater seen-cache of
+(station, seq) with aging; jittered rebroadcast weighted by received RSSI
+(heard weakly → relay sooner — selects for spatial progress; hearing a peer's
+relay first suppresses your copy). Relayed leaves get **no radio ACK** —
+readings are idempotent fire-and-forget, config floods down with the same TTL
+and is confirmed by the leaf's CFG_APPLIED flag. Zero route config,
+self-healing; costs airtime × co-visible repeaters per frame.
+
+**4.4 Measured static routing — RECOMMENDED endgame (selected 2026-07-13).**
+Flooding (4.3) as the discovery/fallback substrate; the **coordinator assigns
+routes**. Every relayed copy reaching the coordinator carries evidence (which
+repeater, RSSI byte, hop count); the coordinator — the one node with mains
+power and a database — computes best-repeater-per-leaf and pushes assignments
+as config TLVs (new TLV: uplink_dest). Steady state degenerates to the quiet
+deterministic tree of 4.1 (directed uplinks, local ACKs, minimal airtime);
+a leaf that misses M consecutive ACKs falls back to flooding and gets
+re-measured. Self-configuration with exactly one brain and no distributed
+consensus.
+
+**4.5 Store-and-forward batching (later power optimization).** Repeaters ACK
+locally, buffer readings, and uplink a batch frame (reserve type 0x05: count +
+concatenated readings) every few minutes — one preamble amortized over N
+readings; lightning bypasses the buffer. Composes with any of the above.
+
+**4.0 Before building any of it:** +8 dB is a repeater you don't own — try a
+T30D at the stubborn leaf, more mast, or a directional antenna first; and if
+the hilltop has any internet, a **second coordinator is strictly simpler**
+(already-written firmware; see §5).
+
+Protocol reservations made now so future implementations don't collide:
+frame type **0x05 = BATCH** (reserved), TLV **0x08 = uplink_dest** (u16,
+reserved), FLP **v2 = v1 + ttl byte after flags** (reserved).
+
+## 5. Future: multiple coordinators hearing the same leaf (documented 2026-07-13)
+
+Two coordinators with overlapping radio coverage (e.g. one per valley with a
+shared ridge) will both receive, timestamp, and publish the same frame. The
+DB's `ON CONFLICT (station_id, ts) DO NOTHING` does **not** catch this — each
+coordinator stamps its own receipt time, so the same reading lands twice a
+few hundred ms apart.
+
+Strategy (server-side, one evening of work when needed):
+1. Coordinators add the frame's `seq` to the reading/lightning JSON
+   (`"seq": 42` — additive, ignored by today's ingest).
+2. The MQTT bridge / ingest keeps a short-lived per-station cache of recently
+   seen seqs (seq is u8; a 15-minute window is far shorter than the ~21 h
+   wrap at a 5-min cadence) and drops duplicates before insert.
+3. Retained `availability` topics: multiple coordinators publishing
+   online/offline for the same slug is last-writer-wins — acceptable, or
+   scope the LWT topic per coordinator (`forsyth/<slug>/availability/<coord>`)
+   and let HA/dashboard OR them.
+4. Downlink dedupe is free: both coordinators may queue the same cmd TLVs,
+   but TLV application is idempotent on the leaf and CFG_APPLIED confirms.
+
+Until implemented, the operating rule is simply: **one coordinator per radio
+domain** — don't run overlapping coordinators against the same leaves.
