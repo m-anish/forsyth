@@ -220,6 +220,15 @@ now: over-discharge and discharge short-circuit. Two layers:
   *(Corrects the earlier SMAJ6.0A call — a 6 V-class panel's Voc ≈ 7.2 V sits inside
   the 6.0A's 6.67 V min breakdown; the 8.5A stands off any realistic Voc and clamps
   ~14 V, far under the CN3801's 28 V max.)*
+  **SMAJ8.5CA accepted as drop-in (2026-07-13, stock substitution):** identical
+  standoff/breakdown/clamp in the positive direction, so every number above holds.
+  Differences, both acceptable: orientation no longer matters (bidirectional — the
+  footprint's cathode band becomes decorative); and a reverse-connected panel is no
+  longer crowbarred at −0.7 V by the TVS's forward diode — reverse protection rests
+  entirely on Q1, which is Q1's designed job (node floats at ~−Voc, inside the CA's
+  8.5 V reverse standoff and Q1's 20 V V_DS). Do **not** substitute CA for the
+  SMAJ5.0A *signal* clamps without thought — there the −0.7 V negative clamp is
+  load-bearing (next bullet).
 - **Signal lines (`VANE_ADC`, `ANEMO`, `RAIN`): SMAJ5.0A each**, line-to-GND at the
   connector (cathode to signal), alongside the existing 1 k + 100 nF. Standoff 5 V >
   3.65 V logic; ~9.2 V clamp through 1 k series ⇒ <1 mA into MCU clamps during events;
@@ -253,7 +262,7 @@ now: over-discharge and discharge short-circuit. Two layers:
 | Q3 | 2N7002 | SOT-23 | charge-inhibit, MPPT-pin pulldown (§3.5a) + R19 100 k |
 | U8 | **1S PCM strip (DW01A + 8205A)** | ~46×6 mm module | soldered onto reserved footprint beside BT1 (§3.5b); KTRON/Robu ₹30–60; verify B+/B−/P− pads |
 | D1, D2 | **SS34** ×2 | SMA | series block + freewheel; D1 stays (night back-feed) |
-| D5 | **SMAJ8.5A** | SMA | solar input TVS (Voc-safe for 6 V panels; supersedes SMAJ6.0A) |
+| D5 | **SMAJ8.5A** (or **8.5CA**, see §3.6) | SMA | solar input TVS (Voc-safe for 6 V panels; supersedes SMAJ6.0A) |
 | D6–D8 | **SMAJ5.0A** ×3 | SMA | vane/anemo/rain line clamps |
 | D3, D4 | LED red/green + R7,R8 1 k | 0805 | CHRG/DONE status (bring-up; tie-off if DNP) |
 | L1, L2 | 1.0 µH, Isat > 4 A | per TI table | boost |
