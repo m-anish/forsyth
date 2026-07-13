@@ -64,8 +64,36 @@ Hardware context you must not violate (from `hardware/boards/board-a-core.md`):
 
 ## Build & flash
 
-See the Makefile header for toolchain setup (avr-gcc + ATtiny_DFP, pymcuprog
-over SerialUPDI). Per-leaf identity: `make STATION_ID=2 && make flash PORT=…`.
+Two equivalent routes, same `src/`, same output:
+
+- **Makefile** (reference build — verified with avr-gcc 14.3): toolchain setup
+  in the Makefile header. `make STATION_ID=2 && make flash PORT=/dev/tty.usbserial-…`
+- **PlatformIO in VSCode**: open *this folder* (`firmware/leaf/`) as the
+  project; `platformio.ini` is pre-configured (`atmelmegaavr` platform,
+  `board = ATtiny3226`, **no framework** — bare metal, f_cpu 5 MHz to match
+  the prescaler hal.c sets at boot). Upload uses pymcuprog under the hood, so
+  `pip install pymcuprog` once. Per-leaf IDs: use the `[env:leaf-N]` pattern.
+
+**SerialUPDI wiring** (any CP2102/CH340/FT232 USB-serial adapter, 3.3 V logic):
+
+```
+adapter TX ─┐
+            ├──── J7 UPDI pin      (tie TX+RX together AT THE ADAPTER —
+adapter RX ─┘                       Board A's on-board 1 k in the UPDI line
+adapter GND ───── J7 GND            is the series resistor the scheme needs)
+board powered from its own battery (or bench 3V3) during flashing
+```
+
+Sanity first: `pymcuprog ping -t uart -u <port> -d attiny3226` should return
+the device ID. Then check the oscillator fuse once per chip —
+`pymcuprog read -t uart -u <port> -d attiny3226 -m fuses`; **OSCCFG (fuse 2)
+must be 0x02 (20 MHz)**, which is the factory default. If a part ever reads
+0x01 (16 MHz), either write the fuse or rebuild with `F_CPU=4000000UL` —
+otherwise every UART baud rate is 20 % off and nothing will speak.
+
+Reflash caveat: `--erase` clears **EEPROM too** — OTA-applied config reverts
+to the compiled defaults and the leaf re-burns its radio NVRAM on the next
+boot (by design, self-healing; just re-send any OTA tweaks).
 
 ## Bring-up checklist (firmware side; boards' own checklists in hardware/)
 

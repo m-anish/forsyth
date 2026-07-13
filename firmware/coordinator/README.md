@@ -8,18 +8,30 @@ any behavior with `mpremote` and a text editor, no toolchain.
 ## Install
 
 ```bash
-# 1. Flash MicroPython (once): https://micropython.org/download/ESP32_GENERIC_S3/
-#    esptool.py --chip esp32s3 write_flash 0 ESP32_GENERIC_S3-*.bin
-# 2. Dependencies + code:
-mpremote mip install umqtt.simple
-mpremote cp src/config.py src/protocol.py src/e220.py src/uplink.py \
-            src/main.py src/boot.py :
-# 3. Edit the on-device config (WiFi, MQTT password, station map, LoRa pins):
+pip install esptool mpremote
+
+# 1. Flash MicroPython (once). Grab the ESP32_GENERIC_S3 build from
+#    https://micropython.org/download/ESP32_GENERIC_S3/ then, with the board
+#    in bootloader mode (hold BOOT, tap RESET, release BOOT):
+esptool.py --chip esp32s3 --port /dev/tty.usbmodem* erase_flash
+esptool.py --chip esp32s3 --port /dev/tty.usbmodem* write_flash -z 0 \
+    ESP32_GENERIC_S3-*.bin        # S3 images flash at offset 0x0
+#    Tap RESET afterwards to leave bootloader mode.
+
+# 2. Everything else is one script (deps + code + config, idempotent):
+./install.sh                      # or ./install.sh --port /dev/tty.usbmodemXXX
+
+# 3. First time only — put real credentials on the device:
 mpremote edit config.py
 mpremote reset
+
 # 4. Watch it work:
 mpremote repl
 ```
+
+`install.sh` re-uploads code but **never overwrites the on-device
+`config.py`** (that's where the real WiFi/MQTT credentials live) unless you
+pass `--force-config`. Updating deployed code is just `git pull && ./install.sh`.
 
 The repo copy of `config.py` holds placeholders; real credentials live only on
 the device. The MQTT credential is the `coordinator-01` mosquitto user created
