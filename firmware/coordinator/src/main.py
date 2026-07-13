@@ -14,6 +14,7 @@ import config
 import protocol
 import uplink as uplink_mod
 from e220 import E220
+from net import Net
 
 # unit_id -> pending TLV bytes, delivered on next uplink from that leaf
 _pending_tlvs = {}
@@ -139,8 +140,9 @@ def _handle_frame(radio, up, payload, rssi):
 def run():
     print("forsyth coordinator — %s" % config.COORDINATOR_ID)
     _load_state()
-    uplink_mod.wifi_connect()
-    uplink_mod.ntp_sync()
+    net = Net()
+    if net.ensure(block_s=90):        # boot: give the link a real chance
+        uplink_mod.ntp_sync()
 
     radio = E220()
     radio.configure()
@@ -149,6 +151,7 @@ def run():
     up.connect()
 
     last_ping = last_retry = time.time()
+    ntp_ok = net.isconnected
     while True:
         payload, rssi = radio.recv()
         if payload:
@@ -159,12 +162,14 @@ def run():
                 print("handle_frame: %r" % e)
 
         up.check_msg()
+        net.ensure()                  # one repair-ladder rung when needed
         now = time.time()
         if now - last_ping > 30:
             up.ping()
             last_ping = now
-        if not up.connected and now - last_retry > 60:
-            uplink_mod.wifi_connect()
+        if net.isconnected and not up.connected and now - last_retry > 60:
+            if not ntp_ok:            # first successful link since boot
+                ntp_ok = uplink_mod.ntp_sync()
             up.connect()
             last_retry = now
         time.sleep_ms(20)

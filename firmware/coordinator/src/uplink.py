@@ -1,4 +1,4 @@
-"""uplink.py — WiFi + MQTT with an offline spool.
+"""uplink.py — MQTT with an offline spool (link management lives in net.py).
 
 Publishes to the topics cloud/api/app/mqtt_bridge.py subscribes to:
   forsyth/<slug>/reading    forsyth/<slug>/lightning
@@ -14,27 +14,10 @@ import json
 import os
 import time
 
-import network
 import ntptime
 from umqtt.simple import MQTTClient
 
 import config
-
-
-def wifi_connect():
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    if wlan.isconnected():
-        return wlan
-    print("wifi: connecting to %s" % config.WIFI_SSID)
-    wlan.connect(config.WIFI_SSID, config.WIFI_PASSWORD)
-    for _ in range(60):
-        if wlan.isconnected():
-            print("wifi: %s" % wlan.ifconfig()[0])
-            return wlan
-        time.sleep(1)
-    print("wifi: timed out; will retry from the main loop")
-    return wlan
 
 
 def ntp_sync():

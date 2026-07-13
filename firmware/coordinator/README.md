@@ -83,6 +83,25 @@ leaf ──LoRa──► E220 ──► protocol.parse ──► dedupe(seq) ─
   The TLVs ride the next ACK to that leaf — so they take effect within one
   report interval, not instantly.
 
+## Ethernet / PoE
+
+For an always-on box, wired beats WiFi. `net.py` supports three modes via
+`config.NETWORK["mode"]`:
+
+- `"wifi"` — default, no extra hardware.
+- `"eth"` — W5500 SPI Ethernet module (~₹300 on Robu) wired per
+  `NETWORK["eth"]`. Needs a MicroPython ESP32-S3 build with SPI-Ethernet
+  (`network.PHY_W5500` — probe with `hasattr(network, "PHY_W5500")` in the
+  REPL); if the build lacks it, net.py says so and falls back to WiFi.
+- `"eth+wifi"` — Ethernet preferred, WiFi kept warm as automatic fallback.
+  The recommended endgame: two independent physical paths.
+
+PoE without exotic hardware: an **802.3af active PoE splitter** with a 5 V
+USB output powers the ESP32-S3 over the same cable the W5500 uses for data —
+one wire to the box. Integrated alternatives (Olimex ESP32-POE-ISO, WIZnet
+W5500-EVB-Pico) exist but change the board/port; the splitter route keeps
+this firmware unmodified.
+
 ## Adding a leaf
 
 1. Flash the leaf with a fresh `STATION_ID` (leaf Makefile).
@@ -96,7 +115,8 @@ leaf ──LoRa──► E220 ──► protocol.parse ──► dedupe(seq) ─
 
 | Failure | Behavior |
 |---|---|
-| WiFi down | frames still ACKed; readings spool to flash |
+| WiFi/eth down | frames still ACKed; readings spool to flash; `net.py` climbs its repair ladder: reconnect → interface power-cycle → failover to the other interface (if fitted) → full `machine.reset()` after `reboot_after_s` continuously offline |
+| WiFi slowly degrading | RSSI logged every 5 min, flagged WEAK below `min_rssi_dbm` — visible in the console history before it becomes an outage |
 | Broker down | same — spool drains on reconnect |
 | Unknown unit_id | logged loudly, dropped (add it to STATIONS) |
 | Duplicate frame (leaf retry) | ACKed again, published once |

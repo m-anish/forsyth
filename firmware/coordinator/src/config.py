@@ -12,6 +12,24 @@ COORDINATOR_ID = "coordinator-01"     # mosquitto username on the droplet
 WIFI_SSID = "CHANGE-ME"
 WIFI_PASSWORD = "CHANGE-ME"
 
+# ---- network policy (see net.py for the repair ladder) --------------------------
+NETWORK = {
+    "mode": "wifi",           # "wifi" | "eth" | "eth+wifi" (eth preferred,
+                              #  wifi kept warm as fallback)
+    "check_s": 15,            # link check + one ladder rung per this interval
+    "reboot_after_s": 900,    # continuously offline this long -> machine.reset()
+                              #  (the MQTT spool makes this data-safe)
+    "min_rssi_dbm": -85,      # below this, RSSI logs carry a WEAK warning
+    # W5500 SPI ethernet module wiring — only read in the eth modes.
+    # ADJUST TO YOUR WIRING; needs a MicroPython build with network.PHY_W5500.
+    "eth": {
+        "spi_id": 2,
+        "sck": 36, "mosi": 35, "miso": 37,
+        "cs": 38, "int": 39,
+        "phy_addr": 1, "baud": 20000000,
+    },
+}
+
 # ---- MQTT uplink (matches cloud/docs/deploy.md broker setup) -------------------
 MQTT_HOST = "live.forsyth.starstucklab.com"
 MQTT_PORT = 1883
