@@ -180,7 +180,10 @@ const forsythMap = (() => {
             clearInterval(state.radarTimer); b.classList.remove('on');
           } else {
             try {
-              state.radar = L.tileLayer(await radarUrl(), { opacity: 0.65, maxZoom: 19 }).addTo(map);
+              /* radar composites are native only to low zooms — upscale past
+                 that or RainViewer serves "Zoom Level Not Supported" tiles */
+              state.radar = L.tileLayer(await radarUrl(),
+                { opacity: 0.65, maxNativeZoom: 7, maxZoom: 19 }).addTo(map);
               b.classList.add('on');
               state.radarTimer = setInterval(async () => {
                 try { state.radar && state.radar.setUrl(await radarUrl()); } catch {}
