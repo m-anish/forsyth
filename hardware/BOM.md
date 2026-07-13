@@ -109,9 +109,10 @@ REV0), Hubtronics (LoRa modules), FlyRobo (coordinator: ESP32-S3 + W5500 + DS323
 RTC), Quartz/Evelta/RoboticsDna (stragglers incl. CJ2307 FETs, GX connectors, glands).
 
 Two notes logged at order time:
-- **Verify the LoRa invoice says T-series** (E220-900**T**22D/T30D — UART/M0/M1/AUX,
-  the design's interface). The log reads "M22D/M30D"; Ebyte's M-prefix is the SPI
-  stamp-hole module and is incompatible with the board and firmware as designed.
+- **RESOLVED 2026-07-13:** invoice verified — Hubtronics shipped **T-series**
+  (E220-900**T**22D ×2 @ ₹549, **T**30D ×1 @ ₹1,049; UART modules). The sheet's
+  "M22D" was log shorthand. Fleet radio inventory: 3× T22D (incl. the one in
+  hand) + 1× T30D for the site that needs 30 dBm.
 - The coordinator order includes the **DS3231 RTC** (planned in §2 all along; firmware does not use it yet):
   worth wiring to the spare I2C — it gives spooled readings truthful timestamps
   through network outages. Small firmware errand when the perfboard is built.
