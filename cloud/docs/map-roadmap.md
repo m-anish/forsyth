@@ -41,9 +41,12 @@ console's station form (or the `POST /api/v1/stations` upsert). No coordinates
   10 min). Stations with no sample within 30 min of the scrub time grey out
   honestly. Popups stay live-data-only by design. "live" snaps back.
 - **Lightning range rings** (⚡): AS3935 gives distance-only (no bearing), so
-  recent strikes render as rings around the reporting station, fading over a
-  3 h window; refreshed every 5 min while on. Zero new API — the existing
-  `/lightning?hours=` endpoint had everything.
+  recent strikes render as rings around the reporting station. Ring
+  brightness/thickness scale with the (uncalibrated, in-view-normalized)
+  energy; strikes fade over a short `LTG.windowMin` window and the weakest per
+  station are dropped, so the map stays dynamic rather than a thicket. Redrawn
+  every 60 s live (fetch throttled to a 10-min cache). Zero new API — the
+  existing `/lightning?hours=` endpoint had everything.
 - **Camera thumbnails**: popups lazily fetch `/stations/{slug}/frames/latest`
   on open; 404 = no camera = nothing shown. Cached per session.
 - **Gust vectors**: in wind mode the direction arrow grows with gust strength.

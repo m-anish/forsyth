@@ -41,6 +41,20 @@ const forsythMap = (() => {
     return /f5d000|92d050/.test(bg) ? '#1c2430' : '#fff';
   }
 
+  /* ---------- lightning ring tuning ----------
+     The AS3935 "energy" byte is a 21-bit UNCALIBRATED number — physically
+     meaningless in absolute terms, but within one storm it tracks relative
+     strike strength. So we normalize each strike to the strongest one
+     currently in view, never to a fixed threshold. Strong + recent strikes
+     are bright, thick, opaque; weak or aging ones dim out fast and, past a
+     floor, aren't drawn at all — which is also what thins the clutter. */
+  const LTG = {
+    windowMin: 45,     // strikes older than this vanish (was a flat 3 h)
+    perStation: 5,     // draw only the strongest few rings per station
+    minAlpha: 0.12,    // below this an aged/weak ring isn't worth the ink
+    fadePow: 2.2,      // >1 = older strikes fade faster than linear
+  };
+
   /* ---------- modes ---------- */
   const MODES = {
     temp: { label: '°C',   value: s => s.temp_c,      text: v => `${Number(v).toFixed(1)}°`,  color: tempColor,
@@ -166,21 +180,49 @@ const forsythMap = (() => {
     /* ---- lightning range rings ----
        The AS3935 reports distance without bearing, so a ring around the
        reporting station IS the honest picture. One draw function serves both
-       moments: rings for the 3 h ending at `atMs`, age-faded toward it —
-       "now" and "the browsed past" are the same question at different times. */
+       moments: rings for the LTG.windowMin ending at `atMs`, faded toward it
+       — "now" and "the browsed past" are the same question at different
+       times. Intensity (energy) sets brightness/thickness and thins the field
+       (see LTG note above). */
     state.rings = L.layerGroup();
     function drawRings(events, atMs) {
       state.rings.clearLayers();
       const by = {}; sited().forEach(s => { by[s.slug] = s; });
+
+      /* window + join to station, carrying age and raw energy */
+      const win = [];
       (events || []).forEach(ev => {
         const s = by[ev.slug];
         if (!s || ev.distance_km == null) return;
-        const ageH = (atMs - new Date(ev.ts).getTime()) / 3.6e6;
-        if (ageH > 3 || ageH < 0) return;
-        L.circle([s.lat, s.lon], {
-          radius: ev.distance_km * 1000, fill: false,
-          color: '#e8b23a', weight: 1.5, opacity: 0.75 - (ageH / 3) * 0.55,
-        }).bindTooltip(`⚡ ${ev.distance_km} km · ${new Date(ev.ts)
+        const ageMin = (atMs - new Date(ev.ts).getTime()) / 60000;
+        if (ageMin < 0 || ageMin > LTG.windowMin) return;
+        win.push({ ev, s, ageMin, energy: ev.energy || 0 });
+      });
+      if (!win.length) return;
+
+      /* intensity, relative to the strongest strike currently in view */
+      const maxE = Math.max(1, ...win.map(w => w.energy));
+      win.forEach(w => { w.intensity = w.energy ? clamp(w.energy / maxE, 0, 1) : 0.2; });
+
+      /* thin the field: keep only the strongest few rings per station */
+      const perStation = {};
+      win.forEach(w => (perStation[w.ev.slug] ||= []).push(w));
+      const keep = [];
+      Object.values(perStation).forEach(arr => {
+        arr.sort((a, b) => b.intensity - a.intensity);
+        keep.push(...arr.slice(0, LTG.perStation));
+      });
+
+      keep.forEach(w => {
+        const fade = Math.pow(1 - w.ageMin / LTG.windowMin, LTG.fadePow);
+        const alpha = (0.30 + 0.55 * w.intensity) * fade;
+        if (alpha < LTG.minAlpha) return;         /* too weak/old to bother */
+        L.circle([w.s.lat, w.s.lon], {
+          radius: w.ev.distance_km * 1000, fill: false,
+          color: `hsl(42,85%,${(46 + 30 * w.intensity).toFixed(0)}%)`, /* ochre→gold */
+          weight: 1 + 1.8 * w.intensity,
+          opacity: alpha,
+        }).bindTooltip(`⚡ ${w.ev.distance_km} km · ${new Date(w.ev.ts)
             .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)
           .addTo(state.rings);
       });
@@ -220,7 +262,7 @@ const forsythMap = (() => {
 
       const tools = L.DomUtil.create('div', 'wx-tools leaflet-bar', wrap);
       tools.innerHTML = `<button type="button" data-t="radar" title="rain radar (RainViewer)">☂</button>
-                     <button type="button" data-t="ltg" title="lightning rings, 3 h window">⚡</button>
+                     <button type="button" data-t="ltg" title="recent lightning">⚡</button>
                      <button type="button" data-t="scrub" title="time travel, last 24 h">⏱</button>
                      <button type="button" data-t="fit" title="fit stations">⌖</button>` +
         (opts.compact ? '' : `<button type="button" data-t="fs" title="fullscreen">⛶</button>`);
@@ -245,8 +287,10 @@ const forsythMap = (() => {
               state.rings.addTo(map);
               await ringsUpdate();           /* honors scrubAt if time-traveling */
               b.classList.add('on');
+              /* redraw every 60 s so the live fade is visible; the fetch
+                 inside ensureStrikes stays throttled to its 10-min TTL */
               state.ringsTimer = setInterval(() => ringsUpdate().catch(() => {}),
-                                             5 * 60 * 1000);
+                                             60 * 1000);
             } catch { map.removeLayer(state.rings); b.title = 'lightning feed unavailable'; }
           }
         }
