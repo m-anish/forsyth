@@ -141,7 +141,11 @@ h1.headline {
   margin: 24px 0 0;
   border: 1px solid var(--border-2);
   background: var(--bg-card);
+  /* own stacking context: Leaflet's internal z-indexes (controls at 1000)
+     must never out-stack the page's sticky topbar when scrolling */
+  isolation: isolate;
 }
+.wg-map { isolation: isolate; }   /* same rule for the board widget's map */
 #map { height: 400px; width: 100%; }
 .leaflet-container { background: var(--bg-elev); font: 12px/1.4 var(--sans); }
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
@@ -339,7 +343,25 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 }
 .wx-scrub .live:hover { background: var(--accent); color: #fff; }
 .wx-scrub .t { min-width: 42px; text-align: right; opacity: .85; }
+.wx-scrub .play {
+  border: 1px solid var(--accent); background: none; color: var(--accent);
+  font: 600 11px 'JetBrains Mono', monospace; border-radius: 50%;
+  width: 24px; height: 24px; padding: 0; cursor: pointer; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.wx-scrub .play:hover, .wx-scrub .play.on { background: var(--accent); color: #fff; }
 .pop-cam img { width: 100%; border-radius: 6px; margin: 6px 0 2px; display: block; }
+
+/* the modes+tools block rides BESIDE the zoom column, not under it */
+.leaflet-top.leaflet-left { display: flex; flex-direction: row; align-items: flex-start; }
+.wx-ctl { display: flex; flex-direction: column; gap: 8px; clear: none !important; }
+.wx-ctl .leaflet-bar { margin: 0; }
+
+/* small screens: while time-traveling, the scrub bar outranks the legend */
+@media (max-width: 640px) {
+  .scrubbing .wx-legend { display: none; }
+  .wx-scrub { width: calc(100% - 20px); gap: 7px; padding: 6px 10px; }
+}
 
 /* ---------- slim homepage header: data first, poetry second ---------- */
 .pagehead-slim { padding: 22px 0 2px; }

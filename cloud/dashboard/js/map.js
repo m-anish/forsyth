@@ -143,6 +143,10 @@ const forsythMap = (() => {
     if (!stations.filter(s => s.lat != null && s.lon != null).length) return null;
 
     const map = L.map(el, { scrollWheelZoom: false, attributionControl: !opts.compact, zoomControl: true });
+    /* Leaflet's default prefix carries a flag; keep the credit, drop the rest.
+       (The OSM/CARTO lines on the tile layers are license-required — untouched.) */
+    if (map.attributionControl)
+      map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
     /* wheel zoom armed by intent (click), disarmed when the pointer leaves —
        stops the page-scroll hijack without making zoom unreachable */
     map.on('click focus', () => map.scrollWheelZoom.enable());
@@ -159,37 +163,19 @@ const forsythMap = (() => {
 
     const fit = () => map.fitBounds(sited().map(s => [s.lat, s.lon]), { padding: [40, 40], maxZoom: 13 });
 
-    /* mode switcher */
-    const modeCtl = L.control({ position: 'topleft' });
-    modeCtl.onAdd = () => {
-      const d = L.DomUtil.create('div', 'wx-modes leaflet-bar');
-      d.innerHTML = Object.entries(MODES).map(([k, m]) =>
-        `<button type="button" data-mode="${k}" class="${k === state.mode ? 'on' : ''}">${m.label}</button>`).join('');
-      L.DomEvent.disableClickPropagation(d);
-      d.addEventListener('click', e => {
-        const b = e.target.closest('button[data-mode]');
-        if (!b) return;
-        state.mode = b.dataset.mode;
-        d.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-        renderMarkers(); renderLegend();
-      });
-      return d;
-    };
-    modeCtl.addTo(map);
-
-    /* lightning range rings: the AS3935 reports distance without bearing, so
-       a ring around the reporting station IS the honest picture. Rings fade
-       with age over a 3 h window; refreshed every 5 min while enabled.      */
+    /* ---- lightning range rings ----
+       The AS3935 reports distance without bearing, so a ring around the
+       reporting station IS the honest picture. One draw function serves both
+       moments: rings for the 3 h ending at `atMs`, age-faded toward it —
+       "now" and "the browsed past" are the same question at different times. */
     state.rings = L.layerGroup();
-    async function ringsRefresh() {
-      const d = await getJSON('/lightning?hours=3');
+    function drawRings(events, atMs) {
       state.rings.clearLayers();
       const by = {}; sited().forEach(s => { by[s.slug] = s; });
-      const nowMs = Date.now();
-      (d.events || []).forEach(ev => {
+      (events || []).forEach(ev => {
         const s = by[ev.slug];
         if (!s || ev.distance_km == null) return;
-        const ageH = (nowMs - new Date(ev.ts).getTime()) / 3.6e6;
+        const ageH = (atMs - new Date(ev.ts).getTime()) / 3.6e6;
         if (ageH > 3 || ageH < 0) return;
         L.circle([s.lat, s.lon], {
           radius: ev.distance_km * 1000, fill: false,
@@ -199,18 +185,46 @@ const forsythMap = (() => {
           .addTo(state.rings);
       });
     }
+    /* strike history cache: 24 h covers every scrubbable moment AND the live
+       window, so one endpoint call serves both (10-min TTL) */
+    async function ensureStrikes() {
+      if (state.ltg && Date.now() - state.ltgAt < 10 * 60 * 1000) return;
+      const d = await getJSON('/lightning?hours=24');
+      state.ltg = d.events || [];
+      state.ltgAt = Date.now();
+    }
+    async function ringsUpdate() {
+      if (!map.hasLayer(state.rings)) return;
+      await ensureStrikes();
+      drawRings(state.ltg, state.scrubAt != null ? state.scrubAt * 1000 : Date.now());
+    }
 
-    /* radar + lightning + scrub + refit + fullscreen, one bar */
-    const toolCtl = L.control({ position: 'topleft' });
-    toolCtl.onAdd = () => {
-      const d = L.DomUtil.create('div', 'wx-tools leaflet-bar');
-      d.innerHTML = `<button type="button" data-t="radar" title="rain radar (RainViewer)">☂</button>
-                     <button type="button" data-t="ltg" title="lightning rings, last 3 h">⚡</button>
+    /* ---- controls: modes row + tools row, ONE control so the block sits
+       beside the zoom column (row layout via CSS on .leaflet-top.leaflet-left) */
+    const ctl = L.control({ position: 'topleft' });
+    ctl.onAdd = () => {
+      const wrap = L.DomUtil.create('div', 'wx-ctl');
+      L.DomEvent.disableClickPropagation(wrap);
+      L.DomEvent.disableScrollPropagation(wrap);
+
+      const modes = L.DomUtil.create('div', 'wx-modes leaflet-bar', wrap);
+      modes.innerHTML = Object.entries(MODES).map(([k, m]) =>
+        `<button type="button" data-mode="${k}" class="${k === state.mode ? 'on' : ''}">${m.label}</button>`).join('');
+      modes.addEventListener('click', e => {
+        const b = e.target.closest('button[data-mode]');
+        if (!b) return;
+        state.mode = b.dataset.mode;
+        modes.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+        renderMarkers(); renderLegend();
+      });
+
+      const tools = L.DomUtil.create('div', 'wx-tools leaflet-bar', wrap);
+      tools.innerHTML = `<button type="button" data-t="radar" title="rain radar (RainViewer)">☂</button>
+                     <button type="button" data-t="ltg" title="lightning rings, 3 h window">⚡</button>
                      <button type="button" data-t="scrub" title="time travel, last 24 h">⏱</button>
                      <button type="button" data-t="fit" title="fit stations">⌖</button>` +
         (opts.compact ? '' : `<button type="button" data-t="fs" title="fullscreen">⛶</button>`);
-      L.DomEvent.disableClickPropagation(d);
-      d.addEventListener('click', async e => {
+      tools.addEventListener('click', async e => {
         const b = e.target.closest('button[data-t]'); if (!b) return;
         if (b.dataset.t === 'fit') fit();
         if (b.dataset.t === 'fs') {
@@ -228,11 +242,12 @@ const forsythMap = (() => {
             clearInterval(state.ringsTimer); b.classList.remove('on');
           } else {
             try {
-              await ringsRefresh();
-              state.rings.addTo(map); b.classList.add('on');
-              state.ringsTimer = setInterval(() => ringsRefresh().catch(() => {}),
+              state.rings.addTo(map);
+              await ringsUpdate();           /* honors scrubAt if time-traveling */
+              b.classList.add('on');
+              state.ringsTimer = setInterval(() => ringsUpdate().catch(() => {}),
                                              5 * 60 * 1000);
-            } catch { b.title = 'lightning feed unavailable'; }
+            } catch { map.removeLayer(state.rings); b.title = 'lightning feed unavailable'; }
           }
         }
         if (b.dataset.t === 'scrub') toggleScrub(b);
@@ -254,42 +269,101 @@ const forsythMap = (() => {
           }
         }
       });
-      return d;
+      return wrap;
     };
-    toolCtl.addTo(map);
+    ctl.addTo(map);
 
     /* ---- time scrubber: replay the mesh's last 24 h ---- */
     const SCRUB_METRICS = 'temp_c,wind_avg_ms,wind_gust_ms,wind_dir_deg,rain_mm,pm25,pm10,batt_v';
     const scrubEl = L.DomUtil.create('div', 'wx-scrub', el);
-    scrubEl.innerHTML = `<button type="button" class="live">live</button>
+    scrubEl.innerHTML = `<button type="button" class="play" title="play the last 24 h">▶</button>
+      <button type="button" class="live">live</button>
       <input type="range" min="0" max="1000" value="1000" aria-label="time scrubber" />
       <span class="t">now</span>`;
     scrubEl.style.display = 'none';
     L.DomEvent.disableClickPropagation(scrubEl);
     L.DomEvent.disableScrollPropagation(scrubEl);
     scrubEl.addEventListener('pointerdown', ev => ev.stopPropagation());
+    const scrubInput = scrubEl.querySelector('input');
+    const scrubLabel = scrubEl.querySelector('.t');
+    const playBtn    = scrubEl.querySelector('.play');
+
+    async function loadHistory() {
+      /* per-station history, fetched on first need, refreshed when >10 min old */
+      if (state.tl && Date.now() - state.tlAt <= 10 * 60 * 1000) return;
+      scrubLabel.textContent = 'loading…';
+      state.tl = {};
+      state.tlAt = Date.now();
+      await Promise.all(sited().map(async s => {
+        try {
+          state.tl[s.slug] = await getJSON(
+            `/stations/${s.slug}/series?metrics=${SCRUB_METRICS}&hours=24`);
+        } catch { /* station without history scrubs as blank */ }
+      }));
+      scrubLabel.textContent = 'now';
+    }
+
+    /* the ONE place scrub position becomes UI state — the slider's input
+       event, the player, and the live button all funnel through here      */
+    function setScrub(permille) {
+      scrubInput.value = permille;
+      if (permille >= 1000) {
+        state.scrubAt = null;
+        scrubLabel.textContent = 'now';
+      } else {
+        state.scrubAt = Date.now() / 1000 - (1 - permille / 1000) * 24 * 3600;
+        scrubLabel.textContent = new Date(state.scrubAt * 1000)
+          .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+      renderMarkers();
+      ringsUpdate().catch(() => {});   /* rings follow the browsed moment */
+    }
+    scrubInput.addEventListener('input', ev => {
+      stopPlay();
+      setScrub(Number(ev.target.value));
+    });
+    scrubEl.querySelector('.live').addEventListener('click', () => {
+      stopPlay();
+      setScrub(1000);
+    });
+
+    /* ---- playback: ▶ sweeps the window to now (~13 s); ⏸ pauses in place;
+       pressing ▶ again resumes from the pause point (from the start when
+       already live). Ends by landing back on live.                          */
+    function stopPlay() {
+      if (!state.playTimer) return;
+      clearInterval(state.playTimer); state.playTimer = null;
+      playBtn.textContent = '▶'; playBtn.title = 'play the last 24 h';
+      playBtn.classList.remove('on');
+    }
+    playBtn.addEventListener('click', async () => {
+      if (state.playTimer) { stopPlay(); return; }
+      await loadHistory();
+      try { await ensureStrikes(); } catch { /* rings just won't animate */ }
+      playBtn.textContent = '⏸'; playBtn.title = 'pause';
+      playBtn.classList.add('on');
+      let v = Number(scrubInput.value);
+      if (v >= 1000) v = 0;            /* starting from live = start of window */
+      setScrub(v);
+      state.playTimer = setInterval(() => {
+        v += 8;
+        if (v >= 1000) { stopPlay(); setScrub(1000); return; }
+        setScrub(v);
+      }, 110);
+    });
 
     async function toggleScrub(btn) {
       if (scrubEl.style.display !== 'none') {
+        stopPlay();
         scrubEl.style.display = 'none'; btn.classList.remove('on');
-        state.scrubAt = null; renderMarkers();
+        el.classList.remove('scrubbing');
+        setScrub(1000);                /* leave time travel = return to live */
         return;
       }
       btn.classList.add('on');
       scrubEl.style.display = 'flex';
-      /* fetch history on first open, refresh it when >10 min stale */
-      if (!state.tl || Date.now() - state.tlAt > 10 * 60 * 1000) {
-        scrubEl.querySelector('.t').textContent = 'loading…';
-        state.tl = {};
-        state.tlAt = Date.now();
-        await Promise.all(sited().map(async s => {
-          try {
-            state.tl[s.slug] = await getJSON(
-              `/stations/${s.slug}/series?metrics=${SCRUB_METRICS}&hours=24`);
-          } catch { /* station without history scrubs as blank */ }
-        }));
-        scrubEl.querySelector('.t').textContent = 'now';
-      }
+      el.classList.add('scrubbing');   /* CSS hides the legend on small screens */
+      await loadHistory();
     }
 
     function scrubSample(s, atS) {
@@ -305,23 +379,6 @@ const forsythMap = (() => {
       for (const k of Object.keys(tl.series || {})) out[k] = tl.series[k][best];
       return out;
     }
-
-    scrubEl.querySelector('input').addEventListener('input', ev => {
-      const frac = Number(ev.target.value) / 1000;
-      const nowS = Date.now() / 1000;
-      state.scrubAt = nowS - (1 - frac) * 24 * 3600;
-      scrubEl.querySelector('.t').textContent = frac === 1 ? 'now'
-        : new Date(state.scrubAt * 1000)
-            .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      if (frac === 1) state.scrubAt = null;
-      renderMarkers();
-    });
-    scrubEl.querySelector('.live').addEventListener('click', () => {
-      scrubEl.querySelector('input').value = 1000;
-      scrubEl.querySelector('.t').textContent = 'now';
-      state.scrubAt = null;
-      renderMarkers();
-    });
 
     /* legend */
     const legendCtl = L.control({ position: 'bottomleft' });
@@ -360,6 +417,7 @@ const forsythMap = (() => {
       destroy() {
         clearInterval(state.radarTimer);
         clearInterval(state.ringsTimer);
+        clearInterval(state.playTimer);
         window.removeEventListener('themechange', renderMarkers);
         map.remove();
       },

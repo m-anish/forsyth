@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>forsyth · privacy</title>
+  <meta name="description" content="What Forsyth knows about you (very little) and about the weather (rather a lot)." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/dash.css?v=9" />
+  <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0b0c0e" />
+  <script src="js/theme.js?v=9"></script>
+  <style>
+    /* page-local prose styles — privacy is the only long-form page here */
+    .prose { max-width: 64ch; padding-bottom: 60px; }
+    .prose h2 { font-family: var(--serif); font-weight: 500; font-size: 21px; margin: 30px 0 8px; }
+    .prose p, .prose li { color: var(--text-dim); font-size: 15.5px; }
+    .prose ul { padding-left: 22px; margin: 8px 0; }
+    .prose .updated { font-family: var(--mono); font-size: 11px; color: var(--text-mute);
+      text-transform: uppercase; letter-spacing: 0.12em; }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="/" class="brand"><img src="assets/mark.svg" alt="" aria-hidden="true" />forsyth</a>
+    <span class="crumb">/ privacy</span>
+    <span class="right">
+      <a href="/" class="nav-chip"><span class="hide-sm">back to the </span>weather →</a>
+      <button class="theme-btn" type="button" aria-label="switch color theme">◐ auto</button>
+    </span>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="pagehead">
+    <span class="kicker">The fine print, kept coarse</span>
+    <h1 class="headline">Privacy.</h1>
+    <p class="sub">Forsyth watches the sky, not you. The full accounting fits on one page.</p>
+  </div>
+
+  <div class="prose">
+    <p class="updated">last updated 2026-07-13</p>
+
+    <h2>What this site collects about you</h2>
+    <ul>
+      <li><strong>No analytics, no trackers, no ads.</strong> There is no measurement
+        of you on this site. We measure barometric pressure instead; it complains less.</li>
+      <li><strong>One cookie, and only if you sign in.</strong> Administrators get a
+        session cookie so the server remembers they're administrators. Visitors get
+        no cookies at all.</li>
+      <li><strong>One localStorage key</strong> remembers your light/dark theme
+        choice, on your device, for your benefit. It never leaves your browser.</li>
+      <li><strong>Ordinary server logs.</strong> Like every web server since the
+        Clinton administration, ours notes requests (IP, path, time) in logs that
+        rotate away on their own. We read them when something breaks, which is the
+        only time anyone reads logs.</li>
+    </ul>
+
+    <h2>What your browser tells other people</h2>
+    <p>The map is made of tiles your browser fetches directly from third parties:
+      <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>/<a
+      href="https://carto.com/attributions">CARTO</a> (base maps),
+      <a href="https://opentopomap.org">OpenTopoMap</a> (terrain), and
+      <a href="https://www.rainviewer.com">RainViewer</a> (rain radar, only when you
+      switch it on). Each sees your IP address when your browser asks them for tiles —
+      the same as visiting any website. Their privacy policies are their own. The
+      fonts arrive from Google Fonts under the same arrangement.</p>
+
+    <h2>What this site collects about the weather</h2>
+    <p>Everything it can. Temperature, wind, rain, pressure, particulates, lightning —
+      the stations report it, the server keeps it, and it's all
+      <a href="/api/docs">public through the API</a>, downloadable by anyone. The
+      weather has waived its right to privacy by being conducted entirely in public.</p>
+
+    <h2>Questions</h2>
+    <p>The whole system is <a href="https://github.com/m-anish/forsyth">open source</a> —
+      the fastest way to verify any claim on this page is to read the code that
+      would have to be doing the tracking, and observe that it isn't there.</p>
+  </div>
+</main>
+
+<footer class="sl-footer">
+  <div class="wrap">
+    <div class="sl-signoff">
+      <span>⛅ forsyth / the fine print</span>
+      <span><a href="/">overview</a> · <a href="https://forsyth.starstucklab.com">about ↗</a> · <a href="https://github.com/m-anish/forsyth">github ↗</a></span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
