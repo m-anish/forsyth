@@ -34,17 +34,21 @@ console's station form (or the `POST /api/v1/stations` upsert). No coordinates
   the API is unreachable the button apologizes in its tooltip and the map
   carries on. (Coverage over the subcontinent is partial; treat as advisory.)
 
-## Phase 3 — history and events (future)
+## Phase 3 — history and events ✅ (2026-07-13)
 
-- **Time scrubber**: drag through the last 24 h; chips animate through
-  `/stations/{slug}/series` data. The single most useful future item —
-  "watch the front come through."
-- **Lightning on the map**: AS3935 gives distance-only (no bearing), so render
-  recent strikes as **range rings** around the reporting station, fading with
-  age. Needs a small `/lightning/recent` API endpoint (events exist in the DB).
-- **Camera thumbnails**: stations with a skycam get their latest frame in the
-  popup, linking to the timelapse.
-- **Gust vectors**: arrow length/width scaled by gust strength in wind mode.
+- **Time scrubber** (⏱): drag through the last 24 h; chips re-render from
+  `/stations/{slug}/series` (all map metrics, one fetch per station, cached
+  10 min). Stations with no sample within 30 min of the scrub time grey out
+  honestly. Popups stay live-data-only by design. "live" snaps back.
+- **Lightning range rings** (⚡): AS3935 gives distance-only (no bearing), so
+  recent strikes render as rings around the reporting station, fading over a
+  3 h window; refreshed every 5 min while on. Zero new API — the existing
+  `/lightning?hours=` endpoint had everything.
+- **Camera thumbnails**: popups lazily fetch `/stations/{slug}/frames/latest`
+  on open; 404 = no camera = nothing shown. Cached per session.
+- **Gust vectors**: in wind mode the direction arrow grows with gust strength.
+- Also fixed: the **fullscreen button now indicates state** (⛶ ↔ ✕ + title),
+  per user feedback.
 
 ## Phase 4 — density features (when the mesh earns them)
 

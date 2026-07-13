@@ -319,3 +319,24 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 .map-pop .r { display: flex; justify-content: space-between; gap: 14px; margin: 2px 0; }
 .map-pop .r span { opacity: .75; }
 .map-pop .badge.sim { font-size: 9px; }
+
+/* map phase 3: time scrubber + popup camera thumb */
+.wx-scrub {
+  position: absolute; z-index: 900; left: 50%; bottom: 14px;
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px;
+  background: var(--panel, #1c2430); color: var(--ink, #e8edf4);
+  border-radius: 999px; padding: 7px 14px;
+  box-shadow: 0 2px 12px rgba(0,0,0,.35);
+  font: 500 11px 'JetBrains Mono', monospace;
+  width: min(70%, 460px);
+}
+.wx-scrub input[type=range] { flex: 1; accent-color: var(--accent); min-width: 0; }
+.wx-scrub .live {
+  border: 1px solid var(--accent); background: none; color: var(--accent);
+  font: 600 10px 'JetBrains Mono', monospace; border-radius: 999px;
+  padding: 2px 9px; cursor: pointer;
+}
+.wx-scrub .live:hover { background: var(--accent); color: #fff; }
+.wx-scrub .t { min-width: 42px; text-align: right; opacity: .85; }
+.pop-cam img { width: 100%; border-radius: 6px; margin: 6px 0 2px; display: block; }
