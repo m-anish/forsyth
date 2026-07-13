@@ -97,3 +97,21 @@ PCB fabrication/assembly (JLCPCB typical), enclosures (Onshape, printed —
 - Multiply leaf quantities by the intended mesh size before ordering — and re-check
   SEN0290 and SHTC3 stock across at least two sellers each; they are the two items most
   likely to force a substitution or a wait.
+
+---
+
+## Actuals — purchase log (live)
+
+The as-purchased BOM and running expenses live in a shared sheet:
+**[Board A expenses & BOM (Google Sheets)](https://docs.google.com/spreadsheets/d/1LXlG7AjQqlrtzYSKP7lCuIWirr_P07y_vIbElvEQ_sk/edit?usp=sharing)** —
+7 orders on 2026-07-13, ₹9,833 total: Robu (components), LionCircuits (5× Board A
+REV0), Hubtronics (LoRa modules), FlyRobo (coordinator: ESP32-S3 + W5500 + DS3231
+RTC), Quartz/Evelta/RoboticsDna (stragglers incl. CJ2307 FETs, GX connectors, glands).
+
+Two notes logged at order time:
+- **Verify the LoRa invoice says T-series** (E220-900**T**22D/T30D — UART/M0/M1/AUX,
+  the design's interface). The log reads "M22D/M30D"; Ebyte's M-prefix is the SPI
+  stamp-hole module and is incompatible with the board and firmware as designed.
+- The coordinator order includes a **DS3231 RTC** (not in the original design):
+  worth wiring to the spare I2C — it gives spooled readings truthful timestamps
+  through network outages. Small firmware errand when the perfboard is built.
