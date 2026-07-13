@@ -143,6 +143,10 @@ const forsythMap = (() => {
     if (!stations.filter(s => s.lat != null && s.lon != null).length) return null;
 
     const map = L.map(el, { scrollWheelZoom: false, attributionControl: !opts.compact, zoomControl: true });
+    /* drop Leaflet's flag from the prefix, keep the legally-required OSM/CARTO
+       credit (attributionControl is absent in compact mode) */
+    if (map.attributionControl) map.attributionControl.setPrefix(
+      '<a href="https://leafletjs.com">Leaflet</a>');
     /* wheel zoom armed by intent (click), disarmed when the pointer leaves —
        stops the page-scroll hijack without making zoom unreachable */
     map.on('click focus', () => map.scrollWheelZoom.enable());
@@ -159,23 +163,84 @@ const forsythMap = (() => {
 
     const fit = () => map.fitBounds(sited().map(s => [s.lat, s.lon]), { padding: [40, 40], maxZoom: 13 });
 
-    /* mode switcher */
-    const modeCtl = L.control({ position: 'topleft' });
-    modeCtl.onAdd = () => {
-      const d = L.DomUtil.create('div', 'wx-modes leaflet-bar');
-      d.innerHTML = Object.entries(MODES).map(([k, m]) =>
+    /* modes + tools live in ONE control (two stacked rows) so the whole block
+       sits to the RIGHT of the zoom column rather than under it — the row
+       layout itself is CSS on .leaflet-top.leaflet-left */
+    const ctlBlock = L.control({ position: 'topleft' });
+    ctlBlock.onAdd = () => {
+      const wrap = L.DomUtil.create('div', 'wx-ctl');
+      L.DomEvent.disableClickPropagation(wrap);
+
+      /* mode switcher */
+      const modes = L.DomUtil.create('div', 'wx-modes leaflet-bar', wrap);
+      modes.innerHTML = Object.entries(MODES).map(([k, m]) =>
         `<button type="button" data-mode="${k}" class="${k === state.mode ? 'on' : ''}">${m.label}</button>`).join('');
-      L.DomEvent.disableClickPropagation(d);
-      d.addEventListener('click', e => {
+      modes.addEventListener('click', e => {
         const b = e.target.closest('button[data-mode]');
         if (!b) return;
         state.mode = b.dataset.mode;
-        d.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+        modes.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
         renderMarkers(); renderLegend();
       });
-      return d;
+
+      /* radar + lightning + scrub + refit + fullscreen */
+      const tools = L.DomUtil.create('div', 'wx-tools leaflet-bar', wrap);
+      tools.innerHTML = `<button type="button" data-t="radar" title="rain radar (RainViewer)">☂</button>
+                     <button type="button" data-t="ltg" title="lightning rings, last 3 h">⚡</button>
+                     <button type="button" data-t="scrub" title="time travel, last 24 h">⏱</button>
+                     <button type="button" data-t="fit" title="fit stations">⌖</button>` +
+        (opts.compact ? '' : `<button type="button" data-t="fs" title="fullscreen">⛶</button>`);
+      tools.addEventListener('click', async e => {
+        const b = e.target.closest('button[data-t]'); if (!b) return;
+        if (b.dataset.t === 'fit') fit();
+        if (b.dataset.t === 'fs') {
+          const full = el.closest('.map-panel, .grid-stack-item-content, body')
+                         .classList.toggle('map-full');
+          /* the button must confess what the next click does */
+          b.classList.toggle('on', full);
+          b.textContent = full ? '✕' : '⛶';
+          b.title = full ? 'exit fullscreen' : 'fullscreen';
+          setTimeout(() => { map.invalidateSize(); fit(); }, 220);
+        }
+        if (b.dataset.t === 'ltg') {
+          if (map.hasLayer(state.rings)) {
+            map.removeLayer(state.rings);
+            clearInterval(state.ringsTimer); b.classList.remove('on');
+          } else {
+            try {
+              /* while scrubbing, seed the rings at the scrub time, not "now" */
+              if (state.scrubAt != null) { await ensureLtg24(); ringsDrawAt(state.scrubAt); }
+              else await ringsRefresh();
+              state.rings.addTo(map); b.classList.add('on');
+              state.ringsTimer = setInterval(() => {
+                if (state.scrubAt == null) ringsRefresh().catch(() => {});
+              }, 5 * 60 * 1000);
+            } catch { b.title = 'lightning feed unavailable'; }
+          }
+        }
+        if (b.dataset.t === 'scrub') toggleScrub(b);
+        if (b.dataset.t === 'radar') {
+          if (state.radar) {
+            map.removeLayer(state.radar); state.radar = null;
+            clearInterval(state.radarTimer); b.classList.remove('on');
+          } else {
+            try {
+              /* radar composites are native only to low zooms — upscale past
+                 that or RainViewer serves "Zoom Level Not Supported" tiles */
+              state.radar = L.tileLayer(await radarUrl(),
+                { opacity: 0.65, maxNativeZoom: 7, maxZoom: 19 }).addTo(map);
+              b.classList.add('on');
+              state.radarTimer = setInterval(async () => {
+                try { state.radar && state.radar.setUrl(await radarUrl()); } catch {}
+              }, 10 * 60 * 1000);
+            } catch { b.title = 'radar unavailable right now'; }
+          }
+        }
+      });
+
+      return wrap;
     };
-    modeCtl.addTo(map);
+    ctlBlock.addTo(map);
 
     /* lightning range rings: the AS3935 reports distance without bearing, so
        a ring around the reporting station IS the honest picture. Rings fade
@@ -200,68 +265,42 @@ const forsythMap = (() => {
       });
     }
 
-    /* radar + lightning + scrub + refit + fullscreen, one bar */
-    const toolCtl = L.control({ position: 'topleft' });
-    toolCtl.onAdd = () => {
-      const d = L.DomUtil.create('div', 'wx-tools leaflet-bar');
-      d.innerHTML = `<button type="button" data-t="radar" title="rain radar (RainViewer)">☂</button>
-                     <button type="button" data-t="ltg" title="lightning rings, last 3 h">⚡</button>
-                     <button type="button" data-t="scrub" title="time travel, last 24 h">⏱</button>
-                     <button type="button" data-t="fit" title="fit stations">⌖</button>` +
-        (opts.compact ? '' : `<button type="button" data-t="fs" title="fullscreen">⛶</button>`);
-      L.DomEvent.disableClickPropagation(d);
-      d.addEventListener('click', async e => {
-        const b = e.target.closest('button[data-t]'); if (!b) return;
-        if (b.dataset.t === 'fit') fit();
-        if (b.dataset.t === 'fs') {
-          const full = el.closest('.map-panel, .grid-stack-item-content, body')
-                         .classList.toggle('map-full');
-          /* the button must confess what the next click does */
-          b.classList.toggle('on', full);
-          b.textContent = full ? '✕' : '⛶';
-          b.title = full ? 'exit fullscreen' : 'fullscreen';
-          setTimeout(() => { map.invalidateSize(); fit(); }, 220);
-        }
-        if (b.dataset.t === 'ltg') {
-          if (map.hasLayer(state.rings)) {
-            map.removeLayer(state.rings);
-            clearInterval(state.ringsTimer); b.classList.remove('on');
-          } else {
-            try {
-              await ringsRefresh();
-              state.rings.addTo(map); b.classList.add('on');
-              state.ringsTimer = setInterval(() => ringsRefresh().catch(() => {}),
-                                             5 * 60 * 1000);
-            } catch { b.title = 'lightning feed unavailable'; }
-          }
-        }
-        if (b.dataset.t === 'scrub') toggleScrub(b);
-        if (b.dataset.t === 'radar') {
-          if (state.radar) {
-            map.removeLayer(state.radar); state.radar = null;
-            clearInterval(state.radarTimer); b.classList.remove('on');
-          } else {
-            try {
-              /* radar composites are native only to low zooms — upscale past
-                 that or RainViewer serves "Zoom Level Not Supported" tiles */
-              state.radar = L.tileLayer(await radarUrl(),
-                { opacity: 0.65, maxNativeZoom: 7, maxZoom: 19 }).addTo(map);
-              b.classList.add('on');
-              state.radarTimer = setInterval(async () => {
-                try { state.radar && state.radar.setUrl(await radarUrl()); } catch {}
-              }, 10 * 60 * 1000);
-            } catch { b.title = 'radar unavailable right now'; }
-          }
-        }
+    /* Scrub-mode rings need the whole 24 h window, not just the last 3 h.
+       Fetch it once and cache it beside the scrub timeline; refresh if stale. */
+    async function ensureLtg24() {
+      if (state.ltg24 && Date.now() - state.ltg24At <= 10 * 60 * 1000) return;
+      state.ltg24At = Date.now();
+      try {
+        const d = await getJSON('/lightning?hours=24');
+        state.ltg24 = d.events || [];
+      } catch { state.ltg24 = state.ltg24 || []; }
+    }
+
+    /* redraw rings from the 24 h cache for the 3 h window ending at atS
+       (epoch seconds), age-faded relative to atS */
+    function ringsDrawAt(atS) {
+      state.rings.clearLayers();
+      const by = {}; sited().forEach(s => { by[s.slug] = s; });
+      const atMs = atS * 1000;
+      (state.ltg24 || []).forEach(ev => {
+        const s = by[ev.slug];
+        if (!s || ev.distance_km == null) return;
+        const ageH = (atMs - new Date(ev.ts).getTime()) / 3.6e6;
+        if (ageH > 3 || ageH < 0) return;
+        L.circle([s.lat, s.lon], {
+          radius: ev.distance_km * 1000, fill: false,
+          color: '#e8b23a', weight: 1.5, opacity: 0.75 - (ageH / 3) * 0.55,
+        }).bindTooltip(`⚡ ${ev.distance_km} km · ${new Date(ev.ts)
+            .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)
+          .addTo(state.rings);
       });
-      return d;
-    };
-    toolCtl.addTo(map);
+    }
 
     /* ---- time scrubber: replay the mesh's last 24 h ---- */
     const SCRUB_METRICS = 'temp_c,wind_avg_ms,wind_gust_ms,wind_dir_deg,rain_mm,pm25,pm10,batt_v';
     const scrubEl = L.DomUtil.create('div', 'wx-scrub', el);
     scrubEl.innerHTML = `<button type="button" class="live">live</button>
+      <button type="button" class="play" title="play last 24 h" aria-label="play timeline">▶</button>
       <input type="range" min="0" max="1000" value="1000" aria-label="time scrubber" />
       <span class="t">now</span>`;
     scrubEl.style.display = 'none';
@@ -269,27 +308,32 @@ const forsythMap = (() => {
     L.DomEvent.disableScrollPropagation(scrubEl);
     scrubEl.addEventListener('pointerdown', ev => ev.stopPropagation());
 
+    /* fetch per-station history on first need, refresh it when >10 min stale */
+    async function ensureHistory() {
+      if (state.tl && Date.now() - state.tlAt <= 10 * 60 * 1000) return;
+      scrubEl.querySelector('.t').textContent = 'loading…';
+      state.tl = {};
+      state.tlAt = Date.now();
+      await Promise.all(sited().map(async s => {
+        try {
+          state.tl[s.slug] = await getJSON(
+            `/stations/${s.slug}/series?metrics=${SCRUB_METRICS}&hours=24`);
+        } catch { /* station without history scrubs as blank */ }
+      }));
+      scrubEl.querySelector('.t').textContent = 'now';
+    }
+
     async function toggleScrub(btn) {
       if (scrubEl.style.display !== 'none') {
+        stopPlay();
         scrubEl.style.display = 'none'; btn.classList.remove('on');
         state.scrubAt = null; renderMarkers();
+        if (map.hasLayer(state.rings)) ringsRefresh().catch(() => {});
         return;
       }
       btn.classList.add('on');
       scrubEl.style.display = 'flex';
-      /* fetch history on first open, refresh it when >10 min stale */
-      if (!state.tl || Date.now() - state.tlAt > 10 * 60 * 1000) {
-        scrubEl.querySelector('.t').textContent = 'loading…';
-        state.tl = {};
-        state.tlAt = Date.now();
-        await Promise.all(sited().map(async s => {
-          try {
-            state.tl[s.slug] = await getJSON(
-              `/stations/${s.slug}/series?metrics=${SCRUB_METRICS}&hours=24`);
-          } catch { /* station without history scrubs as blank */ }
-        }));
-        scrubEl.querySelector('.t').textContent = 'now';
-      }
+      await ensureHistory();
     }
 
     function scrubSample(s, atS) {
@@ -306,7 +350,10 @@ const forsythMap = (() => {
       return out;
     }
 
-    scrubEl.querySelector('input').addEventListener('input', ev => {
+    const scrubInput = scrubEl.querySelector('input');
+    const playBtn = scrubEl.querySelector('.play');
+
+    scrubInput.addEventListener('input', ev => {
       const frac = Number(ev.target.value) / 1000;
       const nowS = Date.now() / 1000;
       state.scrubAt = nowS - (1 - frac) * 24 * 3600;
@@ -315,12 +362,42 @@ const forsythMap = (() => {
             .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       if (frac === 1) state.scrubAt = null;
       renderMarkers();
+      /* keep lightning rings honest to the browsed moment */
+      if (map.hasLayer(state.rings)) {
+        if (state.scrubAt != null) ensureLtg24().then(() => {
+          if (state.scrubAt != null) ringsDrawAt(state.scrubAt);
+        });
+        else ringsRefresh().catch(() => {});
+      }
     });
-    scrubEl.querySelector('.live').addEventListener('click', () => {
-      scrubEl.querySelector('input').value = 1000;
+
+    /* return to the live present — shared by 'live', the play end, and destroy */
+    function goLive() {
+      scrubInput.value = 1000;
       scrubEl.querySelector('.t').textContent = 'now';
       state.scrubAt = null;
       renderMarkers();
+      if (map.hasLayer(state.rings)) ringsRefresh().catch(() => {});
+    }
+    scrubEl.querySelector('.live').addEventListener('click', () => { stopPlay(); goLive(); });
+
+    /* ---- playback: sweep the 24 h window up to now, ~12–15 s ---- */
+    function stopPlay() {
+      clearInterval(state.playTimer); state.playTimer = null;
+      playBtn.textContent = '▶'; playBtn.title = 'play last 24 h'; playBtn.classList.remove('on');
+    }
+    playBtn.addEventListener('click', async () => {
+      if (state.playTimer) { stopPlay(); return; }
+      await ensureHistory();
+      playBtn.textContent = '⏸'; playBtn.title = 'pause'; playBtn.classList.add('on');
+      let v = 0;
+      scrubInput.value = 0; scrubInput.dispatchEvent(new Event('input'));
+      state.playTimer = setInterval(() => {
+        v += 9;
+        if (v >= 1000) { stopPlay(); goLive(); return; }
+        scrubInput.value = v;
+        scrubInput.dispatchEvent(new Event('input'));  /* same path as manual drag */
+      }, 120);
     });
 
     /* legend */
@@ -360,6 +437,7 @@ const forsythMap = (() => {
       destroy() {
         clearInterval(state.radarTimer);
         clearInterval(state.ringsTimer);
+        clearInterval(state.playTimer);
         window.removeEventListener('themechange', renderMarkers);
         map.remove();
       },
