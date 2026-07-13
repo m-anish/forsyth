@@ -9,11 +9,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="css/dash.css?v=6" />
+  <link rel="stylesheet" href="css/dash.css?v=7" />
   <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-  <script src="js/theme.js?v=5"></script>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0b0c0e" />
+  <script src="js/theme.js?v=7"></script>
 </head>
 <body>
 
@@ -22,7 +24,7 @@
     <a href="/" class="brand"><img src="assets/mark.svg" alt="" aria-hidden="true" />forsyth</a>
     <span class="crumb">/ live</span>
     <span class="right">
-      <a href="board.html" class="nav-chip">my board →</a>
+      <a href="board.html" class="nav-chip"><span class="hide-sm">my </span>board →</a>
       <button class="theme-btn" type="button" aria-label="switch color theme">◐ auto</button>
       <span class="dot"></span><span id="mesh-status">listening</span>
     </span>
@@ -30,10 +32,8 @@
 </header>
 
 <main class="wrap">
-  <div class="pagehead">
-    <span class="kicker">The mesh, at this moment</span>
-    <h1 class="headline">What the sky is doing.</h1>
-    <p class="sub" id="mesh-sub">Reading the stations…</p>
+  <div class="pagehead pagehead-slim">
+    <h1 class="headline">What the sky is doing<span class="mesh-line" id="mesh-sub"> · reading the stations…</span></h1>
   </div>
 
   <div class="wx-banner" id="wx-banner" role="status">
@@ -59,8 +59,8 @@
 
 <script src="https://unpkg.com/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/common.js?v=5"></script>
-<script src="js/map.js?v=6"></script>
+<script src="js/common.js?v=7"></script>
+<script src="js/map.js?v=7"></script>
 <script>
 'use strict';
 
@@ -104,12 +104,11 @@ async function refresh() {
     const live = stations.filter(s => !isStale(s.last_seen)).length;
     const simulated = stations.some(s => s.is_simulated);
     document.getElementById('mesh-sub').textContent =
-      `${stations.length} station${stations.length === 1 ? '' : 's'}, ${live} reporting.` +
-      (simulated ? ' Some of them are rehearsing — the hardware is still on the bench.' : '');
+      ` · ${live}/${stations.length} reporting${simulated ? ' · rehearsing' : ''}`;
     document.getElementById('mesh-status').textContent =
       live === stations.length ? 'all ears' : `${live}/${stations.length} heard`;
   } catch (e) {
-    document.getElementById('mesh-sub').textContent = 'The coordinator is not answering. It happens.';
+    document.getElementById('mesh-sub').textContent = ' · the coordinator is not answering. It happens.';
   }
   refreshBanner();
 }

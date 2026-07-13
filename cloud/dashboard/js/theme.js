@@ -18,7 +18,9 @@ const Theme = (() => {
     const btn = document.querySelector('.theme-btn');
     if (btn) {
       const p = pref();
-      btn.textContent = p === 'auto' ? '◐ auto' : p === 'light' ? '○ light' : '● dark';
+      const icon = p === 'auto' ? '◐' : p === 'light' ? '○' : '●';
+      /* label in its own span so mobile CSS can keep just the icon */
+      btn.innerHTML = icon + ' <span class="tl">' + p + '</span>';
       btn.title = 'theme: ' + p + ' (click to change)';
     }
     window.dispatchEvent(new CustomEvent('themechange', { detail: resolved() }));

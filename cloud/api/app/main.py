@@ -1,10 +1,15 @@
 """Forsyth cloud API — assembly."""
 import logging
+import mimetypes
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
+
+# python's mimetypes predates web app manifests; without this the dashboard's
+# manifest.webmanifest ships as octet-stream and PWA installs get finicky
+mimetypes.add_type("application/manifest+json", ".webmanifest")
 
 from .accounts import router as accounts_router
 from .config import settings

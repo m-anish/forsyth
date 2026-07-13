@@ -20,9 +20,43 @@ document.getElementById('csv-link').href = `/api/v1/export/${slug}.csv?hours=${2
 
 /* ---------- header + "right now" ---------- */
 
+/* station-to-station navigation: prev/next arrows (wrap-around), a switcher,
+   and ←/→ keys. The /stations list is already slug-ordered by the API.      */
+function renderStnav(stations) {
+  const nav = document.getElementById('stnav');
+  if (!nav) return;
+  const i = stations.findIndex(x => x.slug === slug);
+  if (i < 0 || stations.length < 2) {
+    nav.innerHTML = '<a class="sn-all" href="/">← all stations</a>';
+    return;
+  }
+  const prev = stations[(i - 1 + stations.length) % stations.length];
+  const next = stations[(i + 1) % stations.length];
+  S.prevSlug = prev.slug; S.nextSlug = next.slug;
+  nav.innerHTML = `
+    <a class="sn-arrow" href="station.html?slug=${prev.slug}" title="${prev.name}">←</a>
+    <select id="sn-sel" aria-label="switch station">
+      ${stations.map(x => `<option value="${x.slug}" ${x.slug === slug ? 'selected' : ''}>${x.name}</option>`).join('')}
+    </select>
+    <a class="sn-arrow" href="station.html?slug=${next.slug}" title="${next.name}">→</a>
+    <a class="sn-all" href="/">all stations</a>`;
+  nav.querySelector('#sn-sel').addEventListener('change', e => {
+    location.href = `station.html?slug=${e.target.value}`;
+  });
+}
+
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target instanceof Element &&
+      e.target.matches('input, select, textarea, [contenteditable]')) return;
+  if (e.key === 'ArrowLeft' && S.prevSlug) location.href = `station.html?slug=${S.prevSlug}`;
+  if (e.key === 'ArrowRight' && S.nextSlug) location.href = `station.html?slug=${S.nextSlug}`;
+});
+
 async function refreshNow() {
   const { stations } = await getJSON('/stations');
   const st = stations.find(x => x.slug === slug);
+  renderStnav(stations);
   if (!st) { document.getElementById('head-name').textContent = 'Unknown station.'; return; }
 
   document.getElementById('head-kicker').innerHTML =

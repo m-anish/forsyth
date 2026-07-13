@@ -57,6 +57,11 @@ def main() -> None:
         img = draw_mark(48)
         img.save(root / "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48)])
         print(f"✓ {root.relative_to(REPO)}: favicon.ico, assets/favicon-32.png, assets/apple-touch-icon.png")
+    # PWA icons (dashboard only — the site isn't an app)
+    dash_assets = REPO / "cloud" / "dashboard" / "assets"
+    draw_mark(192).save(dash_assets / "icon-192.png")
+    draw_mark(512).save(dash_assets / "icon-512.png")
+    print("✓ cloud/dashboard: assets/icon-192.png, assets/icon-512.png")
 
 
 if __name__ == "__main__":

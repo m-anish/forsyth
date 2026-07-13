@@ -3,6 +3,11 @@
 
 const API = '/api/v1';
 
+/* PWA: install the service worker (network-first for anything live; see sw.js) */
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
+
 async function getJSON(path) {
   const r = await fetch(API + path);
   if (!r.ok) throw new Error(`${path} → ${r.status}`);
