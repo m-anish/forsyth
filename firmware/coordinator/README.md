@@ -39,17 +39,26 @@ during droplet deployment (cloud/docs/deploy.md).
 
 ## Carrier board
 
-Any ESP32-S3 board with ~14 free GPIOs works. Selected 2026-07-13:
-**DFRobot FireBeetle 2 ESP32-S3** — onboard Li-ion charging with proper load
-sharing (mains loss → seamless cell switchover, no reboot), VBAT connector,
-India-stocked. Budget alternative: DevKitC-1 clone + TP4056 *load-sharing*
-module. Rejected: XIAO S3 (pin-starved), T3-S3/Heltec V3 (SPI LLCC68 radio —
-wrong interface for the E220 modules in hand).
+**Decided 2026-07-13: ESP32-S3-DevKitC-1 clone (prefer N8R2) on a hand-soldered
+perfboard** carrying the W5500 module and the E220. Scope rationale: the
+coordinator exists to push frames to the internet (and someday to config
+leaves locally) — pins + USB + 3.3 V is the whole requirement; battery backup
+and integrated anything were gold-plating. Socket the DevKit on female
+headers; give the W5500 its own 100 nF + 10 µF at 3V3, the E220 its
+100–220 µF + 100 nF at 5 V (lokki rule), antenna end away from the RJ45
+magnetics.
 
-**Octal-PSRAM warning:** on any "R8" board (FireBeetle 2, DevKitC N16R8),
-**GPIO 33–37 are reserved by the PSRAM** — do not assign them. The defaults
-below are safe on both quad- and octal-PSRAM parts, and also avoid strapping
-pins (0/3/45/46) and the USB pair (19/20).
+Considered and passed over: FireBeetle 2 ESP32-S3 (nice load-sharing battery
+backup — revisit only if outage-riding becomes a requirement); LILYGO
+T-ETH-Lite-S3 (integrated W5500 + optional PoE, ~3× price for the same job);
+XIAO S3 (pin-starved); T3-S3/Heltec V3 (SPI LLCC68 radio — wrong interface
+for the E220 modules in hand).
+
+**Octal-PSRAM warning:** on any "R8" board (DevKitC N16R8 etc.), **GPIO 33–37
+are reserved by the PSRAM** — do not assign them. An N8R2 (quad PSRAM) has no
+such reservation, and 2 MB PSRAM is ample here. The defaults below are safe
+on both variants, and also avoid strapping pins (0/3/45/46) and the USB pair
+(19/20).
 
 ## Wiring (config.py `LORA_PINS` / `NETWORK["eth"]` / `OLED`, adjust to taste)
 
