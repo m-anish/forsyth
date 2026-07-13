@@ -20,7 +20,8 @@ const Widgets = (() => {
 
   function destroyInstance(el) {
     if (el._uplot) { el._uplot.destroy(); el._uplot = null; }
-    if (el._map) { el._map.remove(); el._map = null; }
+    if (el._maph) { el._maph.destroy(); el._maph = null; el._map = null; }
+    else if (el._map) { el._map.remove(); el._map = null; }
   }
 
   /* ---------- renderers ---------- */
@@ -131,17 +132,10 @@ const Widgets = (() => {
     if (!list.length) { el.innerHTML = '<p class="wg-empty">no sited stations</p>'; return; }
     destroyInstance(el);
     el.innerHTML = '<div class="wg-map" style="position:absolute;inset:0"></div>';
-    const kind = document.documentElement.dataset.theme === 'light' ? 'light_all' : 'dark_all';
-    const m = L.map(el.firstChild, { scrollWheelZoom: false, attributionControl: false });
-    L.tileLayer(`https://{s}.basemaps.cartocdn.com/${kind}/{z}/{x}/{y}{r}.png`,
-                { subdomains: 'abcd', maxZoom: 19 }).addTo(m);
-    m.fitBounds(list.map(s => [s.lat, s.lon]), { padding: [30, 30], maxZoom: 13 });
-    list.forEach(s => {
-      L.circleMarker([s.lat, s.lon], {
-        radius: 8, color: cssVar('--accent'), fillColor: cssVar('--accent'), fillOpacity: 0.45, weight: 2,
-      }).addTo(m).bindPopup(`<b>${s.name}</b><br>${fmt(s.temp_c,1)}°C · ${describe(s)}`);
-    });
-    el._map = m;
+    /* shared implementation (js/map.js) — compact: no legend/fullscreen */
+    const h = forsythMap(el.firstChild, list, { compact: true, mode: config.mode || 'temp' });
+    el._map = h ? h.map : null;
+    el._maph = h;
   }
 
   async function summary(el, config) {
