@@ -112,6 +112,6 @@ Two notes logged at order time:
 - **Verify the LoRa invoice says T-series** (E220-900**T**22D/T30D — UART/M0/M1/AUX,
   the design's interface). The log reads "M22D/M30D"; Ebyte's M-prefix is the SPI
   stamp-hole module and is incompatible with the board and firmware as designed.
-- The coordinator order includes a **DS3231 RTC** (not in the original design):
+- The coordinator order includes the **DS3231 RTC** (planned in §2 all along; firmware does not use it yet):
   worth wiring to the spare I2C — it gives spooled readings truthful timestamps
   through network outages. Small firmware errand when the perfboard is built.
