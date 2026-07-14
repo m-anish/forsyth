@@ -6,6 +6,12 @@ One small VPS, one docker-compose file. Everything below assumes Ubuntu 24.04 on
 ~$5–6/mo box (Hetzner CX22, DigitalOcean basic droplet in BLR, etc. — 2 GB RAM is
 plenty; the whole stack idles under 700 MB).
 
+> **Day-to-day updates** once provisioned: run **[`../../deploy.sh`](../../deploy.sh)**
+> from the repo root — no args deploys to the droplet (pull → rebuild → smoke test),
+> `--test` runs the full stack locally on `http://localhost:8080`, `--down` stops the
+> local one. The sections below are the one-time provisioning and the manual commands
+> the script automates.
+
 ## 1. Provision
 
 ```bash
