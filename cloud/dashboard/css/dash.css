@@ -392,15 +392,51 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 .stnav .sn-all { color: var(--text-mute); border-bottom: none; margin-left: 4px; }
 .stnav .sn-all:hover { color: var(--accent); }
 
-/* ---------- topbar on small screens: keep one calm line ---------- */
+/* the ☰ menu button only appears on small screens (see media query) */
+.nav-menu { display: none; }
+
+/* ---------- topbar on small screens: collapse actions into a ☰ menu ---------- */
 @media (max-width: 640px) {
-  .topbar-inner { gap: 10px; }
+  .topbar-inner { gap: 10px; position: relative; }
   .topbar .crumb { display: none; }
-  .topbar .right { gap: 9px; }
-  .theme-btn .tl { display: none; }        /* icon-only theme button */
-  .hide-sm { display: none; }              /* "my " in "my board" etc. */
-  #mesh-status, #seen { display: none; }   /* the dot alone tells the story */
-  .theme-btn, .nav-chip { padding: 5px 9px; }
+
+  .nav-menu {
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-left: auto; width: 36px; height: 30px;
+    background: none; color: var(--text-dim); cursor: pointer;
+    border: 1px solid var(--border); border-radius: 9px;
+    font-size: 16px; line-height: 1;
+  }
+  .nav-menu:hover, .nav-menu[aria-expanded="true"] {
+    color: var(--accent); border-color: var(--accent);
+  }
+
+  /* the whole right cluster becomes a dropdown panel under the bar */
+  .topbar .right {
+    position: absolute; top: calc(100% + 8px); right: 0; margin-left: 0;
+    flex-direction: column; align-items: stretch; gap: 5px;
+    min-width: 200px; padding: 8px; z-index: 600; display: none;
+    background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: 12px; box-shadow: 0 10px 32px var(--shadow);
+  }
+  .topbar .right.open { display: flex; }
+
+  /* items are full-width rows in the menu, and labels spell themselves out */
+  .topbar .right .nav-chip,
+  .topbar .right .theme-btn,
+  .topbar .right .tool-btn,
+  .topbar .right .board-picker {
+    width: 100%; justify-content: flex-start; text-align: left;
+    border-radius: 8px; padding: 9px 12px; letter-spacing: 0.1em;
+  }
+  .topbar .right .theme-btn .tl { display: inline; }   /* full "auto/light/dark" */
+  .topbar .right .hide-sm { display: inline; }          /* "my board", not "board" */
+  .topbar .right .dot { display: none; }                /* a pulse dot reads oddly in a list */
+  .topbar .right #mesh-status, .topbar .right #seen {
+    display: block; padding: 6px 12px; color: var(--text-mute);
+    font-size: 10.5px; letter-spacing: 0.12em;
+  }
+
   .pagehead-slim .headline { display: flex; flex-direction: column; gap: 2px; }
   .pagehead-slim .mesh-line { white-space: normal; }
   .pagehead { padding-top: 24px; }

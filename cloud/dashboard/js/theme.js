@@ -37,6 +37,22 @@ const Theme = (() => {
     const btn = document.querySelector('.theme-btn');
     if (btn) btn.addEventListener('click', cycle);
     apply();
+
+    // mobile nav: the ☰ button toggles the .right cluster into a dropdown, so
+    // the bar stays clean and busy pages (board, logged in) never overflow.
+    const menu = document.querySelector('.nav-menu');
+    const right = document.querySelector('.topbar .right');
+    if (menu && right) {
+      const close = () => { right.classList.remove('open'); menu.setAttribute('aria-expanded', 'false'); };
+      menu.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = right.classList.toggle('open');
+        menu.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      // tapping a nav item or anywhere outside closes it
+      right.addEventListener('click', (e) => { if (e.target.closest('a, button:not(.theme-btn)')) close(); });
+      document.addEventListener('click', (e) => { if (!e.target.closest('.topbar')) close(); });
+    }
   });
   // set the attribute as early as possible to avoid a flash of wrong theme
   document.documentElement.dataset.theme = resolved();
