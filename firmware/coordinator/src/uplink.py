@@ -14,22 +14,11 @@ import json
 import os
 import time
 
-import ntptime
-from umqtt.simple import MQTTClient
+from umqtt.simple import MQTTClient, MQTTException
 
 import config
 
-
-def ntp_sync():
-    ntptime.host = config.NTP_HOST
-    for _ in range(3):
-        try:
-            ntptime.settime()
-            return True
-        except OSError:
-            time.sleep(2)
-    print("ntp: sync failed — timestamps fall back to server receive time")
-    return False
+# NTP/RTC discipline lives in clock.py — one implementation, one source of time.
 
 
 def iso_now():
@@ -81,8 +70,12 @@ class Uplink:
             print("mqtt: connected to %s" % config.MQTT_HOST)
             self._drain_spool()
             return True
-        except OSError as e:
-            print("mqtt: connect failed (%s)" % e)
+        except (OSError, MQTTException) as e:
+            # MQTTException("5") = broker said "not authorised" — a wrong or
+            # unprovisioned password. Never fatal: we spool and keep serving.
+            print("mqtt: connect failed (%r)%s" % (
+                e, " — check the device's MQTT credential"
+                if isinstance(e, MQTTException) else ""))
             self._client = None
             return False
 
@@ -90,15 +83,24 @@ class Uplink:
         if self._client:
             try:
                 self._client.check_msg()
-            except OSError:
+            except (OSError, MQTTException):
                 self._client = None
 
     def ping(self):
         if self._client:
             try:
                 self._client.ping()
-            except OSError:
+            except (OSError, MQTTException):
                 self._client = None
+
+    @property
+    def spooled(self):
+        """How many messages are waiting out an outage (for the web status)."""
+        try:
+            with open(config.SPOOL_FILE) as f:
+                return sum(1 for line in f if line.strip())
+        except OSError:
+            return 0
 
     @property
     def connected(self):
@@ -110,7 +112,7 @@ class Uplink:
             try:
                 self._client.publish(topic.encode(), payload.encode())
                 return True
-            except OSError:
+            except (OSError, MQTTException):
                 self._client = None
         self._spool(topic, payload)
         return False
@@ -141,7 +143,7 @@ class Uplink:
             try:
                 self._client.publish(topic.encode(), payload.encode())
                 sent += 1
-            except OSError:
+            except (OSError, MQTTException):
                 # keep the unsent tail
                 with open(config.SPOOL_FILE, "w") as f:
                     for t, p in entries[sent:]:

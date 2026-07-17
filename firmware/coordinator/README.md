@@ -5,29 +5,120 @@ piggybacked config) back down. MicroPython on purpose — it's the lokki
 lineage, the E220 discipline ports directly, and a future maintainer can edit
 any behavior with `mpremote` and a text editor, no toolchain.
 
+It also knows what to do with *nothing* attached: see [bench mode](#bench-mode).
+
 ## Install
 
 ```bash
 pip install esptool mpremote
 
-# 1. Flash MicroPython (once). Grab the ESP32_GENERIC_S3 build from
-#    https://micropython.org/download/ESP32_GENERIC_S3/ then, with the board
-#    in bootloader mode (hold BOOT, tap RESET, release BOOT):
-esptool.py --chip esp32s3 --port /dev/tty.usbmodem* erase_flash
-esptool.py --chip esp32s3 --port /dev/tty.usbmodem* write_flash -z 0 \
-    ESP32_GENERIC_S3-*.bin        # S3 images flash at offset 0x0
-#    Tap RESET afterwards to leave bootloader mode.
+# 1. Flash MicroPython (once) — v1.28.0 verified on the N8R2 board 2026-07-17.
+#    Use the STANDARD ESP32_GENERIC_S3 build: it auto-detects the 2 MB quad
+#    PSRAM. (SPIRAM_OCT is only for octal-PSRAM R8 boards.)
+curl -O https://micropython.org/resources/firmware/ESP32_GENERIC_S3-20260406-v1.28.0.bin
+esptool.py --chip esp32s3 --port /dev/cu.usbmodem* erase_flash
+esptool.py --chip esp32s3 --port /dev/cu.usbmodem* write_flash -z 0 \
+    ESP32_GENERIC_S3-20260406-v1.28.0.bin      # S3 images flash at offset 0x0
+#    The native USB-Serial/JTAG port enumerates as /dev/cu.usbmodem* and
+#    esptool resets into the bootloader on its own — no BOOT/RESET dance needed.
+#    Confirm it took: free heap should be ~1.9 MB (that's the PSRAM).
 
-# 2. Everything else is one script (deps + code + config, idempotent):
-./install.sh                      # or ./install.sh --port /dev/tty.usbmodemXXX
+# 2. Secrets, once per board (rotates the broker credential, registers the
+#    bench station, writes config.py — nothing is printed):
+./provision.sh --port /dev/cu.usbmodemXXX --ssid "Anish’s iPhone" --pass '…'
 
-# 3. First time only — put real credentials on the device:
-mpremote edit config.py
-mpremote reset
+# 3. Code + deps (idempotent; never touches the device's config.py):
+./install.sh --port /dev/cu.usbmodemXXX
 
 # 4. Watch it work:
-mpremote repl
+mpremote repl            # or just open http://forsyth.local/
 ```
+
+## Bench mode
+
+A coordinator with no radio has nothing to coordinate — so with **no E220 and
+no W5500 detected** it invents a plausible station and publishes it down the
+*real* path: same MQTT topic, broker, bridge, and database a leaf's data uses.
+Everything except the radio gets exercised, months before the radio exists.
+
+- The numbers are invented, and say so: the `bench` slug is registered
+  `is_simulated=True`, so the dashboard badges it *rehearsal data*. The RSSI it
+  reports is real (its own uplink), as is the chip temperature on the web page.
+- Detection is positive-evidence-only — a peripheral counts as present when it
+  *answers*, never because a pin floated the right way. Plug a radio in and the
+  board demotes itself to normal mode on the next boot.
+- Switch: `config.BENCH["mode"]` = `auto` (default) · `on` · `off`.
+
+## Status LED (WS2812 on GPIO48)
+
+The DevKitC-1 has one addressable RGB LED, and it's the box's only face once
+it's off the bench. The scheme rests on two ideas: **colour = what, pattern =
+how urgent**, and the LED shows the *single most urgent unresolved* condition.
+Full logic + priority order live in [`led.py`](src/led.py).
+
+| state | colour | pattern | meaning |
+|---|---|---|---|
+| boot | white | solid | powering up, probing peripherals |
+| error | red | fast blink | the loop died — read the REPL |
+| **setup AP** | **magenta** | slow blink | **needs you**: join `forsyth-setup`, set wifi |
+| no network | red | slow blink | no LAN; the repair ladder is climbing |
+| spooling | amber | slow blink | LAN ok, broker unreachable — buffering, not losing |
+| bench | cyan | breathe | healthy, but the data is invented |
+| ok | green | breathe | healthy; listening for leaves |
+| activity | blue/green/amber | brief blip | frame heard / reading sent / reading spooled |
+
+The priority order is the point: a box with no LAN *and* no broker shows
+"no network", because that's the deeper failure and where you'd start. Fix a
+rung and the next one surfaces on its own — **walking the LED red → amber →
+green is a debug procedure you can run without a laptop.** Breathing = content;
+blinking = attention; fast = broken; *dark = the firmware isn't running at all*,
+which is itself the loudest signal.
+
+At boot it walks the whole palette once (~2 s) so the colours are self-teaching
+and you know the LED works. It renders from the same status dict the web page
+serves — one source of truth, shown two ways — and is re-derived once a second
+while the animation ticks every loop pass (rendering never blocks; a leaf's ACK
+window does not get a vote). Brightness defaults low (`config.RGB_LED`); a
+WS2812 at full output is a room-filling glare and this box lives on a shelf.
+
+## The box's own web page
+
+`http://forsyth.local/` (mDNS is free on this port — MicroPython's ESP32 build
+starts a responder as soon as `network.hostname()` is set). It reports the
+device and the network — mode, uplink, spool depth, clock, peripherals, frames
+heard — and nothing else. **It is not a second dashboard; the cloud owns the
+weather.** `/api/status` is the same as JSON.
+
+The server is non-blocking and accepts at most one connection per main-loop
+pass, because a browser must never delay a leaf's ACK.
+
+## No network? The setup portal
+
+With no LAN for `NETWORK["ap_after_s"]` (default 120 s), the board raises an AP
+(`forsyth-setup`) running the same web server, whose `/wifi` form takes real
+credentials, saves them to `wifi.json`, and reboots into them. Saved credentials
+beat the compiled ones; delete the file to fall back. While the portal is up the
+watchdog reboot is suspended — rebooting out from under someone mid-typing would
+lose the credentials.
+
+## Timekeeping
+
+The coordinator stamps every reading it forwards, so a wrong clock quietly
+poisons the archive. `clock.py`: NTP whenever there's connectivity (at boot,
+then every `NTP_EVERY_S`), mirrored into a **DS3231 if one is fitted**; with no
+network at boot, the internal RTC is seeded *from* the DS3231 instead. None is
+fitted today — it probes, says so, and carries on.
+
+## Field notes (learned on real hardware, 2026-07-17)
+
+- **iOS hotspot SSIDs contain a typographic apostrophe** (U+2019 `’`), not
+  ASCII `'`. `Anish's iPhone` will never associate with `Anish’s iPhone`. Copy
+  the SSID out of a scan; don't retype it.
+- **iPhone hotspots reject the first association** while waking, and the ESP32
+  reports it as `STAT_WRONG_PASSWORD (202)` — a lie. The retry succeeds. Never
+  treat 202 as fatal; this is precisely what the repair ladder is for.
+- **The radio needs ~2 s after `active(True)`** before it can see anything: an
+  immediate `scan()` returns zero networks on a board that's fine.
 
 `install.sh` re-uploads code but **never overwrites the on-device
 `config.py`** (that's where the real WiFi/MQTT credentials live) unless you

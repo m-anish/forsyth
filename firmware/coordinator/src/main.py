@@ -6,16 +6,32 @@ ACK cannot wait for the network) → translate to JSON → publish (or spool).
 
 Pending config for a leaf (from forsyth/<slug>/cmd) rides on the next ACK to
 that leaf; there is no other downlink opportunity by design.
+
+Everything else in the loop is subordinate to that timing: the web server
+accepts at most one connection per pass, the network ladder does at most one
+rung per check_s, and NTP only re-syncs on a slow cadence. Nothing here may
+block, or a leaf somewhere misses its ACK and burns a retry.
+
+With no peripherals attached the box runs in BENCH mode (bench.py): it invents
+a station and publishes it down the real path, so the network/uplink half can
+be proven long before the radio hardware exists.
 """
 import json
 import time
 
+import bench as bench_mod
+import clock as clock_mod
 import config
 import display
+import led as led_mod
 import protocol
 import uplink as uplink_mod
 from e220 import E220
 from net import Net
+from webserver import Web
+
+# the one status LED, created early so a crash anywhere still gets a red light
+_led = led_mod.Status()
 
 # unit_id -> pending TLV bytes, delivered on next uplink from that leaf
 _pending_tlvs = {}
@@ -99,6 +115,7 @@ def _handle_frame(radio, up, payload, rssi):
     _last_seq[unit] = msg["seq"]
 
     _frames[slug] = _frames.get(slug, 0) + 1
+    _led.blip((0, 120, 255))          # blue blip: a leaf was heard
     if _panel:
         _panel.blink()
         _panel.show(["forsyth coord",
@@ -152,40 +169,103 @@ def _handle_frame(radio, up, payload, rssi):
 
 def run():
     global _panel
+    boot_t = time.time()
     print("forsyth coordinator — %s" % config.COORDINATOR_ID)
+    _led.set(led_mod.BOOT)
+    _led.selftest()                   # walk the palette so the colours are learnable
     _load_state()
     _panel = display.Panel()
     _panel.show(["forsyth coord", config.COORDINATOR_ID, "starting..."])
+
+    # Clock before network: with a DS3231 fitted we get sane timestamps even if
+    # the LAN never shows up. NTP overrides it the moment we're online.
+    clock = clock_mod.Clock()
+    clock.seed_from_rtc()
+
+    # What's actually attached? Probe before the radio is used in anger.
+    peripherals = {"lora": bench_mod.probe_lora(), "eth": bench_mod.probe_eth()}
+    bench_on = bench_mod.decide(peripherals)
+    print("boot: peripherals lora=%s eth=%s → %s mode"
+          % (peripherals["lora"], peripherals["eth"],
+             "BENCH" if bench_on else "normal"))
+
     net = Net()
-    if net.ensure(block_s=90):        # boot: give the link a real chance
-        uplink_mod.ntp_sync()
+    net.ensure(block_s=90)            # boot: give the link a real chance
+    clock.maybe_resync(net.isconnected)
 
-    radio = E220()
-    radio.configure()
+    radio = None
+    if peripherals["lora"]:
+        radio = E220()
+        radio.configure()
+    elif not bench_on:
+        print("boot: no radio and bench mode off — idling (web UI still up)")
 
+    bench = bench_mod.Bench(clock, net) if bench_on else None
     up = uplink_mod.Uplink(_on_cmd)
     up.connect()
 
-    last_ping = last_retry = time.time()
-    ntp_ok = net.isconnected
-    while True:
-        payload, rssi = radio.recv()
-        if payload:
-            try:
-                _handle_frame(radio, up, payload, rssi)
-            except Exception as e:
-                # one bad frame must not take the fleet's ears down
-                print("handle_frame: %r" % e)
+    def _status():
+        return {
+            "id": config.COORDINATOR_ID,
+            "mode": "bench" if bench_on else "normal",
+            "uptime_s": int(time.time() - boot_t),
+            "net": net.status(),
+            "clock": clock.status(),
+            "uplink": {"connected": up.connected, "spooled": up.spooled,
+                       "host": config.MQTT_HOST},
+            "peripherals": peripherals,
+            "mcu_temp": (bench or bench_mod.Bench(clock, net)).mcu_temp(),
+            "frames": _frames,
+        }
 
+    def _on_wifi(ssid, password):
+        from net import save_wifi_creds
+        save_wifi_creds(ssid, password)
+        print("web: new credentials for %r saved — rebooting into them" % ssid)
+        import machine
+        time.sleep(1)
+        machine.reset()
+
+    web = Web(_status, _on_wifi)
+
+    last_ping = last_retry = last_led = time.time()
+    while True:
+        if radio is not None:
+            payload, rssi = radio.recv()
+            if payload:
+                try:
+                    _handle_frame(radio, up, payload, rssi)
+                except Exception as e:
+                    # one bad frame must not take the fleet's ears down
+                    print("handle_frame: %r" % e)
+
+        if bench is not None and bench.due():
+            r = bench.reading()
+            ok = up.publish("forsyth/%s/reading" % bench.slug, r)
+            _led.blip((0, 255, 60) if ok else (255, 140, 0))  # green sent / amber spooled
+            print("bench: %s %s → %s" % (bench.slug,
+                                         "published" if ok else "spooled",
+                                         {k: r[k] for k in ("temp_c", "rh",
+                                                            "wind_avg_ms")}))
+            if _panel:
+                _panel.blink()
+                _panel.show(["forsyth bench", bench.slug,
+                             "%.1f C" % r["temp_c"],
+                             "net %s" % ("up" if up.connected else "SPOOL")])
+
+        web.poll()                    # at most one request; never blocks
         up.check_msg()
         net.ensure()                  # one repair-ladder rung when needed
+        clock.maybe_resync(net.isconnected)
+        _led.tick()                   # render this instant's colour every pass
         now = time.time()
+        if now - last_led >= 1:       # re-derive the base state once a second —
+            _led.from_status(_status())  # cheaper than rebuilding status at 50 Hz
+            last_led = now
         if now - last_ping > 30:
             up.ping()
             last_ping = now
         if net.isconnected and not up.connected and now - last_retry > 60:
-            if not ntp_ok:            # first successful link since boot
-                ntp_ok = uplink_mod.ntp_sync()
             up.connect()
             last_retry = now
         time.sleep_ms(20)

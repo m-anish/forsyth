@@ -23,6 +23,7 @@ Ethernet needs a MicroPython ESP32 build with SPI-Ethernet support
 hasattr and fall back to WiFi loudly if absent, so a wrong firmware build
 degrades to the old behavior instead of crashing).
 """
+import json
 import time
 
 import machine
@@ -35,6 +36,23 @@ def _cfg(key, default):
     return getattr(config, "NETWORK", {}).get(key, default)
 
 
+def wifi_creds():
+    """Saved credentials (from the setup portal) beat the compiled defaults."""
+    try:
+        with open(config.WIFI_FILE) as f:
+            d = json.load(f)
+        if d.get("ssid"):
+            return d["ssid"], d.get("password", "")
+    except (OSError, ValueError):
+        pass
+    return config.WIFI_SSID, config.WIFI_PASSWORD
+
+
+def save_wifi_creds(ssid, password):
+    with open(config.WIFI_FILE, "w") as f:
+        json.dump({"ssid": ssid, "password": password}, f)
+
+
 class Net:
     def __init__(self):
         self._wlan = None
@@ -44,6 +62,14 @@ class Net:
         self._offline_since = None   # time.time() when we noticed the outage
         self._last_tick = 0
         self._last_rssi_log = 0
+        self.ap = None               # setup AP, raised only when there's no LAN
+
+        # must precede activation: the ESP32 port hands this to its mDNS
+        # responder, which is what makes <hostname>.local resolve
+        try:
+            network.hostname(config.HOSTNAME)
+        except (AttributeError, OSError):
+            print("net: this build has no network.hostname() — no mDNS")
 
         mode = _cfg("mode", "wifi")
         if mode in ("eth", "eth+wifi"):
@@ -54,6 +80,8 @@ class Net:
         if mode in ("wifi", "eth+wifi") or self._eth is None:
             self._wlan = network.WLAN(network.STA_IF)
             self._wlan.active(True)
+            time.sleep(2)   # the radio needs a beat before it can see anything;
+                            # scanning/connecting immediately returns nothing
         self._active = self._eth if self._eth is not None else self._wlan
 
     # ---- interface helpers -------------------------------------------------
@@ -93,8 +121,31 @@ class Net:
         if iface is self._wlan:
             iface.active(True)
             if not iface.isconnected():
-                iface.connect(config.WIFI_SSID, config.WIFI_PASSWORD)
+                ssid, pw = wifi_creds()
+                iface.connect(ssid, pw)
+                # Wait out the association here rather than declaring failure a
+                # tick later. A refused first attempt is NORMAL on iOS hotspots
+                # (they report STAT_WRONG_PASSWORD=202 while waking) — the
+                # ladder's next rung retries, which is what actually works.
+                deadline = time.time() + _cfg("connect_wait_s", 25)
+                while time.time() < deadline and not iface.isconnected():
+                    time.sleep(1)
+                if not iface.isconnected():
+                    print("net: wifi %r did not associate (status %s)"
+                          % (ssid, self._status_name(iface)))
         # ethernet: DHCP starts on active(True); nothing else to do
+
+    def _status_name(self, iface):
+        try:
+            s = iface.status()
+        except OSError:
+            return "?"
+        for n in ("STAT_WRONG_PASSWORD", "STAT_NO_AP_FOUND", "STAT_ASSOC_FAIL",
+                  "STAT_HANDSHAKE_TIMEOUT", "STAT_CONNECTING", "STAT_GOT_IP",
+                  "STAT_IDLE"):
+            if getattr(network, n, None) == s:
+                return "%s(%s)" % (n[5:].lower(), s)
+        return str(s)
 
     def _cycle(self, iface):
         print("net: cycling %s interface" % self._name(iface))
@@ -104,6 +155,7 @@ class Net:
             pass
         time.sleep(1)
         iface.active(True)
+        time.sleep(2)          # same settle the radio wants at boot
         self._connect(iface)
 
     def _other(self):
@@ -145,6 +197,7 @@ class Net:
                          self._active.ifconfig()[0]))
             self._streak = 0
             self._offline_since = None
+            self._ap_down()          # a real LAN makes the setup AP redundant
             self._log_rssi(now)
             return
 
@@ -156,11 +209,24 @@ class Net:
         print("net: %s down (streak %d, %ds offline)"
               % (self._name(self._active), self._streak, offline_for))
 
+        # No LAN to be had: raise the setup AP so a human can hand over
+        # credentials through the web portal. We keep climbing the ladder
+        # underneath it — if the LAN returns on its own, the AP goes away.
+        ap_after = _cfg("ap_after_s", 120)
+        if ap_after and offline_for > ap_after:
+            self._ap_up()
+
         if offline_for > _cfg("reboot_after_s", 900):
-            print("net: offline past reboot_after_s — machine.reset() "
-                  "(spool has the data)")
-            time.sleep(1)
-            machine.reset()
+            # …unless someone is standing at the portal right now; rebooting
+            # out from under them would be rude and lose the credentials.
+            if self.ap is not None:
+                print("net: offline past reboot_after_s, but the setup AP is "
+                      "up — staying awake for the portal")
+            else:
+                print("net: offline past reboot_after_s — machine.reset() "
+                      "(spool has the data)")
+                time.sleep(1)
+                machine.reset()
 
         if self._streak == 1:
             self._connect(self._active)
@@ -192,3 +258,62 @@ class Net:
         warn = " — WEAK (below min_rssi_dbm)" \
             if rssi < _cfg("min_rssi_dbm", -85) else ""
         print("net: wifi rssi %d dBm%s" % (rssi, warn))
+
+    # ---- setup AP ----------------------------------------------------------
+
+    def _ap_up(self):
+        if self.ap is not None:
+            return
+        a = _cfg("ap", {}) or {}
+        ssid = a.get("ssid", "forsyth-setup")
+        pw = a.get("password", "")
+        try:
+            ap = network.WLAN(network.AP_IF)
+            ap.active(True)
+            if len(pw) >= 8:
+                ap.config(essid=ssid, password=pw, authmode=network.AUTH_WPA_WPA2_PSK)
+            else:   # mosquitto-style footgun: a short password silently opens it
+                print("net: AP password <8 chars — running the AP OPEN")
+                ap.config(essid=ssid, authmode=network.AUTH_OPEN)
+            self.ap = ap
+            print("net: setup AP up — ssid %r, http://%s/"
+                  % (ssid, ap.ifconfig()[0]))
+        except Exception as e:
+            print("net: could not raise setup AP (%r)" % e)
+            self.ap = None
+
+    def _ap_down(self):
+        if self.ap is None:
+            return
+        try:
+            self.ap.active(False)
+            print("net: setup AP down (LAN is back)")
+        except OSError:
+            pass
+        self.ap = None
+
+    def status(self):
+        """Snapshot for the web UI / logs. No side effects."""
+        d = {"mode": _cfg("mode", "wifi"), "hostname": config.HOSTNAME,
+             "iface": self._name(self._active) if self._active else None,
+             "connected": self.isconnected, "ap": None, "ip": None,
+             "ssid": None, "rssi": None}
+        if self.isconnected:
+            try:
+                d["ip"] = self._active.ifconfig()[0]
+            except OSError:
+                pass
+        if self._active is self._wlan and self._wlan is not None:
+            try:
+                d["ssid"] = self._wlan.config("essid") or None
+                if self.isconnected:
+                    d["rssi"] = self._wlan.status("rssi")
+            except (OSError, ValueError):
+                pass
+        if self.ap is not None:
+            try:
+                d["ap"] = {"ssid": self.ap.config("essid"),
+                           "ip": self.ap.ifconfig()[0]}
+            except OSError:
+                pass
+        return d

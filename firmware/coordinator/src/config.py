@@ -7,10 +7,20 @@ holding placeholders; the real credentials only ever go onto the ESP32.
 
 # ---- identity ----------------------------------------------------------------
 COORDINATOR_ID = "coordinator-01"     # mosquitto username on the droplet
+HOSTNAME = "forsyth"                  # → advertised as forsyth.local (mDNS is
+                                      #   started by the ESP32 port for free
+                                      #   once network.hostname() is set)
 
 # ---- WiFi ----------------------------------------------------------------------
+# Runtime credentials entered through the setup portal are saved to WIFI_FILE and
+# WIN over these compiled defaults. Delete that file to fall back here.
+#
+# ⚠ SSIDs are matched byte-for-byte. iOS names hotspots with a TYPOGRAPHIC
+# apostrophe (U+2019 ’), not ASCII ('): "Anish’s iPhone". Copy the SSID from a
+# scan, don't retype it — this bites everyone exactly once.
 WIFI_SSID = "CHANGE-ME"
 WIFI_PASSWORD = "CHANGE-ME"
+WIFI_FILE = "wifi.json"
 
 # ---- network policy (see net.py for the repair ladder) --------------------------
 NETWORK = {
@@ -20,6 +30,11 @@ NETWORK = {
     "reboot_after_s": 900,    # continuously offline this long -> machine.reset()
                               #  (the MQTT spool makes this data-safe)
     "min_rssi_dbm": -85,      # below this, RSSI logs carry a WEAK warning
+    "connect_wait_s": 25,     # per attempt. iOS hotspots routinely reject the
+                              #  FIRST association with a bogus "wrong password"
+                              #  while waking — the ladder's retry is what makes
+                              #  them work, so never treat 202 as fatal.
+    "ap_after_s": 120,        # no LAN for this long -> raise the setup AP (0=never)
     # W5500 SPI ethernet module wiring — only read in the eth modes.
     # ADJUST TO YOUR WIRING; needs a MicroPython build with network.PHY_W5500.
     # Same pin rules as LORA_PINS above (octal-PSRAM-safe defaults).
@@ -29,6 +44,36 @@ NETWORK = {
         "cs": 14, "int": 21,
         "phy_addr": 1, "baud": 20000000,
     },
+    # Setup AP, raised when there's no LAN to be had. The web UI (below) runs on
+    # it so you can hand over real credentials from a phone.
+    "ap": {
+        "ssid": "forsyth-setup",
+        "password": "forsyth-setup",   # ≥8 chars, or the AP silently goes open
+    },
+}
+
+# ---- on-board web UI + setup portal --------------------------------------------
+# Read-only status of the device and the mesh, plus the wifi form in AP mode.
+# Deliberately NOT a second dashboard: the cloud owns the data.
+WEB = {
+    "enabled": True,
+    "port": 80,
+}
+
+# ---- bench mode ------------------------------------------------------------------
+# With no LoRa module and no W5500 attached there is nothing to coordinate — so
+# the board proves the REST of the chain instead: it invents a plausible station
+# and publishes it to the cloud exactly as a real leaf's data would travel.
+#   mode: "auto" = bench only when no peripherals are detected (the default;
+#         plugging a radio in demotes it automatically)
+#         "on"   = always bench, even with hardware attached
+#         "off"  = never (a peripheral-less board just idles)
+#   slug: MUST exist as a station in the cloud, is_simulated=True — the numbers
+#         are invented and the dashboard should say so.
+BENCH = {
+    "mode": "auto",
+    "slug": "bench",
+    "interval_s": 60,
 }
 
 # ---- optional 0.96" SSD1306 OLED + status LED (I2C shares nothing above) --------
@@ -38,6 +83,17 @@ OLED = {
     "addr": 0x3C,
 }
 STATUS_LED_PIN = None       # e.g. 47; None = use console logging only
+
+# ---- WS2812 status LED (on the DevKitC-1: GPIO48) ------------------------------
+# One RGB pixel that shows the single most urgent unresolved state — colour =
+# what, pattern = how urgent. Full scheme + priority order documented in led.py
+# and firmware/coordinator/README.md. Brightness is low by default: a WS2812 at
+# full tilt is a room-filling glare, and this box lives on a shelf.
+RGB_LED = {
+    "enabled": True,
+    "pin": 48,
+    "brightness": 0.15,     # 0.02–1.0
+}
 
 # ---- MQTT uplink (matches cloud/docs/deploy.md broker setup) -------------------
 MQTT_HOST = "live.forsyth.starstucklab.com"
