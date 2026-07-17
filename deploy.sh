@@ -59,8 +59,14 @@ EOF
         echo '  build hiccup; retry in 15s'; sleep 15; \
       done"
     echo "✓ deployed — smoke-testing $URL"
-    curl -fsS -o /dev/null -w "  %{url_effective} → HTTP %{http_code}\n" "$URL/" \
-      || echo "  ⚠ live check failed — inspect on the droplet"
+    # the api container takes a few seconds to come up behind Caddy; a 502 on
+    # the first probe is a race, not a failure — retry before crying wolf
+    for i in 1 2 3 4 5; do
+      code="$(curl -s -o /dev/null -w '%{http_code}' "$URL/api/v1/health" || echo 000)"
+      [ "$code" = "200" ] && { echo "  health → HTTP 200"; break; }
+      [ "$i" = 5 ] && { echo "  ⚠ still HTTP $code after retries — inspect on the droplet"; break; }
+      sleep 4
+    done
     ;;
 
   -h|--help|help)
