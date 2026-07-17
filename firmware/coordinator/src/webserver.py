@@ -131,6 +131,7 @@ white-space:pre;user-select:text}
 <span id=count style='margin-left:auto'></span></div>
 <div id=log></div></div>
 <div class=foot><a href='/wifi'>wifi setup</a>
+<a href='/location'>station location</a>
 <a href='/api/status'>status json</a><a href='/reboot'>reboot</a></div>
 </div><script>
 var lastId=0, logEl=document.getElementById('log');
@@ -216,11 +217,48 @@ reconnects on its own.</div>%NOTE%
 from your phone's list rather than typing it.</div>
 <div class=tip><a href='/'>← status</a></div></div></body></html>"""
 
+_LOC = """<!DOCTYPE html><html><head><meta charset=utf-8>
+<meta name=viewport content='width=device-width,initial-scale=1'>
+<title>forsyth · location</title><style>
+body{background:#0b0c0e;color:#e8e9e6;font:15px/1.5 -apple-system,system-ui,
+sans-serif;margin:0}.wrap{max-width:520px;margin:0 auto;padding:24px 20px}
+h1{font-weight:500;font-size:20px;margin:0 0 4px}
+.sub{color:#9a9ea3;font-size:13px;margin-bottom:18px}
+.row{background:#14171d;border:1px solid #242832;border-radius:10px;
+padding:12px 14px;margin-bottom:12px}
+.row .slug{font:600 14px ui-monospace,Menlo,monospace}
+.row .st{font:11px ui-monospace,Menlo,monospace;color:#63676e;float:right}
+.row .st.pend{color:#e0a83a}.row .st.ok{color:#7fb98a}
+label{display:inline-block;color:#63676e;font:11px ui-monospace,Menlo,monospace;
+margin:8px 8px 2px 0}
+input{width:120px;padding:8px;background:#0e1014;color:#e8e9e6;
+border:1px solid #242832;border-radius:6px;font:13px ui-monospace,Menlo,monospace}
+button{margin-top:10px;padding:8px 16px;background:#7fa2c4;color:#0b0c0e;border:0;
+border-radius:999px;font-weight:600;cursor:pointer;display:block}
+a{color:#7fa2c4}.tip{color:#63676e;font-size:12px;margin-top:16px}
+%NOTE%</style></head><body><div class=wrap>
+<h1>station location</h1><div class=sub>Set where each node lives. Saved on the
+device and pushed to the cloud when online — then the cloud is authoritative.
+Read the coordinates off your phone's map app.</div>
+%ROWS%
+<div class=tip>No map/GPS button here: browsers block location on plain HTTP.
+For one-tap capture use the cloud admin console (HTTPS) from a phone at the site.</div>
+<div class=tip><a href='/'>← status</a></div></div></body></html>"""
+
+_LOC_ROW = """<form method=post action=/location class=row>
+<span class=st %SYNCCLS%>%SYNC%</span><div class=slug>%SLUG%</div>
+<input type=hidden name=slug value="%SLUG%">
+<label>lat</label><input name=lat value="%LAT%" inputmode=decimal>
+<label>lon</label><input name=lon value="%LON%" inputmode=decimal>
+<label>elev m (optional)</label><input name=elevation value="%ELEV%" inputmode=decimal>
+<button type=submit>save %SLUG%</button></form>"""
+
 
 class Web:
-    def __init__(self, status_fn, on_wifi):
+    def __init__(self, status_fn, on_wifi, location=None):
         self._status = status_fn
         self._on_wifi = on_wifi
+        self._loc = location          # LocationManager, or None
         self.sock = None
         if not getattr(config, "WEB", {}).get("enabled", True):
             print("web: disabled by config")
@@ -257,6 +295,26 @@ class Web:
         note = ("<div class=note>%s</div>" % _esc(msg)) if msg else ""
         return _WIFI.replace("%NOTE%", note).replace("%SSID%", _esc(ssid))
 
+    def _loc_page(self, msg=""):
+        rows = ""
+        for slug in self._loc.slugs():
+            e = self._loc.get(slug) or {}
+            has = e.get("lat") is not None
+            synced = e.get("synced")
+            rows += (_LOC_ROW
+                     .replace("%SLUG%", _esc(slug))
+                     .replace("%LAT%", "" if not has else str(e["lat"]))
+                     .replace("%LON%", "" if not has else str(e["lon"]))
+                     .replace("%ELEV%", "" if e.get("elevation") is None
+                              else str(e["elevation"]))
+                     .replace("%SYNC%", "" if not has else
+                              ("synced ✓" if synced else "pending sync"))
+                     .replace("%SYNCCLS%", "class=st ok" if synced
+                              else "class=st pend"))
+        note = ("<style>.wrap:before{content:'%s';color:#e0a83a;font-size:13px;"
+                "display:block;margin-bottom:8px}</style>" % _esc(msg)) if msg else ""
+        return _LOC.replace("%ROWS%", rows).replace("%NOTE%", note)
+
     # ---- plumbing ----------------------------------------------------------
 
     def _respond(self, cl, body, ctype="text/html", code="200 OK"):
@@ -273,8 +331,20 @@ class Web:
         except OSError:
             return                      # nothing pending — the normal case
         try:
-            cl.settimeout(2)
-            req = cl.recv(1024)
+            # Short timeout, deliberately: a real request's bytes arrive within
+            # milliseconds of the TCP handshake, but browsers also open
+            # speculative/preconnect sockets that send nothing. We must not let
+            # one of those stall the main loop (a leaf's ACK window has no
+            # patience for it) — so we wait ~1 s at most, then drop it.
+            cl.settimeout(1)
+            try:
+                req = cl.recv(1024)
+            except OSError as e:
+                # ETIMEDOUT / EAGAIN = idle client that never spoke. Expected,
+                # not an error — close quietly (the finally handles it).
+                if (e.args[0] if e.args else 0) not in (11, 110, 116):
+                    print("web: recv failed (%r)" % e)
+                return
             if not req:
                 return
             line = req.split(b"\r\n", 1)[0].decode()
@@ -309,6 +379,29 @@ class Web:
                     self._respond(cl, self._wifi_page("ssid can't be empty"))
                 else:
                     self._respond(cl, self._wifi_page())
+            elif path.startswith("/location"):
+                if self._loc is None:
+                    self._respond(cl, "location capture unavailable", "text/plain")
+                elif method == "POST":
+                    f = _form(req.split(b"\r\n\r\n", 1)[-1].decode())
+                    msg = ""
+                    try:
+                        slug = f.get("slug", "")
+                        lat = float(f["lat"]); lon = float(f["lon"])
+                        elev = float(f["elevation"]) if f.get("elevation") else None
+                        if slug not in self._loc.slugs():
+                            msg = "unknown station"
+                        elif not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                            msg = "coordinates out of range"
+                        else:
+                            self._loc.set(slug, lat, lon, elev)
+                            msg = "%s saved%s" % (slug, "" if self._status()
+                                ["uplink"]["connected"] else " — will sync when online")
+                    except (ValueError, KeyError):
+                        msg = "lat and lon must be numbers"
+                    self._respond(cl, self._loc_page(msg))
+                else:
+                    self._respond(cl, self._loc_page())
             elif path.startswith("/reboot"):
                 self._respond(cl, "<!DOCTYPE html><meta charset=utf-8><body "
                     "style='background:#0b0c0e;color:#e8e9e6;font-family:system-ui;"

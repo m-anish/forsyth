@@ -86,6 +86,15 @@ def _handle(client, slug: str, kind: str, payload: bytes, ids: dict[str, int]) -
     elif kind == "lightning":
         ev = json.loads(payload)
         store_readings(sid, [Reading.model_validate({"lightning": [ev]})])
+    elif kind == "meta":
+        # the coordinator's location push — the broker is authenticated
+        # per-device, so a publish on forsyth/<slug>/# is trusted. Same
+        # validated writer the HTTP editor uses (one source of truth).
+        from .ingest import apply_station_location
+        try:
+            apply_station_location(slug, json.loads(payload))
+        except Exception as e:
+            log.warning("meta for %s rejected: %s", slug, e)
     # availability is HA's business; nothing to store
 
 
@@ -109,6 +118,7 @@ def start_bridge():
             if rc == 0:
                 c.subscribe("forsyth/+/reading")
                 c.subscribe("forsyth/+/lightning")
+                c.subscribe("forsyth/+/meta")
                 ids.update(_slug_ids())
                 for slug in ids:
                     _publish_discovery(c, slug)

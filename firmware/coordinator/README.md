@@ -118,6 +118,27 @@ beat the compiled ones; delete the file to fall back. While the portal is up the
 watchdog reboot is suspended — rebooting out from under someone mid-typing would
 lose the credentials.
 
+## Station location
+
+A node has no GPS; its coordinates are human-assigned metadata, and the **cloud
+`stations` table is the single source of truth** — location never travels with a
+reading. There are exactly two deliberate ways to set it, both writing that one
+table:
+
+- **Global (anywhere):** the cloud admin console's map picker — drag a pin or tap
+  "use my location" (phone GPS; works there because it's HTTPS). Edits go through
+  `PATCH /stations/<slug>`, which never rotates the API key.
+- **Local (at the site, incl. no-internet installs):** this coordinator's
+  **`/location` page**. Enter coords read off your phone's map app (the browser
+  Geolocation button is blocked on plain HTTP, so it lives only on the admin
+  console). The value is saved to `location.json` and pushed to the cloud via
+  `forsyth/<slug>/meta` the moment the uplink is up — **once**. After that first
+  sync it's never re-pushed, so a later admin edit stays authoritative.
+
+Last deliberate write wins; the two paths can't fight. Elevation you can leave
+blank — the server backfills it from the coordinates. See the strategy doc for
+the full rationale.
+
 ## Timekeeping
 
 The coordinator stamps every reading it forwards, so a wrong clock quietly

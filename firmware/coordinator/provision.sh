@@ -52,7 +52,11 @@ ssh "$HOST" "cd '$RPATH/cloud' && \
 echo "  ✓ broker credential rotated + recorded in .env"
 
 echo "▶ registering station '$BENCH_SLUG' (is_simulated)"
-# runs on the droplet so ADMIN_KEY never leaves it
+# runs on the droplet so ADMIN_KEY never leaves it.
+# NOTE: the lat/lon/elev below are the ONE intentional hardcoded coordinate in
+# the system — this is the fake bench/demo station. REAL stations are located
+# via the admin console map picker or the coordinator's /location page, never by
+# hardcoding here. (Elevation would otherwise auto-fill server-side.)
 ssh "$HOST" "cd '$RPATH/cloud' && set -a && . ./.env && set +a && \
   curl -sS -o /dev/null -w '  http %{http_code}\n' -X POST \
     http://localhost:8080/api/v1/stations \

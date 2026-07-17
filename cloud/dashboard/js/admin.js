@@ -71,6 +71,12 @@ document.getElementById('user-form').onsubmit = async (ev) => {
 
 /* ---------- stations ---------- */
 
+function locLabel(s) {
+  if (s.lat == null || s.lon == null) return '<span class="wg-empty">not located</span>';
+  const el = s.elevation_m != null ? ` · ${Math.round(s.elevation_m)}m` : '';
+  return `<span class="mono">${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}${el}</span>`;
+}
+
 async function loadStations() {
   const { stations } = await getJSON('/stations');
   const tb = document.querySelector('#stations-table tbody');
@@ -78,10 +84,16 @@ async function loadStations() {
     <tr>
       <td class="mono">${s.slug}</td>
       <td>${s.name}</td>
+      <td>${locLabel(s)}</td>
       <td>${s.is_simulated ? '<span class="badge sim">rehearsal</span>' : 'real'}</td>
       <td class="mono">${agoLabel(s.last_seen)}</td>
-      <td><button class="tool-btn danger" data-del-station="${s.slug}">delete</button></td>
+      <td>
+        <button class="tool-btn" data-loc-station="${s.slug}">locate</button>
+        <button class="tool-btn danger" data-del-station="${s.slug}">delete</button>
+      </td>
     </tr>`).join('');
+  tb.querySelectorAll('[data-loc-station]').forEach(b => b.onclick = () =>
+    openLocEditor(stations.find(s => s.slug === b.dataset.locStation)));
   tb.querySelectorAll('[data-del-station]').forEach(b => b.onclick = async () => {
     const slug = b.dataset.delStation;
     if (!confirm(`Delete station "${slug}" and ALL its data (readings, frames, timelapses)? This is the big red switch.`)) return;
@@ -94,14 +106,105 @@ document.getElementById('station-form').onsubmit = async (ev) => {
   ev.preventDefault();
   const f = ev.target;
   try {
-    const body = { slug: f.slug.value.trim(), name: f.name.value.trim() };
-    for (const k of ['lat', 'lon', 'elevation_m']) if (f[k].value) body[k] = Number(f[k].value);
-    const r = await api('/stations', { method: 'POST', body: JSON.stringify(body) });
+    const r = await api('/stations', { method: 'POST', body: JSON.stringify({
+      slug: f.slug.value.trim(), name: f.name.value.trim() }) });
     document.getElementById('key-reveal').hidden = false;
     document.getElementById('key-value').textContent = r.api_key;
     f.reset();
-    loadStations();
+    await loadStations();
   } catch (e) { alert(e.message); }
+};
+
+/* ---------- station location editor (map picker + geolocation) ---------- */
+
+let LOC = { map: null, marker: null, slug: null };
+
+function locFields() {
+  const f = document.getElementById('loc-form');
+  return { lat: f.lat, lon: f.lon, elev: f.elevation_m };
+}
+
+function setLocPin(lat, lon, moveMap) {
+  const { lat: fl, lon: fo } = locFields();
+  fl.value = lat.toFixed(6); fo.value = lon.toFixed(6);
+  if (LOC.marker) LOC.marker.setLatLng([lat, lon]);
+  if (moveMap) LOC.map.setView([lat, lon], Math.max(LOC.map.getZoom(), 12));
+  fetchElevation(lat, lon);
+}
+
+/* client-side elevation prefill for instant feedback; the server backfill is
+   the backstop, so a failure here is silent */
+let elevTimer = null;
+function fetchElevation(lat, lon) {
+  clearTimeout(elevTimer);
+  elevTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lon}`);
+      const d = await r.json();
+      if (d.elevation && d.elevation[0] != null)
+        locFields().elev.value = Math.round(d.elevation[0]);
+    } catch { /* server backfill will handle it */ }
+  }, 400);
+}
+
+function openLocEditor(s) {
+  LOC.slug = s.slug;
+  document.getElementById('loc-slug').textContent = s.slug;
+  document.getElementById('loc-err').textContent = '';
+  const { lat: fl, lon: fo, elev } = locFields();
+  const hasLoc = s.lat != null && s.lon != null;
+  fl.value = hasLoc ? s.lat : ''; fo.value = hasLoc ? s.lon : '';
+  elev.value = s.elevation_m != null ? Math.round(s.elevation_m) : '';
+  document.getElementById('loc-dlg').showModal();
+
+  const start = hasLoc ? [s.lat, s.lon] : [29.44, 79.61];   // Himalaya-ish default
+  setTimeout(() => {
+    if (!LOC.map) {
+      LOC.map = L.map('loc-map');
+      const dark = document.documentElement.dataset.theme === 'light' ? 'light_all' : 'dark_all';
+      L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark}/{z}/{x}/{y}{r}.png`,
+        { subdomains: 'abcd', maxZoom: 19,
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>' }).addTo(LOC.map);
+      LOC.marker = L.marker(start, { draggable: true }).addTo(LOC.map);
+      LOC.marker.on('dragend', () => {
+        const p = LOC.marker.getLatLng(); setLocPin(p.lat, p.lng, false);
+      });
+      LOC.map.on('click', e => setLocPin(e.latlng.lat, e.latlng.lng, false));
+    } else {
+      LOC.marker.setLatLng(start);
+    }
+    LOC.map.setView(start, hasLoc ? 13 : 6);
+    LOC.map.invalidateSize();
+    // keep manual typing in sync with the pin
+    fl.oninput = fo.oninput = () => {
+      const la = parseFloat(fl.value), lo = parseFloat(fo.value);
+      if (isFinite(la) && isFinite(lo)) { LOC.marker.setLatLng([la, lo]); LOC.map.panTo([la, lo]); }
+    };
+  }, 60);
+}
+
+document.getElementById('loc-here').onclick = () => {
+  const err = document.getElementById('loc-err');
+  if (!navigator.geolocation) { err.textContent = 'This browser has no geolocation.'; return; }
+  err.textContent = 'locating…';
+  navigator.geolocation.getCurrentPosition(
+    p => { err.textContent = ''; setLocPin(p.coords.latitude, p.coords.longitude, true); },
+    e => { err.textContent = 'location denied/failed (' + e.message + ')'; },
+    { enableHighAccuracy: true, timeout: 10000 });
+};
+
+document.getElementById('loc-save').onclick = async (ev) => {
+  ev.preventDefault();
+  const { lat: fl, lon: fo, elev } = locFields();
+  const body = {};
+  if (fl.value) body.lat = Number(fl.value);
+  if (fo.value) body.lon = Number(fo.value);
+  if (elev.value) body.elevation_m = Number(elev.value);
+  try {
+    await api(`/stations/${LOC.slug}`, { method: 'PATCH', body: JSON.stringify(body) });
+    document.getElementById('loc-dlg').close('done');
+    await loadStations();
+  } catch (e) { document.getElementById('loc-err').textContent = e.message; }
 };
 
 /* ---------- jobs ---------- */

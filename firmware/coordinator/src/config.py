@@ -141,6 +141,7 @@ DEDUPE_WINDOW = 32          # remembered (station, seq) pairs
 SPOOL_FILE = "spool.jsonl"  # offline buffer when broker is unreachable
 SPOOL_MAX_LINES = 500       # ~a day of readings for a small fleet
 STATE_FILE = "state.json"   # rain-tip baselines etc., survives reboot
+LOCATION_FILE = "location.json"  # site-captured coordinates pending/synced to cloud
 NTP_HOST = "pool.ntp.org"
 NTP_EVERY_S = 6 * 3600   # re-sync cadence once the clock is set
 NTP_RETRY_S = 60         # retry cadence BEFORE the first success — deliberately

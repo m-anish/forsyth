@@ -226,11 +226,18 @@ def run():
         time.sleep(1)
         machine.reset()
 
-    web = Web(_status, _on_wifi)
+    # slugs this coordinator can locate: its mapped leaves + the bench station
+    _slugs = [s["slug"] for s in config.STATIONS.values()]
+    if bench is not None and bench.slug not in _slugs:
+        _slugs.append(bench.slug)
+    from location import LocationManager
+    loc = LocationManager(up, _slugs)
+
+    web = Web(_status, _on_wifi, loc)
 
     _led.from_status(_status())       # settle straight from 'booting' to the
     _led.tick()                       # real state — no lingering white
-    last_ping = last_retry = last_led = time.time()
+    last_ping = last_retry = last_led = last_locsync = time.time()
     while True:
         if radio is not None:
             payload, rssi = radio.recv()
@@ -270,6 +277,9 @@ def run():
         if net.isconnected and not up.connected and now - last_retry > 60:
             up.connect()
             last_retry = now
+        if now - last_locsync > 15:   # push any site-captured coords once online
+            loc.sync_pending()
+            last_locsync = now
         time.sleep_ms(20)
 
 

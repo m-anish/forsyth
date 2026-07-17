@@ -169,6 +169,55 @@ class StationCreate(BaseModel):
     wu_station_key: str | None = None
 
 
+# --- station location: one validated writer, two callers (PATCH + MQTT meta) ---
+# Location is the station's canonical metadata (see docs); everything that sets
+# it funnels through here so the HTTP editor and the coordinator's meta push
+# validate identically and can never diverge in what they accept.
+_LOCATION_FIELDS = ("name", "lat", "lon", "elevation_m")
+
+
+def _validate_location(lat=None, lon=None, elevation_m=None):
+    """Raise HTTPException(422) on out-of-range coordinates. None passes (means
+    'leave unchanged' on a partial update / 'not provided' from a device)."""
+    if lat is not None and not (-90 <= lat <= 90):
+        raise HTTPException(422, "lat out of range [-90, 90]")
+    if lon is not None and not (-180 <= lon <= 180):
+        raise HTTPException(422, "lon out of range [-180, 180]")
+    if elevation_m is not None and not (-500 <= elevation_m <= 9000):
+        raise HTTPException(422, "elevation_m out of range [-500, 9000]")
+
+
+def apply_station_location(slug: str, fields: dict) -> bool:
+    """Partial-update a station's location metadata. Only the keys present in
+    `fields` (a subset of _LOCATION_FIELDS) are written — omitted columns keep
+    their value, and the API key is never touched. Returns False if the slug
+    doesn't exist. Shared by PATCH /stations and the MQTT `meta` handler."""
+    updates = {k: v for k, v in fields.items() if k in _LOCATION_FIELDS}
+    if not updates:
+        return True
+    _validate_location(updates.get("lat"), updates.get("lon"),
+                       updates.get("elevation_m"))
+    sets = ", ".join(f"{k} = :{k}" for k in updates)
+    with engine.begin() as conn:
+        n = conn.execute(
+            text(f"UPDATE stations SET {sets} WHERE slug = :slug"),
+            {**updates, "slug": slug},
+        ).rowcount
+    if n:
+        log.info("station %s location updated: %s", slug, sorted(updates))
+    return bool(n)
+
+
+class StationUpdate(BaseModel):
+    """Partial metadata update. Every field optional; unset fields untouched.
+    Deliberately cannot change the API key, is_simulated, or WU credentials —
+    it exists to *edit location*, not to re-register."""
+    name: str | None = None
+    lat: float | None = None
+    lon: float | None = None
+    elevation_m: float | None = None
+
+
 @router.post("/stations", status_code=201)
 def create_station(body: StationCreate, request: Request):
     from .accounts import require_admin
@@ -197,6 +246,19 @@ def create_station(body: StationCreate, request: Request):
         ).first()
     log.info("station %s created/rekeyed (id=%s)", body.slug, row[0])
     return {"id": row[0], "slug": body.slug, "api_key": key}
+
+
+@router.patch("/stations/{slug}")
+def update_station(slug: str, body: StationUpdate, request: Request):
+    """Edit a station's metadata (name / location) WITHOUT rotating its API key
+    or nulling untouched fields — the safe alternative to re-POSTing. Only the
+    fields present in the request body are written."""
+    from .accounts import require_admin
+    require_admin(request)
+    fields = body.model_dump(exclude_unset=True)
+    if not apply_station_location(slug, fields):
+        raise HTTPException(404, "no such station")
+    return {"ok": True, "slug": slug, "updated": sorted(fields)}
 
 
 @router.delete("/stations/{slug}")
