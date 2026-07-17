@@ -53,12 +53,13 @@ def run_job(job: str, request: Request):
     Auth: ADMIN_KEY bearer or an is_admin session (the admin console)."""
     from .accounts import require_admin
     require_admin(request)
-    from .jobs import backup, retention, timelapse, wunderground
+    from .jobs import backup, elevation, retention, timelapse, wunderground
     jobs = {
         "timelapse": timelapse.run,
         "retention": retention.run,
         "wunderground": wunderground.run,
         "backup": backup.run,
+        "elevation": elevation.run,
     }
     if job not in jobs:
         raise HTTPException(404, f"unknown job; have: {sorted(jobs)}")
