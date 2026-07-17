@@ -70,16 +70,15 @@ services:
     image: eclipse-mosquitto:2.0
     restart: unless-stopped
     # Seed an empty password file on first boot (mosquitto exits if it's missing).
-    # Ownership root:mosquitto + 0640: mosquitto 2.x's hardening REFUSES to load
-    # a passwd file the broker's own user could rewrite, so the file must be
-    # owned by root — but still group-readable by the mosquitto user. (0700
-    # owned by mosquitto, as we had, is what printed the "owner is not root,
-    # future versions will refuse to load this file" warning.) chown runs every
-    # boot, so it also heals an already-mosquitto-owned file from older deploys.
+    # mosquitto 2.x refuses (currently warns) to load a passwd file NOT owned by
+    # the user the broker runs as. That user is pinned to `mosquitto` in
+    # mosquitto.conf, so the file is chowned to match. chown runs every boot, so
+    # a `mosquitto_passwd` run (which, via `docker compose exec`, writes the file
+    # as root) is healed by the next restart provision.sh already performs.
     entrypoint: >
       sh -c "touch /mosquitto/passwd/passwd
-      && chown root:mosquitto /mosquitto/passwd/passwd
-      && chmod 0640 /mosquitto/passwd/passwd
+      && chown mosquitto:mosquitto /mosquitto/passwd/passwd
+      && chmod 0600 /mosquitto/passwd/passwd
       && exec mosquitto -c /mosquitto/config/mosquitto.conf"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
