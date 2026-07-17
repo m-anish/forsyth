@@ -38,6 +38,8 @@ class Clock:
         self.ds = None            # DS3231 I2C handle, when one answers
         self.synced = False       # NTP has landed at least once this boot
         self.last_sync = 0
+        self._last_attempt = 0    # rate-limits retries so a failing NTP server
+                                  # can't stall the main loop (see maybe_resync)
         self._probe_ds3231()
 
     # ---- DS3231 (optional) -------------------------------------------------
@@ -89,36 +91,46 @@ class Clock:
             return False
 
     def ntp_sync(self):
-        """Pull time from NTP into the internal RTC, and mirror it into the
-        DS3231 when one is fitted. Returns True on success."""
+        """ONE NTP attempt into the internal RTC, mirrored to the DS3231 if
+        fitted. Returns True on success. No internal retry loop — cadence is
+        maybe_resync's job, so this can't monopolise the main loop. A single
+        settime() blocks only for its own socket timeout, kept short below."""
         import ntptime
         ntptime.host = getattr(config, "NTP_HOST", "pool.ntp.org")
-        for _ in range(3):
+        try:
+            ntptime.timeout = 2      # newer ports honour this; harmless if not
+        except Exception:
+            pass
+        self._last_attempt = time.time()
+        try:
+            ntptime.settime()
+        except (OSError, OverflowError, Exception) as e:
+            print("clock: NTP sync failed (%r)" % e)
+            return False
+        self.synced = True
+        self.last_sync = time.time()
+        t = time.gmtime()
+        print("clock: NTP ok → %04d-%02d-%02d %02d:%02d:%02dZ" % t[:6])
+        if self.ds is not None:
             try:
-                ntptime.settime()
-                self.synced = True
-                self.last_sync = time.time()
-                t = time.gmtime()
-                print("clock: NTP ok → %04d-%02d-%02d %02d:%02d:%02dZ" % t[:6])
-                if self.ds is not None:
-                    try:
-                        self._ds_write(t)
-                        print("clock: DS3231 updated from NTP")
-                    except OSError as e:
-                        print("clock: DS3231 write failed (%r)" % e)
-                return True
-            except (OSError, OverflowError):
-                time.sleep(2)
-        print("clock: NTP sync failed")
-        return False
+                self._ds_write(t)
+                print("clock: DS3231 updated from NTP")
+            except OSError as e:
+                print("clock: DS3231 write failed (%r)" % e)
+        return True
 
     def maybe_resync(self, connected):
-        """Called from the main loop; re-syncs on the configured cadence (and
-        as soon as connectivity returns if we've never synced)."""
+        """Called from the main loop every pass — so it must be cheap and must
+        NOT hammer a failing server. Rate-limited: retry every NTP_RETRY_S until
+        the first success, then only every NTP_EVERY_S. This is the fix for the
+        loop stalling (and the web server going unreachable) when NTP is down."""
         if not connected:
             return
-        every = getattr(config, "NTP_EVERY_S", 6 * 3600)
-        if not self.synced or time.time() - self.last_sync > every:
+        now = time.time()
+        if self.synced:
+            if now - self.last_sync > getattr(config, "NTP_EVERY_S", 6 * 3600):
+                self.ntp_sync()
+        elif now - self._last_attempt >= getattr(config, "NTP_RETRY_S", 60):
             self.ntp_sync()
 
     def iso(self):

@@ -32,8 +32,8 @@ mpremote "${PORT_ARGS[@]+"${PORT_ARGS[@]}"}" mip install umqtt.simple
 mpremote "${PORT_ARGS[@]+"${PORT_ARGS[@]}"}" mip install ssd1306
 
 echo "== code"
-for f in protocol.py e220.py net.py clock.py bench.py uplink.py webserver.py \
-         led.py display.py boot.py main.py; do
+for f in protocol.py e220.py net.py clock.py bench.py uplink.py logbuf.py \
+         webserver.py led.py display.py boot.py main.py; do
   echo "   $f"
   mpremote "${PORT_ARGS[@]+"${PORT_ARGS[@]}"}" cp "src/$f" ":$f"
 done

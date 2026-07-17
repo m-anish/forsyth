@@ -142,4 +142,9 @@ SPOOL_FILE = "spool.jsonl"  # offline buffer when broker is unreachable
 SPOOL_MAX_LINES = 500       # ~a day of readings for a small fleet
 STATE_FILE = "state.json"   # rain-tip baselines etc., survives reboot
 NTP_HOST = "pool.ntp.org"
+NTP_EVERY_S = 6 * 3600   # re-sync cadence once the clock is set
+NTP_RETRY_S = 60         # retry cadence BEFORE the first success — deliberately
+                         # slow so a blocked NTP server (e.g. some phone
+                         # hotspots) can't stall the main loop. The clock still
+                         # works meanwhile from a preserved RTC / DS3231.
 STATUS_LOG = True           # print per-frame lines to the USB console

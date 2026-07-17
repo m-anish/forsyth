@@ -74,23 +74,40 @@ green is a debug procedure you can run without a laptop.** Breathing = content;
 blinking = attention; fast = broken; *dark = the firmware isn't running at all*,
 which is itself the loudest signal.
 
-At boot it walks the whole palette once (~2 s) so the colours are self-teaching
-and you know the LED works. It renders from the same status dict the web page
-serves — one source of truth, shown two ways — and is re-derived once a second
-while the animation ticks every loop pass (rendering never blocks; a leaf's ACK
-window does not get a vote). Brightness defaults low (`config.RGB_LED`); a
-WS2812 at full output is a room-filling glare and this box lives on a shelf.
+**Boot behaviour** is deliberately calm: a single gentle fade-up to dim white
+that's *held* through the whole boot, then one clean transition to the live
+colour — you see exactly two states, "booting" → "running". (An earlier version
+flashed all six colours on every reset and then went dark before the loop took
+over; that read as noise-then-nothing, so it's gone. The palette-walk still
+exists as `led.selftest()` for when you actually want the demo — call it from
+the REPL.) It renders from the same status dict the web page serves — one
+source of truth, shown two ways — re-derived once a second while the animation
+ticks every loop pass (rendering never blocks; a leaf's ACK window doesn't get
+a vote). Brightness defaults low (`config.RGB_LED`); a WS2812 at full output is
+a room-filling glare and this box lives on a shelf.
 
 ## The box's own web page
 
 `http://forsyth.local/` (mDNS is free on this port — MicroPython's ESP32 build
-starts a responder as soon as `network.hostname()` is set). It reports the
-device and the network — mode, uplink, spool depth, clock, peripherals, frames
-heard — and nothing else. **It is not a second dashboard; the cloud owns the
-weather.** `/api/status` is the same as JSON.
+starts a responder as soon as `network.hostname()` is set). A single
+self-contained page (inline CSS/JS, no external loads — the box may have no
+internet) with two parts:
 
-The server is non-blocking and accepts at most one connection per main-loop
-pass, because a browser must never delay a leaf's ACK.
+- **status tiles** — network, uplink + spool depth, clock, peripherals, chip
+  temp, uptime; a header dot in the *same colour as the physical LED* so the
+  two always agree.
+- **live system log** — the firmware narrates itself with `print()`, and
+  `logbuf.py` tees `builtins.print` at boot into a 150-line ring buffer (every
+  existing log line captured, nothing retrofitted). The console polls
+  `/api/logs?after=<id>` for just what's new, colours warnings/errors, and
+  gives you **follow** (autoscroll — turn it off to read/select without the
+  view jumping), **wrap**, **pause** (freeze polling while you work), **copy**
+  (clipboard), and native text selection for grabbing individual lines.
+
+**It is not a second weather dashboard; the cloud owns the weather.** Endpoints:
+`/api/status` and `/api/logs` (both JSON). The server is non-blocking and
+accepts at most one connection per main-loop pass — a browser must never delay
+a leaf's ACK.
 
 ## No network? The setup portal
 

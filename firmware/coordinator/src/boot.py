@@ -1,2 +1,4 @@
-# boot.py — nothing to do; main.py owns the whole lifecycle.
-# Kept so MicroPython's boot sequence is explicit rather than implicit.
+# boot.py — runs before main.py. We install the log capture here, first thing,
+# so even main.py's earliest prints land in the web-visible ring buffer.
+import logbuf
+logbuf.install()

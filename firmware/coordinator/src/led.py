@@ -141,13 +141,27 @@ class Status:
             phase = (now % 4000) / 4000 * 2 * math.pi
             self._write(rgb, 0.25 + 0.75 * (0.5 + 0.5 * math.sin(phase)))
 
+    def boot_glow(self):
+        """A single calm fade-up to dim white — the 'waking up' cue. Replaces
+        the old palette-walk, which flashed six colours on EVERY reset (jarring)
+        and then went dark before the loop took over (a confusing gap). Now the
+        LED lights once, smoothly, and HOLDS white through the whole boot; the
+        first live tick() transitions it straight to the operational colour, so
+        the user sees exactly two states: 'booting' → 'running'."""
+        if self.np is None:
+            return
+        for i in range(0, 21):
+            self._write(_COLOUR[BOOT], i / 20.0)
+            time.sleep_ms(20)              # ~0.4 s, gentle, no flashing
+        # left holding dim white; no black frame, so there is no dark gap
+
     def selftest(self):
-        """Walk the palette once at boot: proves the LED works and teaches the
-        colours to whoever is watching. ~2 s, boot-time only."""
+        """Walk the whole palette so the colours are learnable and the LED is
+        proven working. NOT run on boot any more — call it from the REPL or the
+        web UI when you actually want the demo."""
         if self.np is None:
             return
         for s in (ERROR, AP, NO_NET, SPOOLING, BENCH, OK):
             self._write(_COLOUR[s])
-            time.sleep_ms(220)
-        self._write((0, 0, 0))
-        time.sleep_ms(120)
+            time.sleep_ms(300)
+        self._write(_COLOUR[BOOT])         # end on white, never on black

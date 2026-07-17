@@ -172,7 +172,7 @@ def run():
     boot_t = time.time()
     print("forsyth coordinator — %s" % config.COORDINATOR_ID)
     _led.set(led_mod.BOOT)
-    _led.selftest()                   # walk the palette so the colours are learnable
+    _led.boot_glow()                  # calm fade-up, held white through boot
     _load_state()
     _panel = display.Panel()
     _panel.show(["forsyth coord", config.COORDINATOR_ID, "starting..."])
@@ -228,6 +228,8 @@ def run():
 
     web = Web(_status, _on_wifi)
 
+    _led.from_status(_status())       # settle straight from 'booting' to the
+    _led.tick()                       # real state — no lingering white
     last_ping = last_retry = last_led = time.time()
     while True:
         if radio is not None:
