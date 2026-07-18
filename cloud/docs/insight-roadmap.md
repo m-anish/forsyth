@@ -113,7 +113,46 @@ Non-goals, stated plainly: no deep-learning nowcaster on the droplet, no
 pretending to out-model ECMWF, no satellite ingestion before the simpler layers
 have proven themselves.
 
-## 6. Parallel track — data in, data out, allies
+## 6. Sky-vision track — insight from the cameras (and one cheap sensor)
+
+The camera stations currently *show* the sky; this track makes them *read* it.
+Decided 2026-07-18. Three steps, software-first, BOM change last:
+
+- **V1 — software only (days, not weeks).**
+  - *LCL cloud base* (✅ shipped 2026-07-18): estimated cloud base ≈ 125 m per
+    °C of temp/dew-point spread, computed from sensors every station already
+    has — on the station page as "Cloud base (est.)". In a valley where the
+    ceiling decides paragliding and mountain-road judgment, a formula is
+    worth a panel.
+  - *Vision-LLM sky observer*: the summary engine already talks to an LLM;
+    send the latest frame every 30 min ("cloud fraction, type, visibility,
+    precipitation visible?") → a `sky_observed` event, and — the quiet asset —
+    an archive of LLM sky labels paired with simultaneous sensor readings,
+    which later trains cheaper local methods.
+- **V2 — classical CV in a worker job.** Red/blue-ratio cloud-fraction
+  estimation (the all-sky-imager standard for decades; benchmarks show simple
+  thresholding gets most of the way before any CNN), frame-to-frame cloud
+  motion (drift over the ridge is the valley's own nowcast), fog on/off from
+  edge contrast against each camera's clear-day baseline, and a **painted snow
+  stake in frame** as a snow gauge (operational webcam snow networks do
+  exactly this). Pillow/numpy on the droplet; no GPU, no new hardware.
+- **V3 — one BOM line, not a camera.** A zenith-pointed IR thermopile
+  (MLX90614, ~₹300–500, I²C, µA-class) reads sky temperature: clear sky is
+  20–40 °C colder than ambient, cloud radiates back warm — the amateur-
+  astronomy cloud-detector standard (AAG CloudWatcher lineage). Quantitative
+  cloud cover **day and night**, covering the visible camera's blind spot;
+  rain/dew on its window blanks it, so the rain sensor gates validity.
+  Candidate for the Board B revision (see `hardware/architecture.md` §2.2).
+  Explicitly rejected: thermal imagers (₹15k+ for nothing the thermopile +
+  camera pair doesn't give); NoIR camera noted as a cheap coordinator-skycam
+  option for moonlit nights, not a leaf part.
+
+Power discipline note: cameras belong on **coordinators** (a capture+upload
+costs orders of magnitude more energy than a LoRa burst — same math as the
+PMS7003 warm-up in `research/competitive-landscape.md` §4); the thermopile's
+µA listening budget is leaf-compatible, like the AS3935.
+
+## 7. Parallel track — data in, data out, allies
 
 - **IMD APIs** (api.imd.gov.in): district nowcast warnings + city forecasts,
   registration-gated. An IMD warning chip on the map is instant credibility.
@@ -131,7 +170,7 @@ have proven themselves.
   ANN studies for the Indian Himalaya (Natural Hazards, 2025), and the HP
   flash-flood GNN with conformal uncertainty (arXiv:2603.15681).
 
-## 7. Sequence, restated
+## 8. Sequence, restated
 
 | Phase | What | Status / trigger |
 |---|---|---|
@@ -139,7 +178,10 @@ have proven themselves.
 | B | Human reports: POST/GET, QC vs sensors, PWA dialog, map layer | next |
 | C | Nowcast job, `alerts` table, MQTT publish | after B, or sooner if a monsoon demands it |
 | D | Per-station bias correction, `corrected` series | ~90 days of `/skill` pairs |
-| ∥ | IMD/MOSDAC registration, dataset publishing, IIT Mandi / ICIMOD outreach | whenever paperwork allows |
+| V1 | LCL cloud base (✅ 2026-07-18) · vision-LLM sky observer | LLM part: any time |
+| V2 | R/B cloud fraction, cloud motion, fog contrast, snow stake | first real camera outdoors |
+| V3 | MLX90614 sky thermopile on the leaf | Board B revision |
+| ∥ | IMD/MOSDAC registration, dataset publishing, IIT Mandi / ICIMOD outreach | IMD key requested 2026-07-18 |
 
 The quiet win of Phase A shipping first: the moment real hardware lands in a
 valley, the insight layer is already running — and the dataset already has a

@@ -69,11 +69,15 @@ async function refreshNow() {
 
   document.getElementById('now-temp').innerHTML = `${fmt(st.temp_c, 1)}<span class="u">°C</span>`;
   document.getElementById('now-desc').textContent = describe(st);
+  const cb = cloudBaseM(st.temp_c, st.rh);
+  const cbLabel = cb === null ? '—' : cb < 100 ? 'on the deck' : `~${cb} m up`;
   document.getElementById('now-kv').innerHTML = `
     <div><span class="k">Humidity</span><span class="v">${fmt(st.rh, 0, '%')}</span></div>
     <div><span class="k">Wind</span><span class="v">${fmt(st.wind_avg_ms, 1)} m/s ${dirName(st.wind_dir_deg)}</span></div>
     <div><span class="k">Gust</span><span class="v">${fmt(st.wind_gust_ms, 1)} m/s</span></div>
-    <div><span class="k">Rain (last report)</span><span class="v">${fmt(st.rain_mm, 1)} mm</span></div>`;
+    <div><span class="k">Rain (last report)</span><span class="v">${fmt(st.rain_mm, 1)} mm</span></div>
+    <div><span class="k">Dew point</span><span class="v">${fmt(dewPoint(st.temp_c, st.rh), 1)} °C</span></div>
+    <div><span class="k">Cloud base (est.)</span><span class="v">${cbLabel}</span></div>`;
 
   document.getElementById('pres-now').textContent = st.pressure_pa ? (st.pressure_pa / 100).toFixed(1) : '—';
 

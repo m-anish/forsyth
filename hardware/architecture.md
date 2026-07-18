@@ -133,6 +133,16 @@ sensor (I2C, contactless, ~12-bit) is a plausible future drop-in on the expansio
 bus. Nothing in the architecture may preclude it — and nothing does: it's one more I2C
 address on a bus that auto-detects (§7).
 
+**Sky thermopile — upgrade note (2026-07-18):** a zenith-pointed **MLX90614** IR
+thermometer (~₹300–500, I2C, TO-can, µA-class) turns `ambient − sky` temperature
+delta into quantitative cloud cover, day and night — the amateur-astronomy
+cloud-detector standard. Candidate for the **Board B revision** (it wants sky
+view, so it lives with the AS3935 partition, behind an IR-transparent window;
+rain/dew on the window blanks it — gate validity on the rain sensor). Like the
+AS5600, nothing in the architecture may preclude it, and nothing does: one more
+I2C address on the auto-detecting bus (§7). Rationale + the software it feeds:
+`cloud/docs/insight-roadmap.md` §6 (sky-vision track).
+
 **AS3935 siting (decided):** the antenna is layout-sensitive and dislikes switching
 noise. It lives on **Board B in the Stevenson screen** (§6), a cable-length away from
 the core board's boost converters — isolation by partition. SEN0290's tuned antenna

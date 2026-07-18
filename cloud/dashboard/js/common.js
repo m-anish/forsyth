@@ -78,6 +78,22 @@ function describe(r) {
   return bits.join(', ');
 }
 
+/* dew point (Magnus formula) and estimated cloud base — the lifting
+   condensation level: ~125 m of climb per °C of temp/dew-point spread.
+   An estimate for cumulus bases, not gospel; RH near 100 % → base ~0 (fog). */
+function dewPoint(tempC, rh) {
+  if (tempC === null || tempC === undefined || !rh || rh <= 0) return null;
+  const a = 17.62, b = 243.12;
+  const g = Math.log(Math.min(rh, 100) / 100) + (a * tempC) / (b + tempC);
+  return (b * g) / (a - g);
+}
+
+function cloudBaseM(tempC, rh) {
+  const td = dewPoint(tempC, rh);
+  if (td === null) return null;
+  return Math.max(0, Math.round(125 * (tempC - td)));
+}
+
 /* theme-aware chart plumbing: colors come from CSS custom properties so the
    charts follow light/dark mode (station.js redraws on 'themechange') */
 function cssVar(name) {
