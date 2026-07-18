@@ -14,6 +14,7 @@ mimetypes.add_type("application/manifest+json", ".webmanifest")
 from .accounts import router as accounts_router
 from .config import settings
 from .db import init_db
+from .forecast import router as forecast_router
 from .ingest import router as ingest_router
 from .mqtt_bridge import start_bridge
 from .query import router as query_router
@@ -44,6 +45,7 @@ app = FastAPI(
 app.include_router(ingest_router)
 app.include_router(query_router)
 app.include_router(summary_router)
+app.include_router(forecast_router)
 app.include_router(accounts_router)
 
 
@@ -53,13 +55,14 @@ def run_job(job: str, request: Request):
     Auth: ADMIN_KEY bearer or an is_admin session (the admin console)."""
     from .accounts import require_admin
     require_admin(request)
-    from .jobs import backup, elevation, retention, timelapse, wunderground
+    from .jobs import backup, elevation, forecast, retention, timelapse, wunderground
     jobs = {
         "timelapse": timelapse.run,
         "retention": retention.run,
         "wunderground": wunderground.run,
         "backup": backup.run,
         "elevation": elevation.run,
+        "forecast": forecast.run,
     }
     if job not in jobs:
         raise HTTPException(404, f"unknown job; have: {sorted(jobs)}")

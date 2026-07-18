@@ -39,7 +39,7 @@ COOKIE = "forsyth_session"
 SESSION_DAYS = 30
 
 WIDGET_TYPES = {"now", "chart", "windrose", "aqi", "lightning", "camera", "map",
-                "summary", "health"}
+                "forecast", "summary", "health"}
 
 DEFAULT_LAYOUT = {
     "title": "The mesh, at a glance",

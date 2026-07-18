@@ -24,5 +24,15 @@ class Settings:
     raw_retention_days: int = int(os.environ.get("RAW_RETENTION_DAYS", "365"))
     frame_retention_days: int = int(os.environ.get("FRAME_RETENTION_DAYS", "14"))
 
+    # forecast layer (docs/insight-roadmap.md): open-meteo pulls, every run kept
+    # so forecast-vs-observed pairs accrue. Base URLs are overridable for tests.
+    forecast_enabled: bool = os.environ.get("FORECAST_ENABLED", "true").lower() in ("1", "true", "yes")
+    forecast_days: int = int(os.environ.get("FORECAST_DAYS", "3"))
+    forecast_ensemble: bool = os.environ.get("FORECAST_ENSEMBLE", "true").lower() in ("1", "true", "yes")
+    forecast_retention_days: int = int(os.environ.get("FORECAST_RETENTION_DAYS", "730"))
+    openmeteo_base_url: str = os.environ.get("OPENMETEO_BASE_URL", "https://api.open-meteo.com")
+    openmeteo_ensemble_base_url: str = os.environ.get(
+        "OPENMETEO_ENSEMBLE_BASE_URL", "https://ensemble-api.open-meteo.com")
+
 
 settings = Settings()

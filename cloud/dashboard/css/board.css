@@ -82,6 +82,21 @@
   text-transform: uppercase; color: var(--text-mute); font-weight: 500; }
 .wg-table .mono { font-family: var(--mono); }
 
+/* forecast (station panel + board widget) */
+.fc-strip { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.fc-seg {
+  flex: 1 0 52px; min-width: 52px; text-align: center;
+  border: 1px solid var(--border-2); border-radius: 6px; padding: 6px 3px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.fc-seg .t { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--text-mute); white-space: nowrap; }
+.fc-seg .g { font-size: 17px; line-height: 1.2; }
+.fc-seg .v { font-family: var(--mono); font-size: 13px; }
+.fc-seg .p { font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); }
+.fc-chart { margin-top: 8px; }
+.fc-foot { margin: 6px 0 0; }
+
 /* dialogs */
 dialog {
   background: var(--bg-card); color: var(--text);

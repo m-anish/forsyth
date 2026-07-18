@@ -165,8 +165,22 @@ async function drawCharts() {
   ], ts2data(battD, ['batt_v']), { height: 120 });
 }
 
+/* ---------- forecast panel ---------- */
+
+async function refreshForecast() {
+  const el = document.getElementById('forecast-box');
+  if (!el) return;
+  if (el._uplot) { el._uplot.destroy(); el._uplot = null; }
+  el._uplot = await renderForecast(el, slug, { height: 200 });
+  const sk = el.querySelector('.fc-skill');
+  if (sk) renderSkillLine(sk, slug);
+}
+
 /* charts follow the theme */
-window.addEventListener('themechange', () => { if (Object.keys(S.charts).length) drawCharts(); });
+window.addEventListener('themechange', () => {
+  if (Object.keys(S.charts).length) drawCharts();
+  refreshForecast();
+});
 
 /* ---------- data download ---------- */
 
@@ -270,8 +284,9 @@ async function refreshCamera() {
 async function boot() {
   await refreshNow();
   await Promise.all([drawCharts(), drawRose(), refreshPressureTrend(),
-                     refreshLightning(), refreshCamera(), refreshBanner(slug)]);
+                     refreshLightning(), refreshCamera(), refreshBanner(slug),
+                     refreshForecast()]);
 }
 boot();
 setInterval(() => { refreshNow(); refreshPressureTrend(); refreshLightning(); refreshBanner(slug); }, 60_000);
-setInterval(() => { drawCharts(); drawRose(); refreshCamera(); }, 5 * 60_000);
+setInterval(() => { drawCharts(); drawRose(); refreshCamera(); refreshForecast(); }, 5 * 60_000);

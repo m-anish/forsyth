@@ -138,6 +138,18 @@ const Widgets = (() => {
     el._maph = h;
   }
 
+  async function forecast(el, config) {
+    const s = await pick(config);
+    if (!s) { el.innerHTML = '<p class="wg-empty">no stations yet</p>'; return; }
+    destroyInstance(el);
+    /* shared renderer (js/common.js) — strip only when the widget is short */
+    el._uplot = await renderForecast(el, s.slug, {
+      hours: Number(config.hours || 48),
+      chart: el.clientHeight > 190,
+      height: Math.max(140, el.clientHeight - 130),
+    });
+  }
+
   async function summary(el, config) {
     const q = config.station ? `?slug=${config.station}` : '';
     const d = await getJSON(`/summary${q}`);
@@ -166,7 +178,8 @@ const Widgets = (() => {
     lightning: { label: 'Lightning feed',     render: lightning, w: 4, h: 3, fields: ['stationOrAll','hours'] },
     camera:    { label: 'Camera',             render: camera,    w: 3, h: 4, fields: ['station'] },
     map:       { label: 'Map',                render: map,       w: 6, h: 4, fields: [] },
-    summary:   { label: 'Present weather',    render: summary,   w: 12, h: 1, fields: ['stationOrAll'] },
+    forecast:  { label: 'Forecast',           render: forecast,  w: 6, h: 4, fields: ['station','hours'] },
+    summary:   { label: 'Weather',            render: summary,   w: 12, h: 1, fields: ['stationOrAll'] },
     health:    { label: 'Mesh health',        render: health,    w: 4, h: 2, fields: [] },
   };
 

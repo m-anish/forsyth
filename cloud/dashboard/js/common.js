@@ -119,7 +119,7 @@ function makeChart(el, series, data, opts = {}) {
   return u;
 }
 
-/* present-weather banner (shared by both pages) */
+/* weather banner (shared by both pages) — present events and forecast ones */
 async function refreshBanner(slug) {
   const el = document.getElementById('wx-banner');
   if (!el) return;
@@ -128,10 +128,107 @@ async function refreshBanner(slug) {
     if (d.summary) {
       el.querySelector('p').textContent = d.summary;
       el.querySelector('.k').textContent =
-        'Present weather · ' + (d.generated_by === 'llm' ? 'as told by forsyth' : 'observed');
+        'Weather · ' + (d.generated_by === 'llm' ? 'as told by forsyth' : 'noted by forsyth');
       el.classList.add('on');
     } else {
       el.classList.remove('on');
     }
   } catch { el.classList.remove('on'); }
+}
+
+/* ---------- forecast (shared: station page panel + board widget) ---------- */
+
+function wxGlyph(rainMm, prob, cloud, tempC) {
+  if ((rainMm ?? 0) > 0.3 || (prob ?? 0) > 60)
+    return (tempC !== null && tempC !== undefined && tempC <= 1) ? '🌨' : '🌧';
+  if ((cloud ?? 0) > 70) return '☁';
+  if ((cloud ?? 0) > 30) return '⛅';
+  return '☀';
+}
+
+/* Renders the 6-hour strip + temp/precip chart into el (which is emptied).
+   Returns the uPlot instance, or null (no chart / no forecast yet). */
+async function renderForecast(el, slug, opts = {}) {
+  const hours = opts.hours || 48;
+  let d;
+  try {
+    d = await getJSON(`/stations/${slug}/forecast?hours=${hours}`);
+  } catch {
+    el.innerHTML = '<p class="wg-empty">No forecast yet. The worker asks the models every three hours.</p>';
+    return null;
+  }
+  const F = d.series;
+
+  /* strip: one card per 6 h */
+  const segs = [];
+  for (let i = 0; i < d.ts.length; i += 6) {
+    const idx = [];
+    for (let k = i; k < Math.min(i + 6, d.ts.length); k++) idx.push(k);
+    const vals = a => idx.map(k => a[k]).filter(v => v !== null && v !== undefined);
+    const avg = a => { const v = vals(a); return v.length ? v.reduce((x, y) => x + y, 0) / v.length : null; };
+    const max = a => { const v = vals(a); return v.length ? Math.max(...v) : null; };
+    const sum = a => vals(a).reduce((x, y) => x + y, 0);
+    const rain = sum(F.precip_mm), prob = max(F.precip_prob);
+    segs.push({
+      label: new Date(d.ts[i] * 1000).toLocaleString([], { weekday: 'short', hour: 'numeric' }),
+      temp: avg(F.temp_c), rain, prob,
+      glyph: wxGlyph(rain, prob, avg(F.cloud_cover_pct), avg(F.temp_c)),
+    });
+  }
+  el.innerHTML = `
+    <div class="fc-strip">${segs.map(s => `
+      <div class="fc-seg">
+        <span class="t">${s.label}</span>
+        <span class="g">${s.glyph}</span>
+        <span class="v">${fmt(s.temp, 0)}°</span>
+        <span class="p">${s.prob !== null ? Math.round(s.prob) + '%' :
+                          s.rain > 0.2 ? s.rain.toFixed(1) + ' mm' : '·'}</span>
+      </div>`).join('')}</div>
+    <div class="fc-chart"></div>
+    <div class="fc-foot wg-sub">model ${d.model} · run ${agoLabel(d.run_at)}<span class="fc-skill"></span></div>`;
+
+  const chartEl = el.querySelector('.fc-chart');
+  if (opts.chart === false) { chartEl.remove(); return null; }
+
+  /* temp line (with ensemble ±σ band when the GEFS rows exist) + rain bars */
+  const hasSpread = F.temp_spread_c.some(v => v !== null);
+  const series = [
+    { label: '°C', stroke: cssVar('--ch-temp'), width: 1.5 },
+    ...(hasSpread ? [{ label: '+σ', stroke: 'transparent', width: 0 },
+                     { label: '−σ', stroke: 'transparent', width: 0 }] : []),
+    { label: 'mm', stroke: cssVar('--ch-rain'), fill: cssVar('--ch-rain-fill'), scale: 'mm',
+      paths: uPlot.paths.bars ? uPlot.paths.bars({ size: [0.6, 100] }) : undefined },
+  ];
+  const data = [
+    d.ts, F.temp_c,
+    ...(hasSpread ? [
+      F.temp_c.map((v, i) => v === null || F.temp_spread_c[i] === null ? null : v + F.temp_spread_c[i]),
+      F.temp_c.map((v, i) => v === null || F.temp_spread_c[i] === null ? null : v - F.temp_spread_c[i]),
+    ] : []),
+    F.precip_mm,
+  ];
+  return makeChart(chartEl, series, data, {
+    height: opts.height || 200,
+    uplot: {
+      scales: { mm: { range: (u, mn, mx) => [0, Math.max(1, mx)] } },
+      axes: [uplotAxis(), uplotAxis({ size: 46 }),
+             uplotAxis({ size: 40, scale: 'mm', side: 1, grid: { show: false } })],
+      ...(hasSpread ? { bands: [{ series: [2, 3],
+        fill: cssVar('--ch-temp-band') || 'rgba(214, 129, 62, 0.14)' }] } : {}),
+    },
+  });
+}
+
+/* one dry line about how the models have actually done here — appended to
+   the .fc-skill span; silent until enough forecast-vs-observed pairs exist */
+async function renderSkillLine(el, slug) {
+  try {
+    const d = await getJSON(`/stations/${slug}/skill?days=30`);
+    if (!d.n_pairs || !d.leads.length) return;
+    const lead = d.leads.find(l => l.lead_h >= 18) || d.leads[d.leads.length - 1];
+    const bits = [];
+    if (lead.temp_mae_c !== null) bits.push(`temperature within ±${lead.temp_mae_c} °C about a day out`);
+    if (lead.precip_pod !== null) bits.push(`${Math.round(lead.precip_pod * 100)}% of rainy hours called in advance`);
+    if (bits.length) el.textContent = ` · past 30 days here: ${bits.join(', ')}`;
+  } catch { /* skill is a luxury; silence is fine */ }
 }

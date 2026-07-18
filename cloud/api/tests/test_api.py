@@ -120,3 +120,45 @@ def test_boards_default_public(client):
 def test_export_range_validation(client):
     r = client.get("/api/v1/export/all.csv?start=2026-01-02T00:00:00Z&end=2026-01-01T00:00:00Z")
     assert r.status_code == 400
+
+
+# ---------- forecast layer ----------
+
+def test_forecast_404_when_empty(client, station):
+    # pytest-probe has no coordinates, so the forecast job never fetches for it
+    r = client.get(f"/api/v1/stations/{SLUG}/forecast")
+    assert r.status_code == 404
+
+
+def test_forecast_unknown_model_400(client, station):
+    r = client.get(f"/api/v1/stations/{SLUG}/forecast?model=wishful_thinking")
+    assert r.status_code == 400
+
+
+def test_skill_empty_ok(client, station):
+    r = client.get(f"/api/v1/stations/{SLUG}/skill?days=30")
+    assert r.status_code == 200
+    d = r.json()
+    assert d["n_pairs"] == 0 and d["leads"] == []
+
+
+@pytest.mark.skipif(not os.environ.get("FORECAST_LIVE"),
+                    reason="set FORECAST_LIVE=1 to hit open-meteo for real (one call)")
+def test_forecast_live_roundtrip(client, station):
+    """Site the probe near Dharamsala, run the pull job once, read it back."""
+    r = client.patch(f"/api/v1/stations/{SLUG}",
+                     headers={"Authorization": f"Bearer {ADMIN_KEY}"},
+                     json={"lat": 32.22, "lon": 76.32, "elevation_m": 1450})
+    assert r.status_code == 200, r.text
+    r = client.post("/api/v1/admin/run/forecast",
+                    headers={"Authorization": f"Bearer {ADMIN_KEY}"})
+    assert r.status_code == 200, r.text
+    assert r.json()["result"].get("rows", 0) > 0
+
+    d = client.get(f"/api/v1/stations/{SLUG}/forecast?hours=48").json()
+    assert d["model"] == "best_match"
+    assert len(d["ts"]) >= 40                     # ~48 hourly points
+    assert any(v is not None for v in d["series"]["temp_c"])
+    # pressure stored in Pa to match readings (sanity: > 50 kPa anywhere on Earth)
+    pres = [v for v in d["series"]["pressure_pa"] if v is not None]
+    assert not pres or pres[0] > 50_000

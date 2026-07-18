@@ -54,6 +54,32 @@ CREATE TABLE IF NOT EXISTS camera_frames (
     PRIMARY KEY (station_id, ts)
 );
 
+-- Model forecasts pulled from open-meteo (jobs/forecast.py), every run kept.
+-- Columns deliberately mirror readings' names: verification and (future) bias
+-- correction join on (station_id, valid_at = readings_hourly.bucket).
+-- Lead time is derivable: valid_at - run_at. precip_mm covers the hour ENDING
+-- at valid_at (open-meteo convention); temp/wind/pressure are instantaneous.
+CREATE TABLE IF NOT EXISTS forecasts (
+    station_id       INTEGER NOT NULL REFERENCES stations(id) ON DELETE CASCADE,
+    model            TEXT NOT NULL,        -- best_match | ecmwf_ifs025 | gfs_seamless | icon_seamless | ens_gefs
+    run_at           TIMESTAMPTZ NOT NULL, -- fetch-cycle bucket (3 h); not the model's own init time
+    fetched_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    valid_at         TIMESTAMPTZ NOT NULL,
+    temp_c           REAL,
+    rh               REAL,
+    pressure_pa      REAL,
+    wind_avg_ms      REAL,
+    wind_gust_ms     REAL,
+    wind_dir_deg     REAL,
+    precip_mm        REAL,
+    precip_prob      REAL,                 -- %, best_match only
+    cloud_cover_pct  REAL,
+    temp_spread_c    REAL,                 -- ensemble stdev (ens_gefs rows only)
+    precip_spread_mm REAL,
+    PRIMARY KEY (station_id, model, run_at, valid_at)
+);
+SELECT create_hypertable('forecasts', 'valid_at', if_not_exists => TRUE);
+
 CREATE TABLE IF NOT EXISTS users (
     id         SERIAL PRIMARY KEY,
     username   TEXT UNIQUE NOT NULL,

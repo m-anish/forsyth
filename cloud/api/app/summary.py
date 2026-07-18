@@ -1,7 +1,12 @@
-"""Present-weather summary: detects noteworthy events in the recent data and,
-when there are any, produces a 20–30 word plain-language summary in the house
-voice. If OPENAI_API_KEY is configured the sentence is LLM-written; otherwise a
+"""Weather summary: detects noteworthy events — observed in the recent data,
+expected in the stored forecasts, and disagreements between the two — and, when
+there are any, produces a 20–30 word plain-language summary in the house voice.
+If OPENAI_API_KEY is configured the sentence is LLM-written; otherwise a
 rule-based composer does a perfectly respectable job. Cached for 5 minutes.
+
+Event kinds ending in `_expected` come from the latest stored model run
+(jobs/forecast.py); `model_divergence` fires when the stations contradict the
+model — which, in a valley the model can't see, is itself the warning.
 
 GET /api/v1/summary            → mesh-wide
 GET /api/v1/summary?slug=ridge → one station
@@ -86,6 +91,106 @@ def _detect_events(slug: str | None) -> list[dict]:
             GROUP BY s.name HAVING avg(r.pm25) > 90"""), p).all()
         for name, pm in rows:
             events.append({"kind": "poor_air", "station": name, "pm25": round(pm)})
+
+        events.extend(_detect_forecast_events(conn, flt, p, events))
+    return events
+
+
+# latest stored run for this station+model — the anchor for every forecast query
+_LATEST_RUN = ("(SELECT max(run_at) FROM forecasts "
+               " WHERE station_id = f.station_id AND model = 'best_match')")
+
+
+def _detect_forecast_events(conn, flt: str, p: dict, present: list[dict]) -> list[dict]:
+    """Forward-looking events from the latest best_match run, plus divergence
+    (stations contradicting the model right now)."""
+    events: list[dict] = []
+    raining_now = {e["station"] for e in present if e["kind"] == "rain"}
+
+    # the model said no rain; the gauges disagree. Trust the gauges.
+    rows = conn.execute(text(f"""
+        SELECT s.name, obs.mm AS observed, fc.mm AS forecast
+        FROM stations s
+        JOIN LATERAL (
+            SELECT sum(rain_mm) AS mm FROM readings
+            WHERE station_id = s.id AND ts >= now() - INTERVAL '1 hour') obs ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT sum(f.precip_mm) AS mm FROM forecasts f
+            WHERE f.station_id = s.id AND f.model = 'best_match'
+              AND f.run_at = {_LATEST_RUN}
+              AND f.valid_at >  date_trunc('hour', now()) - INTERVAL '1 hour'
+              AND f.valid_at <= date_trunc('hour', now()) + INTERVAL '1 hour') fc ON TRUE
+        WHERE obs.mm > 1 AND fc.mm IS NOT NULL AND fc.mm < 0.2 {flt}"""), p).all()
+    for name, observed, forecast in rows:
+        events.append({"kind": "model_divergence", "station": name, "what": "rain",
+                       "observed_mm": round(observed, 1), "forecast_mm": round(forecast, 1)})
+
+    # pressure falling harder than the model expected (> 1.5 hPa beyond the trend)
+    rows = conn.execute(text(f"""
+        SELECT name, obs_delta, fc_delta FROM (
+            SELECT s.name,
+                   (SELECT avg(pressure_pa) FROM readings
+                    WHERE station_id = s.id AND ts >= now() - INTERVAL '30 minutes')
+                 - (SELECT avg(pressure_pa) FROM readings
+                    WHERE station_id = s.id
+                      AND ts BETWEEN now() - INTERVAL '3 hours 30 minutes'
+                                 AND now() - INTERVAL '3 hours') AS obs_delta,
+                   (SELECT f.pressure_pa - f2.pressure_pa
+                    FROM forecasts f JOIN forecasts f2
+                      ON f2.station_id = f.station_id AND f2.model = f.model
+                     AND f2.run_at = f.run_at
+                     AND f2.valid_at = date_trunc('hour', now()) - INTERVAL '3 hours'
+                    WHERE f.station_id = s.id AND f.model = 'best_match'
+                      AND f.run_at = {_LATEST_RUN}
+                      AND f.valid_at = date_trunc('hour', now())) AS fc_delta
+            FROM stations s WHERE TRUE {flt}
+        ) d
+        WHERE obs_delta IS NOT NULL AND fc_delta IS NOT NULL
+          AND obs_delta - fc_delta < -150"""), p).all()
+    for name, obs_delta, fc_delta in rows:
+        events.append({"kind": "model_divergence", "station": name, "what": "pressure",
+                       "observed_hpa_3h": round(obs_delta / 100, 1),
+                       "forecast_hpa_3h": round(fc_delta / 100, 1)})
+
+    # rain expected in the next 12 h (skip stations where it's already raining)
+    rows = conn.execute(text(f"""
+        SELECT s.name,
+               min(f.valid_at) FILTER (WHERE f.precip_mm > 0.5 OR f.precip_prob > 70)
+                   AS first_at,
+               sum(f.precip_mm) AS mm_12h, max(f.precip_prob) AS prob
+        FROM forecasts f JOIN stations s ON s.id = f.station_id
+        WHERE f.model = 'best_match' AND f.run_at = {_LATEST_RUN}
+          AND f.valid_at > now() AND f.valid_at <= now() + INTERVAL '12 hours' {flt}
+        GROUP BY s.name
+        HAVING min(f.valid_at) FILTER (WHERE f.precip_mm > 0.5 OR f.precip_prob > 70)
+               IS NOT NULL"""), p).all()
+    now_utc = conn.execute(text("SELECT now()")).scalar()
+    for name, first_at, mm_12h, prob in rows:
+        if name in raining_now:
+            continue
+        in_h = max(1, round((first_at - now_utc).total_seconds() / 3600))
+        events.append({"kind": "rain_expected", "station": name, "in_hours": in_h,
+                       "mm_12h": round(mm_12h or 0, 1),
+                       "prob": round(prob) if prob is not None else None})
+
+    # the next 24 h in one pass: frost, big swings, wind worth lashing down for
+    rows = conn.execute(text(f"""
+        SELECT s.name, min(f.temp_c) AS tmin, max(f.temp_c) AS tmax,
+               max(f.wind_gust_ms) AS gust
+        FROM forecasts f JOIN stations s ON s.id = f.station_id
+        WHERE f.model = 'best_match' AND f.run_at = {_LATEST_RUN}
+          AND f.valid_at > now() AND f.valid_at <= now() + INTERVAL '24 hours' {flt}
+        GROUP BY s.name"""), p).all()
+    for name, tmin, tmax, gust in rows:
+        if tmin is not None and tmin < 2:
+            events.append({"kind": "frost_expected", "station": name,
+                           "min_c": round(tmin, 1)})
+        if tmin is not None and tmax is not None and tmax - tmin > 12:
+            events.append({"kind": "temp_swing", "station": name,
+                           "min_c": round(tmin, 1), "max_c": round(tmax, 1)})
+        if gust is not None and gust > 15:
+            events.append({"kind": "wind_expected", "station": name,
+                           "gust_ms": round(gust, 1)})
     return events
 
 
@@ -111,12 +216,38 @@ def _compose_template(events: list[dict]) -> str:
     air = [e for e in events if e["kind"] == "poor_air"]
     if air:
         bits.append(f"air worth avoiding at {air[0]['station']}")
+    diverging = [e for e in events if e["kind"] == "model_divergence"]
+    if diverging:
+        e = diverging[0]
+        what = "rain the forecast never mentioned" if e["what"] == "rain" \
+            else "pressure falling harder than the model expected"
+        bits.append(f"{what} at {e['station']}")
+    expect_rain = [e for e in events if e["kind"] == "rain_expected"]
+    if expect_rain:
+        soonest = min(expect_rain, key=lambda e: e["in_hours"])
+        bits.append(f"rain likely at {soonest['station']} within {soonest['in_hours']} h"
+                    f" (~{soonest['mm_12h']} mm by then and after)")
+    frost = [e for e in events if e["kind"] == "frost_expected"]
+    if frost:
+        coldest = min(frost, key=lambda e: e["min_c"])
+        bits.append(f"frost expected at {coldest['station']} ({coldest['min_c']} °C overnight)")
+    swing = [e for e in events if e["kind"] == "temp_swing"]
+    if swing:
+        e = swing[0]
+        bits.append(f"a {round(e['max_c'] - e['min_c'])} °C swing ahead at {e['station']}")
+    expect_wind = [e for e in events if e["kind"] == "wind_expected"]
+    if expect_wind:
+        worst = max(expect_wind, key=lambda e: e["gust_ms"])
+        bits.append(f"gusts to {worst['gust_ms']} m/s expected at {worst['station']} within a day")
 
     if not bits:
         return ""
     sentence = "; ".join(bits[:3])
     sentence = sentence[0].upper() + sentence[1:]
-    closer = " Forsyth suggests being near a roof." if (lightning or rain) else " Forsyth is watching."
+    closer = (" Forsyth suggests being near a roof." if (lightning or rain) else
+              " Trust the sky, not the model." if diverging else
+              " Forsyth suggests planning accordingly." if (expect_rain or frost or expect_wind) else
+              " Forsyth is watching.")
     return sentence + "." + closer
 
 
@@ -136,6 +267,10 @@ def _compose_llm(events: list[dict]) -> str | None:
                         "Current weather events from the station mesh, as JSON: "
                         f"{events}\n\nWrite ONE summary of 20-30 words for the dashboard "
                         "banner. Mention station names and the most important numbers. "
+                        "Events whose kind ends in _expected come from a forecast — "
+                        "phrase them as expectation, not observation. model_divergence "
+                        "means the stations contradict the forecast: say so plainly; "
+                        "the stations are the ones to believe. "
                         "Dry and calm. No exclamation marks. Plain text only."},
                 ],
             },
