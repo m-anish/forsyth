@@ -216,6 +216,31 @@ function wireChrome() {
   const dlg = document.getElementById('login-dlg');
   const err = document.getElementById('login-err');
 
+  /* sign-in dialog doubles as sign-up; OAuth buttons appear when the server
+     has providers configured (GET /auth/methods) */
+  let signupMode = false;
+  function setMode(signup) {
+    signupMode = signup;
+    document.getElementById('login-title').textContent = signup ? 'Create an account' : 'Sign in';
+    document.getElementById('login-submit').textContent = signup ? 'create account' : 'sign in';
+    document.getElementById('signup-toggle').textContent =
+      signup ? 'have an account? sign in' : 'new here? create an account';
+  }
+  async function prepDialog() {
+    try {
+      const m = await getJSON('/auth/methods');
+      document.getElementById('signup-toggle').hidden = !m.signup;
+      document.getElementById('oauth-row').innerHTML =
+        (m.google ? `<a class="tool-btn oauth" href="${API}/auth/oauth/google">continue with Google</a>` : '') +
+        (m.github ? `<a class="tool-btn oauth" href="${API}/auth/oauth/github">continue with GitHub</a>` : '');
+    } catch { /* dialog still works as plain sign-in */ }
+  }
+  document.getElementById('signup-toggle').onclick = (ev) => {
+    ev.preventDefault();
+    err.textContent = '';
+    setMode(!signupMode);
+  };
+
   loginBtn.onclick = async () => {
     if (B.user) {
       await apiJSON('/auth/logout', { method: 'POST' });
@@ -223,6 +248,8 @@ function wireChrome() {
       return;
     }
     err.textContent = '';
+    setMode(false);
+    prepDialog();
     dlg.showModal();
   };
 
@@ -230,14 +257,17 @@ function wireChrome() {
     ev.preventDefault();
     const form = document.getElementById('login-form');
     try {
-      await apiJSON('/auth/login', { method: 'POST', body: JSON.stringify({
-        username: form.username.value.trim(), password: form.password.value }) });
+      await apiJSON(signupMode ? '/auth/signup' : '/auth/login', {
+        method: 'POST', body: JSON.stringify({
+          username: form.username.value.trim(), password: form.password.value }) });
       dlg.close('done');
       B.user = await whoami();
       applyAuthUI();
       await Promise.all([loadBoard(), loadPicker()]);
     } catch (e) {
-      err.textContent = 'The station does not recognise you. (' + e.message + ')';
+      err.textContent = signupMode
+        ? 'That didn’t work — usernames are lowercase, passwords ≥ 8 chars, and the name may be taken. (' + e.message + ')'
+        : 'The station does not recognise you. (' + e.message + ')';
     }
   };
 

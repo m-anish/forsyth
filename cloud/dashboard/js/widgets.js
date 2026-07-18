@@ -166,7 +166,7 @@ const Widgets = (() => {
             <span class="bolt">${Report?.GLYPH?.[r.kind] || '👁'}</span>
             <span>${r.kind.replace(/_/g, ' ')}${r.intensity ? [' · light',' · moderate',' · heavy'][r.intensity-1] : ''}
                   ${r.qc_flag === 'corroborated' ? ' ✓' : ''}</span>
-            <span class="d">${r.reporter || 'anon'}</span></li>`).join('') + `</ul>${btn}`;
+            <span class="d">${r.reporter || 'anon'}${r.trusted ? ' ★' : ''}</span></li>`).join('') + `</ul>${btn}`;
     }
     const b = el.querySelector('.rp-open');
     if (b) b.onclick = () => Report.open();

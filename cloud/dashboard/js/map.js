@@ -271,7 +271,7 @@ const forsythMap = (() => {
         L.marker([r.lat, r.lon], { icon, keyboard: false }).addTo(state.reports)
           .bindPopup(`<div class="map-pop"><h4>👁 ${label}
               ${r.qc_flag === 'corroborated' ? '<span class="badge ok">✓ station agrees</span>' : ''}</h4>
-            <div class="l">${agoLabel(r.ts)} · ${r.reporter || 'someone nearby'}</div>
+            <div class="l">${agoLabel(r.ts)} · ${r.reporter || 'someone nearby'}${r.trusted ? ' ★' : ''}</div>
             ${r.note ? `<div class="r"><span>note</span><b>${r.note.replace(/</g, '&lt;')}</b></div>` : ''}
           </div>`, { maxWidth: 240 });
       });

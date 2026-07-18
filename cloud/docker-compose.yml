@@ -42,6 +42,13 @@ services:
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
       WU_ENABLED: ${WU_ENABLED:-false}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      FORECAST_ENABLED: ${FORECAST_ENABLED:-true}
+      REPORTS_ENABLED: ${REPORTS_ENABLED:-true}
+      SIGNUP_ENABLED: ${SIGNUP_ENABLED:-true}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET:-}
     volumes:
       - media:/data/media
     ports:

@@ -34,6 +34,15 @@ class Settings:
     # human weather reports (app/reports.py) — the kill switch hides the whole
     # feature: POST 404s, GET says disabled, the dashboard shows no report UI
     reports_enabled: bool = os.environ.get("REPORTS_ENABLED", "true").lower() in ("1", "true", "yes")
+
+    # self-serve accounts (engagement-roadmap §4). OAuth providers appear in
+    # the sign-in dialog only when their id+secret are set; redirect URI to
+    # register with each provider: {PUBLIC_BASE_URL}/api/v1/auth/oauth/{provider}/callback
+    signup_enabled: bool = os.environ.get("SIGNUP_ENABLED", "true").lower() in ("1", "true", "yes")
+    google_client_id: str = os.environ.get("GOOGLE_CLIENT_ID", "")
+    google_client_secret: str = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+    github_client_id: str = os.environ.get("GITHUB_CLIENT_ID", "")
+    github_client_secret: str = os.environ.get("GITHUB_CLIENT_SECRET", "")
     openmeteo_base_url: str = os.environ.get("OPENMETEO_BASE_URL", "https://api.open-meteo.com")
     openmeteo_ensemble_base_url: str = os.environ.get(
         "OPENMETEO_ENSEMBLE_BASE_URL", "https://ensemble-api.open-meteo.com")

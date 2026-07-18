@@ -135,8 +135,8 @@ but never optimized.
 
 | Step | What | Tied to |
 |---|---|---|
-| E1 | Report flow ships anonymous-first (✅ 2026-07-18); self-serve accounts (email + Google, then GitHub); attribution + streaks | insight Phase B |
-| E2 | Trusted-observer mechanics; event-moment prompts; WhatsApp broadcast list (manual) | insight Phase C |
+| E1 | Report flow anonymous-first; self-serve accounts (username/password + Google/GitHub OAuth, buttons appear when creds configured); attribution + streaks in the report dialog | ✅ 2026-07-18 |
+| E2 | Trusted-observer mechanics (✅ 2026-07-18: ≥5 corroborated & ≤25 % contradicted over 90 d → severe reports fire the banner solo, ★ badges); event-moment prompts; WhatsApp broadcast list (manual) | insight Phase C |
 | E3 | Digests, shareable cards, Monsoon Report v1; school + Bir outreach; Hindi report flow | after B stabilizes |
 | E4 | Sponsorships, SMS/WhatsApp automation, commercial API — only if E1–E3 earn it | after Phase D |
 

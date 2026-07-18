@@ -34,6 +34,56 @@ RATE_10MIN, RATE_24H = 3, 20
 QC_RADIUS_KM = 5.0       # a report is checkable if a fresh station is this close
 FUZZ_DECIMALS = 3        # public coords rounded to ~110 m — homes are sensitive
 
+# Trusted observer (engagement-roadmap §3): earned mechanically — enough
+# sensor-corroborated reports, few contradicted ones, in a rolling window.
+# Gaming this requires being reliably right about the weather.
+TRUST_WINDOW_DAYS = 90
+TRUST_MIN_CORROBORATED = 5
+TRUST_MAX_CONTRA_RATIO = 0.25
+
+
+def trusted_reporters(conn) -> set[str]:
+    """Signed-in reporters whose track record earns extra weight."""
+    rows = conn.execute(text("""
+        SELECT reporter,
+               count(*) FILTER (WHERE qc_flag = 'corroborated') AS ok,
+               count(*) FILTER (WHERE qc_flag = 'contradicted') AS bad
+        FROM obs_reports
+        WHERE reporter IS NOT NULL
+          AND ts >= now() - make_interval(days => :w)
+        GROUP BY reporter"""), {"w": TRUST_WINDOW_DAYS}).all()
+    return {r.reporter for r in rows
+            if r.ok >= TRUST_MIN_CORROBORATED
+            and r.bad <= r.ok * TRUST_MAX_CONTRA_RATIO}
+
+
+def reporter_stats(conn, username: str) -> dict:
+    """The numbers behind attribution: totals, corroboration, streak, trust."""
+    total, ok, bad = conn.execute(text("""
+        SELECT count(*),
+               count(*) FILTER (WHERE qc_flag = 'corroborated'),
+               count(*) FILTER (WHERE qc_flag = 'contradicted')
+        FROM obs_reports
+        WHERE reporter = :u AND ts >= now() - make_interval(days => :w)"""),
+        {"u": username, "w": TRUST_WINDOW_DAYS}).first()
+    days = [r[0] for r in conn.execute(text("""
+        SELECT DISTINCT (ts AT TIME ZONE 'UTC')::date FROM obs_reports
+        WHERE reporter = :u ORDER BY 1 DESC LIMIT 60"""), {"u": username}).all()]
+    # streak = consecutive days with a report, still alive today or yesterday
+    streak = 0
+    expect = datetime.now(timezone.utc).date()
+    if days and days[0] == expect - timedelta(days=1):
+        expect = days[0]
+    for d in days:
+        if d != expect:
+            break
+        streak += 1
+        expect -= timedelta(days=1)
+    return {"total_90d": total, "corroborated": ok, "contradicted": bad,
+            "streak_days": streak,
+            "trusted": ok >= TRUST_MIN_CORROBORATED
+                       and bad <= ok * TRUST_MAX_CONTRA_RATIO}
+
 
 def _client_hash(request: Request) -> str:
     """Stable per-client token for rate limiting; stores no raw IP or UA."""
@@ -149,8 +199,10 @@ def list_reports(
     sql += " ORDER BY o.ts DESC LIMIT 500"
     with engine.connect() as conn:
         rows = conn.execute(text(sql), params).mappings().all()
+        trusted = trusted_reporters(conn) if rows else set()
     return {"enabled": True, "reports": [
         {**dict(r), "lat": round(r["lat"], FUZZ_DECIMALS),
-         "lon": round(r["lon"], FUZZ_DECIMALS)}
+         "lon": round(r["lon"], FUZZ_DECIMALS),
+         "trusted": r["reporter"] in trusted}
         for r in rows
     ]}

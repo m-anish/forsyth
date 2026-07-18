@@ -105,13 +105,16 @@ _SEVERE_REPORT_KINDS = {"hail", "wind_damage", "road_blocked", "flood"}
 
 def _detect_report_events(conn, flt: str, p: dict) -> list[dict]:
     """Human reports from the last 3 h, clustered by nearest station: two of a
-    kind near the same station — or one sensor-corroborated severe one — is an
-    event. People are the sensor for what the BOM can't measure."""
+    kind near the same station — or one severe one that's either sensor-
+    corroborated or from a trusted observer — is an event. People are the
+    sensor for what the BOM can't measure."""
     reports = conn.execute(text("""
-        SELECT kind, intensity, lat, lon, qc_flag FROM obs_reports
+        SELECT kind, intensity, lat, lon, qc_flag, reporter FROM obs_reports
         WHERE ts >= now() - INTERVAL '3 hours'""")).all()
     if not reports:
         return []
+    from .reports import trusted_reporters
+    trusted = trusted_reporters(conn)
     stations = conn.execute(text(f"""
         SELECT s.name, s.lat, s.lon FROM stations s
         WHERE s.lat IS NOT NULL AND s.lon IS NOT NULL {flt}"""), p).all()
@@ -128,15 +131,19 @@ def _detect_report_events(conn, flt: str, p: dict) -> list[dict]:
                 best, best_km = s, d
         if best is None:
             continue
-        c = clusters.setdefault((best.name, r.kind), {"n": 0, "corroborated": 0})
+        c = clusters.setdefault((best.name, r.kind), {"n": 0, "corroborated": 0,
+                                                      "trusted": 0})
         c["n"] += 1
         c["corroborated"] += r.qc_flag == "corroborated"
+        c["trusted"] += r.reporter in trusted
 
     events = []
     for (name, kind), c in clusters.items():
-        if c["n"] >= 2 or (c["corroborated"] and kind in _SEVERE_REPORT_KINDS):
+        weighty = c["corroborated"] or c["trusted"]
+        if c["n"] >= 2 or (weighty and kind in _SEVERE_REPORT_KINDS):
             events.append({"kind": "human_report", "what": kind, "n": c["n"],
-                           "near": name, "corroborated": bool(c["corroborated"])})
+                           "near": name, "corroborated": bool(c["corroborated"]),
+                           "trusted_reporter": bool(c["trusted"])})
     return events
 
 

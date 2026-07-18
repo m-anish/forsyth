@@ -142,6 +142,54 @@ def test_skill_empty_ok(client, station):
     assert d["n_pairs"] == 0 and d["leads"] == []
 
 
+# ---------- accounts (self-serve) ----------
+
+def test_auth_methods(client):
+    m = client.get("/api/v1/auth/methods").json()
+    assert set(m) == {"signup", "google", "github"}
+    assert m["signup"] is True  # default-on in the test stack
+
+
+def test_signup_and_me_stats(client):
+    import uuid
+    name = "probe-" + uuid.uuid4().hex[:8]
+    with httpx.Client(base_url=BASE, timeout=20) as c:  # own cookie jar
+        r = c.post("/api/v1/auth/signup",
+                   json={"username": name, "password": "a-decent-passphrase"})
+        assert r.status_code == 201, r.text
+        me = c.get("/api/v1/auth/me")
+        assert me.status_code == 200
+        d = me.json()
+        assert d["username"] == name and d["is_admin"] is False
+        # report stats ride along, zeroed for a fresh account
+        assert d["reports"]["total_90d"] == 0
+        assert d["reports"]["streak_days"] == 0
+        assert d["reports"]["trusted"] is False
+        # duplicate signup is refused
+        assert c.post("/api/v1/auth/signup",
+                      json={"username": name, "password": "another-passphrase"}
+                      ).status_code == 409
+    # clean up (admin delete; also exercises the cascade)
+    client.delete(f"/api/v1/users/{name}",
+                  headers={"Authorization": f"Bearer {ADMIN_KEY}"})
+
+
+def test_signup_validation(client):
+    assert client.post("/api/v1/auth/signup",
+                       json={"username": "Bad Name!", "password": "long-enough-pw"}
+                       ).status_code == 422
+    assert client.post("/api/v1/auth/signup",
+                       json={"username": "shortpw", "password": "tiny"}
+                       ).status_code == 422
+
+
+def test_oauth_unconfigured_404(client):
+    assert client.get("/api/v1/auth/oauth/google",
+                      follow_redirects=False).status_code == 404
+    assert client.get("/api/v1/auth/oauth/nope",
+                      follow_redirects=False).status_code == 404
+
+
 # ---------- human reports ----------
 
 def test_report_roundtrip(client):

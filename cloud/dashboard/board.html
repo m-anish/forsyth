@@ -11,14 +11,14 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/uplot@1.6.31/dist/uPlot.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/gridstack@10.3.1/dist/gridstack.min.css" />
-  <link rel="stylesheet" href="css/dash.css?v=17" />
-  <link rel="stylesheet" href="css/board.css?v=17" />
+  <link rel="stylesheet" href="css/dash.css?v=18" />
+  <link rel="stylesheet" href="css/board.css?v=18" />
   <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#0b0c0e" />
-  <script src="js/theme.js?v=17"></script>
+  <script src="js/theme.js?v=18"></script>
 </head>
 <body>
 
@@ -78,10 +78,12 @@
 <!-- login dialog -->
 <dialog id="login-dlg">
   <form method="dialog" id="login-form">
-    <h3>Sign in</h3>
+    <h3 id="login-title">Sign in</h3>
+    <div class="oauth-row" id="oauth-row"></div>
     <label>username <input name="username" autocomplete="username" required /></label>
     <label>password <input name="password" type="password" autocomplete="current-password" required /></label>
     <p class="dlg-err" id="login-err"></p>
+    <p class="dlg-alt"><a href="#" id="signup-toggle" hidden>new here? create an account</a></p>
     <div class="dlg-row">
       <button value="cancel" class="tool-btn" formnovalidate>cancel</button>
       <button value="ok" class="tool-btn save" id="login-submit">sign in</button>
@@ -113,10 +115,10 @@
 <script src="https://unpkg.com/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/gridstack@10.3.1/dist/gridstack-all.js"></script>
-<script src="js/common.js?v=17"></script>
-<script src="js/map.js?v=17"></script>
-<script src="js/report.js?v=17"></script>
-<script src="js/widgets.js?v=17"></script>
-<script src="js/board.js?v=17"></script>
+<script src="js/common.js?v=18"></script>
+<script src="js/map.js?v=18"></script>
+<script src="js/report.js?v=18"></script>
+<script src="js/widgets.js?v=18"></script>
+<script src="js/board.js?v=18"></script>
 </body>
 </html>

@@ -25,7 +25,9 @@ import re
 import secrets
 import time
 
+import httpx
 from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 
@@ -167,7 +169,175 @@ def me(request: Request):
     user = current_user(request)
     if not user:
         raise HTTPException(401, "not signed in")
+    from .reports import reporter_stats
+    with engine.connect() as conn:
+        user["reports"] = reporter_stats(conn, user["username"])
     return user
+
+
+# ---------- self-serve accounts (engagement-roadmap §4) ----------
+
+@router.get("/auth/methods")
+def auth_methods():
+    """What the sign-in dialog should offer. OAuth providers show up only
+    when their credentials are configured."""
+    return {
+        "signup": settings.signup_enabled,
+        "google": bool(settings.google_client_id and settings.google_client_secret),
+        "github": bool(settings.github_client_id and settings.github_client_secret),
+    }
+
+
+class SignupBody(BaseModel):
+    username: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{1,30}$")
+    password: str = Field(min_length=8)
+
+
+@router.post("/auth/signup", status_code=201)
+def signup(body: SignupBody, response: Response):
+    if not settings.signup_enabled:
+        raise HTTPException(404, "self-serve signup is disabled on this mesh")
+    with engine.begin() as conn:
+        n = conn.execute(text(
+            "INSERT INTO users (username, pw_hash) VALUES (:u, :h) "
+            "ON CONFLICT (username) DO NOTHING"),
+            {"u": body.username, "h": _hash_pw(body.password)}).rowcount
+    if not n:
+        raise HTTPException(409, "that username is taken")
+    response.set_cookie(
+        COOKIE, _make_token(body.username),
+        max_age=SESSION_DAYS * 86400, httponly=True, samesite="lax",
+        secure=settings.public_base_url.startswith("https"),
+    )
+    log.info("self-serve signup: %s", body.username)
+    return {"username": body.username}
+
+
+# ---------- OAuth (Google, GitHub) — plain code flow, no framework ----------
+
+_OAUTH = {
+    "google": {
+        "auth": "https://accounts.google.com/o/oauth2/v2/auth",
+        "token": "https://oauth2.googleapis.com/token",
+        "userinfo": "https://openidconnect.googleapis.com/v1/userinfo",
+        "scope": "openid email profile",
+    },
+    "github": {
+        "auth": "https://github.com/login/oauth/authorize",
+        "token": "https://github.com/login/oauth/access_token",
+        "userinfo": "https://api.github.com/user",
+        "scope": "read:user",
+    },
+}
+
+
+def _oauth_creds(provider: str) -> tuple[str, str]:
+    cid = getattr(settings, f"{provider}_client_id", "")
+    sec = getattr(settings, f"{provider}_client_secret", "")
+    if provider not in _OAUTH or not (cid and sec):
+        raise HTTPException(404, f"{provider} sign-in is not configured")
+    return cid, sec
+
+
+def _redirect_uri(provider: str) -> str:
+    return f"{settings.public_base_url}/api/v1/auth/oauth/{provider}/callback"
+
+
+def _oauth_state() -> str:
+    exp = int(time.time()) + 600
+    sig = hmac.new(_secret(), f"oauth:{exp}".encode(), hashlib.sha256).hexdigest()
+    return f"{exp}:{sig}"
+
+
+def _oauth_state_ok(state: str) -> bool:
+    try:
+        exp, sig = state.split(":", 1)
+        good = hmac.new(_secret(), f"oauth:{exp}".encode(), hashlib.sha256).hexdigest()
+        return hmac.compare_digest(sig, good) and int(exp) >= time.time()
+    except Exception:
+        return False
+
+
+def _derive_username(conn, wanted: str) -> str:
+    """Sanitize a provider handle/email into our username shape, dedupe."""
+    base = re.sub(r"[^a-z0-9_-]", "-", wanted.lower()).strip("-")[:24]
+    if not re.match(r"^[a-z0-9]", base or ""):
+        base = "sky-" + (base or "watcher")
+    base = base[:24]
+    name = base
+    while conn.execute(text("SELECT 1 FROM users WHERE username = :u"),
+                       {"u": name}).first():
+        name = f"{base}-{secrets.token_hex(2)}"
+    return name
+
+
+@router.get("/auth/oauth/{provider}")
+def oauth_start(provider: str):
+    cid, _ = _oauth_creds(provider)
+    p = _OAUTH[provider]
+    params = httpx.QueryParams({
+        "client_id": cid, "redirect_uri": _redirect_uri(provider),
+        "scope": p["scope"], "state": _oauth_state(), "response_type": "code",
+    })
+    return RedirectResponse(f"{p['auth']}?{params}", status_code=303)
+
+
+@router.get("/auth/oauth/{provider}/callback")
+def oauth_callback(provider: str, code: str = "", state: str = "", error: str = ""):
+    cid, sec = _oauth_creds(provider)
+    p = _OAUTH[provider]
+    if error or not code or not _oauth_state_ok(state):
+        raise HTTPException(403, "sign-in was cancelled or the state went stale — try again")
+    try:
+        tok = httpx.post(p["token"], data={
+            "client_id": cid, "client_secret": sec, "code": code,
+            "redirect_uri": _redirect_uri(provider),
+            "grant_type": "authorization_code",
+        }, headers={"Accept": "application/json"}, timeout=15)
+        tok.raise_for_status()
+        access = tok.json().get("access_token", "")
+        info = httpx.get(p["userinfo"],
+                         headers={"Authorization": f"Bearer {access}"},
+                         timeout=15)
+        info.raise_for_status()
+        info = info.json()
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.warning("oauth %s failed: %s", provider, e)
+        raise HTTPException(502, f"{provider} didn't answer properly — try again")
+
+    if provider == "google":
+        sub = str(info.get("sub", ""))
+        wanted = (info.get("email") or "").split("@")[0] or "google-user"
+    else:
+        sub = str(info.get("id", ""))
+        wanted = info.get("login") or "github-user"
+    if not sub:
+        raise HTTPException(502, f"{provider} returned no stable identity")
+
+    with engine.begin() as conn:
+        row = conn.execute(text(
+            "SELECT username FROM users "
+            "WHERE oauth_provider = :p AND oauth_sub = :s"),
+            {"p": provider, "s": sub}).first()
+        if row:
+            username = row[0]
+        else:
+            username = _derive_username(conn, wanted)
+            conn.execute(text(
+                "INSERT INTO users (username, pw_hash, oauth_provider, oauth_sub) "
+                "VALUES (:u, NULL, :p, :s)"),
+                {"u": username, "p": provider, "s": sub})
+            log.info("oauth signup via %s: %s", provider, username)
+
+    resp = RedirectResponse("/board.html", status_code=303)
+    resp.set_cookie(
+        COOKIE, _make_token(username),
+        max_age=SESSION_DAYS * 86400, httponly=True, samesite="lax",
+        secure=settings.public_base_url.startswith("https"),
+    )
+    return resp
 
 
 # ---------- user management (admin) ----------

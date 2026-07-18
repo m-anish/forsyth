@@ -35,6 +35,7 @@ const Report = (() => {
         </div>
         <input id="rp-note" maxlength="140" placeholder="a few words, if it helps (optional)" autocomplete="off" />
         <p class="rp-loc" id="rp-loc">…</p>
+        <p class="rp-me" id="rp-me"></p>
         <p class="dlg-err" id="rp-err"></p>
         <div class="dlg-row">
           <button value="cancel" class="tool-btn" formnovalidate>cancel</button>
@@ -113,6 +114,21 @@ const Report = (() => {
     }
   }
 
+  /* attribution line: who's reporting, and what their eyes have earned */
+  async function whoLine() {
+    const el = document.getElementById('rp-me');
+    try {
+      const me = await getJSON('/auth/me');
+      const r = me.reports || {};
+      const bits = [`reporting as ${me.username}`];
+      if (r.streak_days > 1) bits.push(`${r.streak_days}-day streak`);
+      if (r.trusted) bits.push('trusted observer ★');
+      el.textContent = bits.join(' · ');
+    } catch {
+      el.innerHTML = 'reporting anonymously — <a href="board.html">sign in</a> to build a streak';
+    }
+  }
+
   function open() {
     if (!dlg) build();
     state = { kind: null, intensity: null, pos: null };
@@ -124,6 +140,7 @@ const Report = (() => {
     document.getElementById('rp-send').disabled = true;
     dlg.showModal();
     locate();
+    whoLine();
   }
 
   /* mount the floating button — hidden entirely if the server disables reports */

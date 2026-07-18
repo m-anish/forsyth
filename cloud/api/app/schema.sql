@@ -109,6 +109,14 @@ CREATE TABLE IF NOT EXISTS users (
 
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
 
+-- self-serve + OAuth identities (accounts.py). OAuth users have no password:
+-- pw_hash NULL means "sign in with the provider, not a password".
+ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_sub TEXT;
+ALTER TABLE users ALTER COLUMN pw_hash DROP NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS users_oauth_idx ON users (oauth_provider, oauth_sub)
+    WHERE oauth_provider IS NOT NULL;
+
 -- boards v2: many per user, slug-addressed, public/private.
 -- The site homepage board is the special slug 'default' (owner NULL, admin-managed).
 CREATE TABLE IF NOT EXISTS boards (
