@@ -80,6 +80,26 @@ CREATE TABLE IF NOT EXISTS forecasts (
 );
 SELECT create_hypertable('forecasts', 'valid_at', if_not_exists => TRUE);
 
+-- Human weather reports (app/reports.py). Anonymous-first; client_hash is an
+-- HMAC of ip|user-agent (rate limiting without PII). qc_* is the inline
+-- cross-check against the nearest fresh station. Plain table: tens of rows a
+-- day even in optimistic futures.
+CREATE TABLE IF NOT EXISTS obs_reports (
+    id          BIGSERIAL PRIMARY KEY,
+    ts          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    lat         DOUBLE PRECISION NOT NULL,
+    lon         DOUBLE PRECISION NOT NULL,
+    kind        TEXT NOT NULL,      -- precip | hail | fog | snow_line | wind_damage | road_blocked | flood
+    intensity   SMALLINT,           -- 1 light · 2 moderate · 3 heavy (NULL = unsaid)
+    note        TEXT,
+    reporter    TEXT,               -- username when signed in, else NULL
+    client_hash TEXT NOT NULL,
+    qc_flag     TEXT,               -- corroborated | contradicted | no_station | NULL
+    qc_station  INTEGER REFERENCES stations(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS obs_reports_ts_idx ON obs_reports (ts DESC);
+CREATE INDEX IF NOT EXISTS obs_reports_hash_idx ON obs_reports (client_hash, ts DESC);
+
 CREATE TABLE IF NOT EXISTS users (
     id         SERIAL PRIMARY KEY,
     username   TEXT UNIQUE NOT NULL,

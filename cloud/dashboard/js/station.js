@@ -58,6 +58,7 @@ async function refreshNow() {
   const st = stations.find(x => x.slug === slug);
   renderStnav(stations);
   if (!st) { document.getElementById('head-name').textContent = 'Unknown station.'; return; }
+  S.station = st;   /* the report dialog falls back to these coords */
 
   document.getElementById('head-kicker').innerHTML =
     `Station · ${slug}` + (st.is_simulated ? ' &nbsp;<span class="badge sim">rehearsal data</span>' : '');
@@ -292,5 +293,7 @@ async function boot() {
                      refreshForecast()]);
 }
 boot();
+Report.mount({ fallback: () => S.station && S.station.lat != null
+  ? { lat: S.station.lat, lon: S.station.lon, name: S.station.name } : null });
 setInterval(() => { refreshNow(); refreshPressureTrend(); refreshLightning(); refreshBanner(slug); }, 60_000);
 setInterval(() => { drawCharts(); drawRose(); refreshCamera(); refreshForecast(); }, 5 * 60_000);

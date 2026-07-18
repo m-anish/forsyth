@@ -135,7 +135,7 @@ but never optimized.
 
 | Step | What | Tied to |
 |---|---|---|
-| E1 | Report flow ships anonymous-first; self-serve accounts (email + Google, then GitHub); attribution + streaks | insight Phase B |
+| E1 | Report flow ships anonymous-first (✅ 2026-07-18); self-serve accounts (email + Google, then GitHub); attribution + streaks | insight Phase B |
 | E2 | Trusted-observer mechanics; event-moment prompts; WhatsApp broadcast list (manual) | insight Phase C |
 | E3 | Digests, shareable cards, Monsoon Report v1; school + Bir outreach; Hindi report flow | after B stabilizes |
 | E4 | Sponsorships, SMS/WhatsApp automation, commercial API — only if E1–E3 earn it | after Phase D |

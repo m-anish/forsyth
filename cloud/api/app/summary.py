@@ -12,6 +12,7 @@ GET /api/v1/summary            → mesh-wide
 GET /api/v1/summary?slug=ridge → one station
 """
 import logging
+import math
 import time
 
 import httpx
@@ -93,6 +94,49 @@ def _detect_events(slug: str | None) -> list[dict]:
             events.append({"kind": "poor_air", "station": name, "pm25": round(pm)})
 
         events.extend(_detect_forecast_events(conn, flt, p, events))
+        events.extend(_detect_report_events(conn, flt, p))
+    return events
+
+
+# these kinds are worth a banner line from a single corroborated report;
+# everything else needs two independent voices saying the same thing
+_SEVERE_REPORT_KINDS = {"hail", "wind_damage", "road_blocked", "flood"}
+
+
+def _detect_report_events(conn, flt: str, p: dict) -> list[dict]:
+    """Human reports from the last 3 h, clustered by nearest station: two of a
+    kind near the same station — or one sensor-corroborated severe one — is an
+    event. People are the sensor for what the BOM can't measure."""
+    reports = conn.execute(text("""
+        SELECT kind, intensity, lat, lon, qc_flag FROM obs_reports
+        WHERE ts >= now() - INTERVAL '3 hours'""")).all()
+    if not reports:
+        return []
+    stations = conn.execute(text(f"""
+        SELECT s.name, s.lat, s.lon FROM stations s
+        WHERE s.lat IS NOT NULL AND s.lon IS NOT NULL {flt}"""), p).all()
+    if not stations:
+        return []
+
+    clusters: dict[tuple, dict] = {}
+    for r in reports:
+        best, best_km = None, 25.0
+        for s in stations:
+            d = math.hypot((s.lat - r.lat) * 111.32,
+                           (s.lon - r.lon) * 111.32 * math.cos(math.radians(r.lat)))
+            if d < best_km:
+                best, best_km = s, d
+        if best is None:
+            continue
+        c = clusters.setdefault((best.name, r.kind), {"n": 0, "corroborated": 0})
+        c["n"] += 1
+        c["corroborated"] += r.qc_flag == "corroborated"
+
+    events = []
+    for (name, kind), c in clusters.items():
+        if c["n"] >= 2 or (c["corroborated"] and kind in _SEVERE_REPORT_KINDS):
+            events.append({"kind": "human_report", "what": kind, "n": c["n"],
+                           "near": name, "corroborated": bool(c["corroborated"])})
     return events
 
 
@@ -216,6 +260,12 @@ def _compose_template(events: list[dict]) -> str:
     air = [e for e in events if e["kind"] == "poor_air"]
     if air:
         bits.append(f"air worth avoiding at {air[0]['station']}")
+    humans = [e for e in events if e["kind"] == "human_report"]
+    if humans:
+        e = max(humans, key=lambda e: (e["what"] in _SEVERE_REPORT_KINDS, e["n"]))
+        what = {"precip": "rain", "snow_line": "snow"}.get(e["what"], e["what"].replace("_", " "))
+        bits.append(f"people report {what} near {e['near']}"
+                    + (f" (×{e['n']})" if e["n"] > 1 else ""))
     diverging = [e for e in events if e["kind"] == "model_divergence"]
     if diverging:
         e = diverging[0]
@@ -270,7 +320,9 @@ def _compose_llm(events: list[dict]) -> str | None:
                         "Events whose kind ends in _expected come from a forecast — "
                         "phrase them as expectation, not observation. model_divergence "
                         "means the stations contradict the forecast: say so plainly; "
-                        "the stations are the ones to believe. "
+                        "the stations are the ones to believe. human_report events are "
+                        "first-hand accounts from people nearby — credit them as such "
+                        "('people report hail near Ridge'), especially when corroborated. "
                         "Dry and calm. No exclamation marks. Plain text only."},
                 ],
             },

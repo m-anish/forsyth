@@ -97,6 +97,44 @@
 .fc-chart { margin-top: 8px; }
 .fc-foot { margin: 6px 0 0; }
 
+/* human reports: floating button, dialog, map pins */
+.report-fab {
+  position: fixed; right: 18px; bottom: 18px; z-index: 950;
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--bg-card); color: var(--text);
+  border: 1px solid var(--accent-2); border-radius: 999px;
+  padding: 9px 15px; font-size: 13.5px; cursor: pointer;
+  box-shadow: 0 6px 24px var(--shadow);
+}
+.report-fab:hover { border-color: var(--accent); color: var(--accent); }
+@media (max-width: 640px) { .report-fab span { display: none; } .report-fab { padding: 10px 12px; } }
+#report-dlg { max-width: 380px; }
+#report-dlg .kind-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+#report-dlg .kind {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: var(--bg-elev); color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 9px 2px 7px; font-size: 11px; cursor: pointer;
+}
+#report-dlg .kind .g { font-size: 19px; line-height: 1; }
+#report-dlg .kind.on { border-color: var(--accent); color: var(--accent); }
+#report-dlg .chips { display: flex; gap: 6px; margin-top: 10px; }
+#report-dlg .chip {
+  background: var(--bg-elev); color: var(--text-dim); cursor: pointer;
+  border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 12px;
+}
+#report-dlg .chip.on { border-color: var(--accent); color: var(--accent); }
+#report-dlg input { margin-top: 12px; }
+.rp-loc { color: var(--text-mute); font-size: 12px; margin: 8px 0 0; }
+.rp-pin-wrap { background: none; border: none; }
+.rp-pin {
+  font-size: 18px; line-height: 1; text-align: center;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.45));
+}
+.map-pop .badge.ok { color: var(--good, #2e9e5b); border: 1px solid currentColor;
+  border-radius: 4px; font-size: 10px; padding: 1px 5px; margin-left: 6px; }
+.wg-body .rp-open { margin-top: 8px; }
+
 /* dialogs */
 dialog {
   background: var(--bg-card); color: var(--text);

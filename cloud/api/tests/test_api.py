@@ -142,6 +142,43 @@ def test_skill_empty_ok(client, station):
     assert d["n_pairs"] == 0 and d["leads"] == []
 
 
+# ---------- human reports ----------
+
+def test_report_roundtrip(client):
+    r = client.post("/api/v1/reports",
+                    json={"kind": "fog", "lat": 32.22, "lon": 76.32, "intensity": 2,
+                          "note": "can't see the ridge"})
+    # a rapid test rerun may be rate-limited from a previous pass; both are valid
+    assert r.status_code in (201, 429), r.text
+    if r.status_code == 201:
+        d = r.json()
+        assert d["kind"] == "fog" and "qc_flag" in d
+        listed = client.get("/api/v1/reports?hours=1&kind=fog").json()
+        assert listed["enabled"] is True
+        mine = [x for x in listed["reports"] if x["id"] == d["id"]]
+        assert mine and mine[0]["note"] == "can't see the ridge"
+        # public coords are fuzzed to 3 decimals
+        assert abs(mine[0]["lat"] - 32.22) < 0.001
+
+
+def test_report_validation(client):
+    assert client.post("/api/v1/reports",
+                       json={"kind": "sharknado", "lat": 0, "lon": 0}).status_code == 422
+    assert client.post("/api/v1/reports",
+                       json={"kind": "hail", "lat": 99, "lon": 0}).status_code == 422
+    assert client.post("/api/v1/reports",
+                       json={"kind": "hail", "lat": 0, "lon": 0,
+                             "note": "x" * 141}).status_code == 422
+    assert client.get("/api/v1/reports?kind=sharknado").status_code == 400
+
+
+def test_report_rate_limit(client):
+    codes = [client.post("/api/v1/reports",
+                         json={"kind": "precip", "lat": 32.2, "lon": 76.3}).status_code
+             for _ in range(4)]
+    assert 429 in codes  # the 4th (at the latest) trips the 3-per-10-min limit
+
+
 @pytest.mark.skipif(not os.environ.get("FORECAST_LIVE"),
                     reason="set FORECAST_LIVE=1 to hit open-meteo for real (one call)")
 def test_forecast_live_roundtrip(client, station):

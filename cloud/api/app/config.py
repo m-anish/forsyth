@@ -30,6 +30,10 @@ class Settings:
     forecast_days: int = int(os.environ.get("FORECAST_DAYS", "3"))
     forecast_ensemble: bool = os.environ.get("FORECAST_ENSEMBLE", "true").lower() in ("1", "true", "yes")
     forecast_retention_days: int = int(os.environ.get("FORECAST_RETENTION_DAYS", "730"))
+
+    # human weather reports (app/reports.py) — the kill switch hides the whole
+    # feature: POST 404s, GET says disabled, the dashboard shows no report UI
+    reports_enabled: bool = os.environ.get("REPORTS_ENABLED", "true").lower() in ("1", "true", "yes")
     openmeteo_base_url: str = os.environ.get("OPENMETEO_BASE_URL", "https://api.open-meteo.com")
     openmeteo_ensemble_base_url: str = os.environ.get(
         "OPENMETEO_ENSEMBLE_BASE_URL", "https://ensemble-api.open-meteo.com")

@@ -241,6 +241,47 @@ const forsythMap = (() => {
       drawRings(state.ltg, state.scrubAt != null ? state.scrubAt * 1000 : Date.now());
     }
 
+    /* ---- human reports layer ----
+       Emoji pins that fade with age over a 6 h window; popup carries the
+       details. Same shape as the lightning rings: a toggle, a cached fetch
+       (5-min TTL), a 60 s redraw so the fade is visible. */
+    state.reports = L.layerGroup();
+    const RP_GLYPH = { precip: '🌧', hail: '🧊', fog: '🌫', snow_line: '❄',
+                       wind_damage: '💨', road_blocked: '🚧', flood: '🌊' };
+    const RP_WINDOW_H = 6;
+    async function ensureReports() {
+      if (state.rp && Date.now() - state.rpAt < 5 * 60 * 1000) return;
+      const d = await getJSON(`/reports?hours=${RP_WINDOW_H}`);
+      state.rp = d.enabled === false ? null : (d.reports || []);
+      state.rpAt = Date.now();
+    }
+    function drawReports() {
+      state.reports.clearLayers();
+      (state.rp || []).forEach(r => {
+        const ageH = (Date.now() - new Date(r.ts).getTime()) / 3600e3;
+        if (ageH < 0 || ageH > RP_WINDOW_H) return;
+        const fade = Math.max(0.25, 1 - ageH / RP_WINDOW_H);
+        const icon = L.divIcon({
+          className: 'rp-pin-wrap',
+          html: `<div class="rp-pin" style="opacity:${fade.toFixed(2)}">${RP_GLYPH[r.kind] || '👁'}</div>`,
+          iconSize: null, iconAnchor: [12, 12],
+        });
+        const label = r.kind.replace(/_/g, ' ')
+          + (r.intensity ? [' (light)', ' (moderate)', ' (heavy)'][r.intensity - 1] : '');
+        L.marker([r.lat, r.lon], { icon, keyboard: false }).addTo(state.reports)
+          .bindPopup(`<div class="map-pop"><h4>👁 ${label}
+              ${r.qc_flag === 'corroborated' ? '<span class="badge ok">✓ station agrees</span>' : ''}</h4>
+            <div class="l">${agoLabel(r.ts)} · ${r.reporter || 'someone nearby'}</div>
+            ${r.note ? `<div class="r"><span>note</span><b>${r.note.replace(/</g, '&lt;')}</b></div>` : ''}
+          </div>`, { maxWidth: 240 });
+      });
+    }
+    async function reportsUpdate() {
+      if (!map.hasLayer(state.reports)) return;
+      await ensureReports();
+      drawReports();
+    }
+
     /* ---- controls: modes row + tools row, ONE control so the block sits
        beside the zoom column (row layout via CSS on .leaflet-top.leaflet-left) */
     const ctl = L.control({ position: 'topleft' });
@@ -263,6 +304,7 @@ const forsythMap = (() => {
       const tools = L.DomUtil.create('div', 'wx-tools leaflet-bar', wrap);
       tools.innerHTML = `<button type="button" data-t="radar" title="rain radar (RainViewer)">☂</button>
                      <button type="button" data-t="ltg" title="recent lightning">⚡</button>
+                     <button type="button" data-t="rep" title="human weather reports, last 6 h">👁</button>
                      <button type="button" data-t="scrub" title="time travel, last 24 h">⏱</button>
                      <button type="button" data-t="fit" title="fit stations">⌖</button>` +
         (opts.compact ? '' : `<button type="button" data-t="fs" title="fullscreen">⛶</button>`);
@@ -292,6 +334,20 @@ const forsythMap = (() => {
               state.ringsTimer = setInterval(() => ringsUpdate().catch(() => {}),
                                              60 * 1000);
             } catch { map.removeLayer(state.rings); b.title = 'lightning feed unavailable'; }
+          }
+        }
+        if (b.dataset.t === 'rep') {
+          if (map.hasLayer(state.reports)) {
+            map.removeLayer(state.reports);
+            clearInterval(state.reportsTimer); b.classList.remove('on');
+          } else {
+            try {
+              state.reports.addTo(map);
+              await reportsUpdate();
+              b.classList.add('on');
+              state.reportsTimer = setInterval(() => reportsUpdate().catch(() => {}),
+                                               60 * 1000);
+            } catch { map.removeLayer(state.reports); b.title = 'reports unavailable'; }
           }
         }
         if (b.dataset.t === 'scrub') toggleScrub(b);
@@ -461,6 +517,7 @@ const forsythMap = (() => {
       destroy() {
         clearInterval(state.radarTimer);
         clearInterval(state.ringsTimer);
+        clearInterval(state.reportsTimer);
         clearInterval(state.playTimer);
         window.removeEventListener('themechange', renderMarkers);
         map.remove();

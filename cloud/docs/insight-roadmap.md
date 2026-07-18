@@ -62,10 +62,17 @@ Every phase below is one of those four, in order of leverage.
   events from the stored forecast (rain within 12 h, frost, big swings, wind),
   and `model_divergence` when the gauges contradict the model.
 
-## 3. Phase B — human reports (mPING for the valley)
+## 3. Phase B — human reports (mPING for the valley) — ✅ shipped 2026-07-18
 
 *The people side of Phase B — accounts, reputation, tiers, outreach — has its
 own document: [engagement-roadmap.md](engagement-roadmap.md).*
+
+Shipped as designed below (`app/reports.py`, `dashboard/js/report.js`): the
+"report the sky" button on every page, anonymous-first with DB-backed rate
+limiting, inline sensor QC, a 👀 map layer, a board widget, `human_report`
+events in the banner, and a `REPORTS_ENABLED` kill switch. Still pending from
+the engagement side: self-serve accounts (today reports are anonymous or
+admin-created users), trusted-observer weighting, event-moment prompts.
 
 Precedents: NOAA's mPING (anonymous phone reports of precipitation type, used
 operationally to tune radar algorithms), CoCoRaHS (20k+ volunteers feeding NWS),
@@ -175,7 +182,7 @@ PMS7003 warm-up in `research/competitive-landscape.md` §4); the thermopile's
 | Phase | What | Status / trigger |
 |---|---|---|
 | A | Pull + store forecasts, `/forecast` + `/skill`, forward-looking banner, widget | ✅ 2026-07-18 |
-| B | Human reports: POST/GET, QC vs sensors, PWA dialog, map layer | next |
+| B | Human reports: POST/GET, QC vs sensors, PWA dialog, map layer | ✅ 2026-07-18 |
 | C | Nowcast job, `alerts` table, MQTT publish | after B, or sooner if a monsoon demands it |
 | D | Per-station bias correction, `corrected` series | ~90 days of `/skill` pairs |
 | V1 | LCL cloud base (✅ 2026-07-18) · vision-LLM sky observer | LLM part: any time |

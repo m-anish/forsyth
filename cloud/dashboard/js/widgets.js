@@ -150,6 +150,28 @@ const Widgets = (() => {
     });
   }
 
+  async function reports(el, config) {
+    const d = await getJSON(`/reports?hours=${config.hours || 24}`);
+    if (d.enabled === false) {
+      el.innerHTML = '<p class="wg-empty">Reports are switched off on this mesh.</p>';
+      return;
+    }
+    const btn = (typeof Report !== 'undefined')
+      ? '<button class="tool-btn rp-open" type="button">👁 report the sky</button>' : '';
+    if (!d.reports.length) {
+      el.innerHTML = `<p class="wg-empty">No one has reported the sky lately.</p>${btn}`;
+    } else {
+      el.innerHTML = '<ul class="feed">' + d.reports.slice(0, 30).map(r => `
+        <li><span class="t">${new Date(r.ts).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
+            <span class="bolt">${Report?.GLYPH?.[r.kind] || '👁'}</span>
+            <span>${r.kind.replace(/_/g, ' ')}${r.intensity ? [' · light',' · moderate',' · heavy'][r.intensity-1] : ''}
+                  ${r.qc_flag === 'corroborated' ? ' ✓' : ''}</span>
+            <span class="d">${r.reporter || 'anon'}</span></li>`).join('') + `</ul>${btn}`;
+    }
+    const b = el.querySelector('.rp-open');
+    if (b) b.onclick = () => Report.open();
+  }
+
   async function summary(el, config) {
     const q = config.station ? `?slug=${config.station}` : '';
     const d = await getJSON(`/summary${q}`);
@@ -179,6 +201,7 @@ const Widgets = (() => {
     camera:    { label: 'Camera',             render: camera,    w: 3, h: 4, fields: ['station'] },
     map:       { label: 'Map',                render: map,       w: 6, h: 4, fields: [] },
     forecast:  { label: 'Forecast',           render: forecast,  w: 6, h: 4, fields: ['station','hours'] },
+    reports:   { label: 'Human reports',      render: reports,   w: 4, h: 3, fields: ['hours'] },
     summary:   { label: 'Weather',            render: summary,   w: 12, h: 1, fields: ['stationOrAll'] },
     health:    { label: 'Mesh health',        render: health,    w: 4, h: 2, fields: [] },
   };

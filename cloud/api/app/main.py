@@ -18,6 +18,7 @@ from .forecast import router as forecast_router
 from .ingest import router as ingest_router
 from .mqtt_bridge import start_bridge
 from .query import router as query_router
+from .reports import router as reports_router
 from .summary import router as summary_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -46,6 +47,7 @@ app.include_router(ingest_router)
 app.include_router(query_router)
 app.include_router(summary_router)
 app.include_router(forecast_router)
+app.include_router(reports_router)
 app.include_router(accounts_router)
 
 

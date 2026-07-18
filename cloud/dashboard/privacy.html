@@ -8,13 +8,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/dash.css?v=16" />
+  <link rel="stylesheet" href="css/dash.css?v=17" />
   <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#0b0c0e" />
-  <script src="js/theme.js?v=16"></script>
+  <script src="js/theme.js?v=17"></script>
   <style>
     /* page-local prose styles — privacy is the only long-form page here */
     .prose { max-width: 64ch; padding-bottom: 60px; }
@@ -47,7 +47,7 @@
   </div>
 
   <div class="prose">
-    <p class="updated">last updated 2026-07-13</p>
+    <p class="updated">last updated 2026-07-18</p>
 
     <h2>What this site collects about you</h2>
     <ul>
@@ -73,6 +73,17 @@
       switch it on). Each sees your IP address when your browser asks them for tiles —
       the same as visiting any website. Their privacy policies are their own. The
       fonts arrive from Google Fonts under the same arrangement.</p>
+
+    <h2>What a weather report shares</h2>
+    <p>If you press "report the sky", the report carries: what you saw, your
+      location at that moment, and an optional note. On the public map and feeds
+      your location is <strong>rounded to roughly 100 metres</strong> — enough to
+      place the weather, not your front door. Anonymous reports are attributed to
+      no one; if you're signed in, your username rides along. To keep one person
+      from reporting a monsoon single-handedly, the server rate-limits by a
+      <strong>salted hash</strong> of your IP and browser — the hash is stored,
+      the IP and browser string are not. Reports you don't send share nothing,
+      and the button works fine if you never touch it.</p>
 
     <h2>What this site collects about the weather</h2>
     <p>Everything it can. Temperature, wind, rain, pressure, particulates, lightning —
