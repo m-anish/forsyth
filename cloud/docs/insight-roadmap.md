@@ -64,6 +64,9 @@ Every phase below is one of those four, in order of leverage.
 
 ## 3. Phase B — human reports (mPING for the valley)
 
+*The people side of Phase B — accounts, reputation, tiers, outreach — has its
+own document: [engagement-roadmap.md](engagement-roadmap.md).*
+
 Precedents: NOAA's mPING (anonymous phone reports of precipitation type, used
 operationally to tune radar algorithms), CoCoRaHS (20k+ volunteers feeding NWS),
 the Met Office WOW (citizen gauges demonstrably infill the official network),
@@ -114,6 +117,7 @@ have proven themselves.
 
 - **IMD APIs** (api.imd.gov.in): district nowcast warnings + city forecasts,
   registration-gated. An IMD warning chip on the map is instant credibility.
+  *API key requested 2026-07-18; integration unblocks when it arrives.*
 - **MOSDAC** (mosdac.gov.in): INSAT-3D/3DR products, GSMaP-ISRO gauge-corrected
   rain (0.1°, hourly). Free with an account; a later satellite-vs-mesh check.
 - **Give the data away**: the CSV export already exists; a season of dense
