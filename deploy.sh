@@ -51,8 +51,16 @@ EOF
 
   ""|--prod|prod)
     echo "▶ production deploy → $HOST"
-    # pull + rebuild on the droplet; retry the build the same way remotely
-    ssh "$HOST" "cd '$RPATH' && git pull --ff-only && cd cloud && \
+    # pull + rebuild on the droplet; retry BOTH the same way — github.com's
+    # geo-POP is intermittently unreachable from the droplet (observed
+    # 2026-07-19: connect timeouts for minutes, then fine), and Docker Hub
+    # throws transient 500s on manifest checks.
+    ssh "$HOST" "cd '$RPATH' && \
+      for i in 1 2 3; do \
+        git pull --ff-only && break; \
+        [ \$i -eq 3 ] && { echo 'git pull failed' >&2; exit 1; }; \
+        echo '  … github unreachable (transient POP flake); retry in 20s'; sleep 20; \
+      done && cd cloud && \
       for i in 1 2 3; do \
         docker compose --profile sim --profile prod up -d --build && break; \
         [ \$i -eq 3 ] && { echo 'build failed' >&2; exit 1; }; \
