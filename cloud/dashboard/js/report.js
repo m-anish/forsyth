@@ -27,6 +27,9 @@ const Report = (() => {
     dlg.innerHTML = `
       <form method="dialog">
         <h3>What is the sky doing?</h3>
+        <p class="rp-why">The stations measure; you see. A ten-second report is
+          checked against the nearest station and sharpens the mesh's warnings
+          for everyone in the valley.</p>
         <div class="kind-grid">${KINDS.map(([k, g, label]) =>
           `<button type="button" class="kind" data-kind="${k}"><span class="g">${g}</span>${label}</button>`).join('')}
         </div>
@@ -34,8 +37,21 @@ const Report = (() => {
           `<button type="button" class="chip" data-i="${v}">${label}</button>`).join('')}
         </div>
         <input id="rp-note" maxlength="140" placeholder="a few words, if it helps (optional)" autocomplete="off" />
-        <p class="rp-loc" id="rp-loc">…</p>
-        <p class="rp-me" id="rp-me"></p>
+        <div class="rp-status">
+          <p class="rp-loc" id="rp-loc">…</p>
+          <p class="rp-me" id="rp-me"></p>
+        </div>
+        <details class="rp-more">
+          <summary>how reports are used</summary>
+          <ul>
+            <li>Cross-checked against the nearest station — agreement earns a ✓
+                and more weight in the warnings.</li>
+            <li>Two matching reports nearby (or one from a ★ trusted observer)
+                raise the banner for the whole mesh.</li>
+            <li>Shown on the map for six hours at ~100 m accuracy — the weather's
+                location, never your front door. <a href="privacy.html">privacy</a></li>
+          </ul>
+        </details>
         <p class="dlg-err" id="rp-err"></p>
         <div class="dlg-row">
           <button value="cancel" class="tool-btn" formnovalidate>cancel</button>
@@ -154,7 +170,7 @@ const Report = (() => {
     fab.className = 'report-fab';
     fab.type = 'button';
     fab.title = 'report what the sky is doing';
-    fab.innerHTML = '👁 <span>report the sky</span>';
+    fab.innerHTML = '<span class="g">👁</span> report the sky';
     fab.onclick = open;
     document.body.appendChild(fab);
   }

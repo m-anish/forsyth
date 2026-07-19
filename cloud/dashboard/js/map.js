@@ -248,6 +248,11 @@ const forsythMap = (() => {
     state.reports = L.layerGroup();
     const RP_GLYPH = { precip: '🌧', hail: '🧊', fog: '🌫', snow_line: '❄',
                        wind_damage: '💨', road_blocked: '🚧', flood: '🌊' };
+    /* each kind gets a ring color so pins read against any basemap — the fog
+       glyph alone is a grey blob on a grey map */
+    const RP_COLOR = { precip: '#4a8fd4', hail: '#6ec6d8', fog: '#8d99ab',
+                       snow_line: '#a8c4e0', wind_damage: '#2fa08c',
+                       road_blocked: '#e0a020', flood: '#7f5fc4' };
     const RP_WINDOW_H = 6;
     async function ensureReports() {
       if (state.rp && Date.now() - state.rpAt < 5 * 60 * 1000) return;
@@ -260,15 +265,18 @@ const forsythMap = (() => {
       (state.rp || []).forEach(r => {
         const ageH = (Date.now() - new Date(r.ts).getTime()) / 3600e3;
         if (ageH < 0 || ageH > RP_WINDOW_H) return;
-        const fade = Math.max(0.25, 1 - ageH / RP_WINDOW_H);
+        const fade = Math.max(0.45, 1 - ageH / RP_WINDOW_H);
+        const fresh = ageH < 0.5 ? ' fresh' : '';
         const icon = L.divIcon({
           className: 'rp-pin-wrap',
-          html: `<div class="rp-pin" style="opacity:${fade.toFixed(2)}">${RP_GLYPH[r.kind] || '👁'}</div>`,
-          iconSize: null, iconAnchor: [12, 12],
+          html: `<div class="rp-pin${fresh}" style="opacity:${fade.toFixed(2)};` +
+                `--rp-c:${RP_COLOR[r.kind] || 'var(--accent-2)'}">${RP_GLYPH[r.kind] || '👁'}</div>`,
+          iconSize: null, iconAnchor: [15, 15],
         });
         const label = r.kind.replace(/_/g, ' ')
           + (r.intensity ? [' (light)', ' (moderate)', ' (heavy)'][r.intensity - 1] : '');
         L.marker([r.lat, r.lon], { icon, keyboard: false }).addTo(state.reports)
+          .bindTooltip(`${label} · ${agoLabel(r.ts)}`)
           .bindPopup(`<div class="map-pop"><h4>👁 ${label}
               ${r.qc_flag === 'corroborated' ? '<span class="badge ok">✓ station agrees</span>' : ''}</h4>
             <div class="l">${agoLabel(r.ts)} · ${r.reporter || 'someone nearby'}${r.trusted ? ' ★' : ''}</div>
