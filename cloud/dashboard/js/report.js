@@ -67,7 +67,7 @@ const Report = (() => {
       const wantsIntensity = ['precip', 'hail', 'fog'].includes(state.kind);
       document.getElementById('rp-intensity').hidden = !wantsIntensity;
       if (!wantsIntensity) state.intensity = null;
-      document.getElementById('rp-send').disabled = !state.pos;
+      armSend();
     });
     dlg.querySelectorAll('.chip').forEach(b => b.onclick = () => {
       const v = Number(b.dataset.i);
@@ -78,27 +78,57 @@ const Report = (() => {
     document.getElementById('rp-send').onclick = send;
   }
 
+  function armSend() {
+    if (state.kind && state.pos) document.getElementById('rp-send').disabled = false;
+  }
+
+  /* When the browser can't (or won't) say where you are — Brave and other
+     desktop browsers often can't, even on https — fall back to "near which
+     station?": always works, and station-adjacent is exactly where QC has a
+     sensor to check against anyway. */
+  async function stationPicker(msg) {
+    const el = document.getElementById('rp-loc');
+    let sts = [];
+    try { sts = (await getJSON('/stations')).stations.filter(s => s.lat != null); } catch {}
+    if (!sts.length) {
+      el.textContent = 'location unavailable, and no stations to pin to — cannot report';
+      return;
+    }
+    el.innerHTML = `${msg}
+      <select id="rp-station" aria-label="report near which station">
+        <option value="">near which station?</option>
+        ${sts.map(s => `<option value="${s.slug}">${s.name}</option>`).join('')}
+      </select>`;
+    el.querySelector('#rp-station').onchange = ev => {
+      const s = sts.find(x => x.slug === ev.target.value);
+      if (!s) return;
+      state.pos = { lat: s.lat, lon: s.lon, name: s.name };
+      armSend();
+    };
+  }
+
   function locate() {
     const el = document.getElementById('rp-loc');
-    const useFallback = () => {
+    const failed = (err) => {
       const fb = fallbackFn && fallbackFn();
       if (fb && fb.lat != null) {
         state.pos = fb;
         el.textContent = `location: near ${fb.name || 'this station'}`;
-        if (state.kind) document.getElementById('rp-send').disabled = false;
-      } else {
-        el.textContent = 'location unavailable — allow location access to report';
+        armSend();
+        return;
       }
+      stationPicker(err && err.code === 1
+        ? 'location denied —' : 'no location fix from this browser —');
     };
-    el.textContent = 'finding you…';
-    if (!navigator.geolocation) { useFallback(); return; }
+    el.textContent = 'finding you… (your browser may ask)';
+    if (!navigator.geolocation) { failed(); return; }
     navigator.geolocation.getCurrentPosition(
       p => {
         state.pos = { lat: p.coords.latitude, lon: p.coords.longitude };
         el.textContent = 'location: right where you are';
-        if (state.kind) document.getElementById('rp-send').disabled = false;
+        armSend();
       },
-      useFallback,
+      failed,
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 120000 },
     );
   }
