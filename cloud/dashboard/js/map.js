@@ -290,6 +290,71 @@ const forsythMap = (() => {
       drawReports();
     }
 
+    /* ---- you are here ----
+       Auto-centering NEVER prompts: it only uses a geolocation grant the
+       user already made (the report dialog is where asking happens). The 📍
+       tool asks explicitly. Centering on the user only makes sense when
+       they're actually near the mesh — from far away, stay on the stations. */
+    const NEAR_MESH_KM = 60;
+    function _kmTo(lat, lon, s) {
+      return Math.hypot((s.lat - lat) * 111.32,
+                        (s.lon - lon) * 111.32 * Math.cos(lat * Math.PI / 180));
+    }
+    function showMe(lat, lon, center) {
+      if (state.meMarker) state.meMarker.remove();
+      state.meMarker = L.marker([lat, lon], {
+        icon: L.divIcon({ className: 'me-dot-wrap', html: '<div class="me-dot"></div>',
+                          iconSize: [14, 14], iconAnchor: [7, 7] }),
+        keyboard: false, interactive: false, zIndexOffset: 500,
+      }).addTo(map);
+      const nearest = Math.min(Infinity, ...sited().map(s => _kmTo(lat, lon, s)));
+      if (center && nearest <= NEAR_MESH_KM) {
+        map.setView([lat, lon], Math.max(map.getZoom(), 12));
+      }
+    }
+    (async () => {
+      try {
+        if (!navigator.permissions || !navigator.geolocation) return;
+        const p = await navigator.permissions.query({ name: 'geolocation' });
+        if (p.state !== 'granted') return;
+        navigator.geolocation.getCurrentPosition(
+          pos => showMe(pos.coords.latitude, pos.coords.longitude, true),
+          () => {}, { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 });
+      } catch { /* no permission API — the 📍 button still works */ }
+    })();
+
+    /* ---- "you are here" ----
+       Auto-centering NEVER prompts: it only uses a geolocation grant the
+       user already gave (the report dialog is where asking happens). The 📍
+       tool asks explicitly. Centering happens only when the user is within
+       valley range of the mesh — centering a viewer in Delhi on themselves
+       would show an empty map. */
+    const NEAR_KM = 60;
+    function showMe(lat, lon, center) {
+      if (state.meMarker) state.meMarker.remove();
+      state.meMarker = L.marker([lat, lon], {
+        icon: L.divIcon({ className: 'me-dot-wrap', html: '<div class="me-dot"></div>',
+                          iconSize: [12, 12], iconAnchor: [6, 6] }),
+        keyboard: false, interactive: false, zIndexOffset: 500,
+      }).addTo(map);
+      const nearest = Math.min(...sited().map(s => Math.hypot(
+        (s.lat - lat) * 111.32,
+        (s.lon - lon) * 111.32 * Math.cos(lat * Math.PI / 180))));
+      if (center && nearest <= NEAR_KM) {
+        map.setView([lat, lon], Math.max(map.getZoom(), 12));
+      }
+    }
+    (async () => {
+      try {
+        if (!navigator.permissions || !navigator.geolocation) return;
+        const p = await navigator.permissions.query({ name: 'geolocation' });
+        if (p.state !== 'granted') return;
+        navigator.geolocation.getCurrentPosition(
+          pos => showMe(pos.coords.latitude, pos.coords.longitude, true),
+          () => {}, { enableHighAccuracy: false, timeout: 6000, maximumAge: 300000 });
+      } catch { /* no permissions API — stay quiet, the 📍 tool still works */ }
+    })();
+
     /* ---- controls: modes row + tools row, ONE control so the block sits
        beside the zoom column (row layout via CSS on .leaflet-top.leaflet-left) */
     const ctl = L.control({ position: 'topleft' });
@@ -314,11 +379,22 @@ const forsythMap = (() => {
                      <button type="button" data-t="ltg" title="recent lightning">⚡</button>
                      <button type="button" data-t="rep" title="human weather reports, last 6 h">👁</button>
                      <button type="button" data-t="scrub" title="time travel, last 24 h">⏱</button>
+                     <button type="button" data-t="me" title="center on my location">📍</button>
                      <button type="button" data-t="fit" title="fit stations">⌖</button>` +
         (opts.compact ? '' : `<button type="button" data-t="fs" title="fullscreen">⛶</button>`);
       tools.addEventListener('click', async e => {
         const b = e.target.closest('button[data-t]'); if (!b) return;
         if (b.dataset.t === 'fit') fit();
+        if (b.dataset.t === 'me') {
+          if (!navigator.geolocation) { b.title = 'this browser has no geolocation'; return; }
+          b.classList.add('on');
+          navigator.geolocation.getCurrentPosition(
+            pos => { b.classList.remove('on');
+                     showMe(pos.coords.latitude, pos.coords.longitude, true); },
+            ()  => { b.classList.remove('on');
+                     b.title = 'no location fix — check browser & OS permissions'; },
+            { enableHighAccuracy: false, timeout: 8000, maximumAge: 120000 });
+        }
         if (b.dataset.t === 'fs') {
           const full = el.closest('.map-panel, .grid-stack-item-content, body')
                          .classList.toggle('map-full');
