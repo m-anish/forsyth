@@ -14,6 +14,7 @@ GET /api/v1/summary?slug=ridge → one station
 import logging
 import math
 import time
+from datetime import datetime, timezone
 
 import httpx
 from fastapi import APIRouter
@@ -352,14 +353,19 @@ def summary(slug: str | None = None):
         return cached[1]
 
     events = _detect_events(slug)
+    # when the events were detected — a cached response carries its true age,
+    # so the dashboard can whisper "just now" or warn "2 h ago — may be stale"
+    generated_at = datetime.now(timezone.utc).isoformat()
     if not events:
-        result = {"events": [], "summary": None, "generated_by": None}
+        result = {"events": [], "summary": None, "generated_by": None,
+                  "generated_at": generated_at}
     else:
         text_ = _compose_llm(events)
         result = {
             "events": events,
             "summary": text_ or _compose_template(events),
             "generated_by": "llm" if text_ else "rules",
+            "generated_at": generated_at,
         }
     _CACHE[key] = (now, result)
     return result

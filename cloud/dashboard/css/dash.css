@@ -135,6 +135,11 @@ h1.headline {
   font-family: var(--serif); font-style: italic;
   font-size: 19px; line-height: 1.45; margin: 0; color: var(--text);
 }
+/* freshness: the kicker whispers the age; past 15 min (an offline device on a
+   service-worker-cached summary) it warns, past an hour the sentence dims */
+.wx-banner .k.stale { color: var(--bad); }
+.wx-banner.dim { border-left-color: var(--border); }
+.wx-banner.dim p { opacity: 0.55; }
 
 /* map */
 .map-panel {

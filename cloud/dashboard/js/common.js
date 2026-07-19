@@ -135,7 +135,20 @@ function makeChart(el, series, data, opts = {}) {
   return u;
 }
 
-/* weather banner (shared by both pages) — present events and forecast ones */
+/* weather banner (shared by both pages) — present events and forecast ones.
+   The kicker carries a freshness whisper ("just now" … "3 min ago") that
+   turns into a real warning past 15 min — which only happens when the
+   service worker is serving a cached summary to an offline device. */
+function bannerFreshness(el) {
+  const k = el.querySelector('.k');
+  if (!k || !el.dataset.genAt) return;
+  const ageMin = (Date.now() - new Date(el.dataset.genAt).getTime()) / 60000;
+  k.textContent = `${el.dataset.kBase} · ${agoLabel(el.dataset.genAt)}`
+    + (ageMin > 15 ? ' — may be stale' : '');
+  k.classList.toggle('stale', ageMin > 15);
+  el.classList.toggle('dim', ageMin > 60);
+}
+
 async function refreshBanner(slug) {
   const el = document.getElementById('wx-banner');
   if (!el) return;
@@ -143,9 +156,13 @@ async function refreshBanner(slug) {
     const d = await getJSON('/summary' + (slug ? `?slug=${slug}` : ''));
     if (d.summary) {
       el.querySelector('p').textContent = d.summary;
-      el.querySelector('.k').textContent =
+      el.dataset.kBase =
         'Weather · ' + (d.generated_by === 'llm' ? 'as told by forsyth' : 'noted by forsyth');
+      el.dataset.genAt = d.generated_at || '';
+      bannerFreshness(el);
       el.classList.add('on');
+      /* tick the label between fetches so it never freezes */
+      if (!el._freshTimer) el._freshTimer = setInterval(() => bannerFreshness(el), 30_000);
     } else {
       el.classList.remove('on');
     }
