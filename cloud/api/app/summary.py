@@ -204,25 +204,30 @@ def _detect_forecast_events(conn, flt: str, p: dict, present: list[dict]) -> lis
                        "observed_hpa_3h": round(obs_delta / 100, 1),
                        "forecast_hpa_3h": round(fc_delta / 100, 1)})
 
-    # rain expected in the next 12 h (skip stations where it's already raining)
+    # rain expected in the next 12 h (skip stations where it's already raining).
+    # "within N h" is anchored to the first hour with MEANINGFUL rain (>0.5 mm)
+    # — probability alone must not start the clock, or a 100%-chance drizzle
+    # reads as an imminent downpour while the real rain sits six hours out.
     rows = conn.execute(text(f"""
         SELECT s.name,
-               min(f.valid_at) FILTER (WHERE f.precip_mm > 0.5 OR f.precip_prob > 70)
-                   AS first_at,
-               sum(f.precip_mm) AS mm_12h, max(f.precip_prob) AS prob
+               min(f.valid_at) FILTER (WHERE f.precip_mm > 0.5) AS first_at,
+               sum(f.precip_mm) AS mm_12h,
+               max(f.precip_mm) AS peak_mm_hr,
+               max(f.precip_prob) AS prob
         FROM forecasts f JOIN stations s ON s.id = f.station_id
         WHERE f.model = 'best_match' AND f.run_at = {_LATEST_RUN}
           AND f.valid_at > now() AND f.valid_at <= now() + INTERVAL '12 hours' {flt}
         GROUP BY s.name
-        HAVING min(f.valid_at) FILTER (WHERE f.precip_mm > 0.5 OR f.precip_prob > 70)
-               IS NOT NULL"""), p).all()
+        HAVING min(f.valid_at) FILTER (WHERE f.precip_mm > 0.5) IS NOT NULL"""),
+        p).all()
     now_utc = conn.execute(text("SELECT now()")).scalar()
-    for name, first_at, mm_12h, prob in rows:
+    for name, first_at, mm_12h, peak_mm_hr, prob in rows:
         if name in raining_now:
             continue
         in_h = max(1, round((first_at - now_utc).total_seconds() / 3600))
         events.append({"kind": "rain_expected", "station": name, "in_hours": in_h,
                        "mm_12h": round(mm_12h or 0, 1),
+                       "peak_mm_hr": round(peak_mm_hr or 0, 1),
                        "prob": round(prob) if prob is not None else None})
 
     # the next 24 h in one pass: frost, big swings, wind worth lashing down for
@@ -326,7 +331,13 @@ def _compose_llm(events: list[dict]) -> str | None:
                         f"{events}\n\nWrite ONE summary of 20-30 words for the dashboard "
                         "banner. Mention station names and the most important numbers. "
                         "Events whose kind ends in _expected come from a forecast — "
-                        "phrase them as expectation, not observation. model_divergence "
+                        "phrase them as expectation, not observation. For rain_expected: "
+                        "in_hours = first hour with meaningful rain; mm_12h = the TOTAL "
+                        "over the next 12 hours (never imply it falls in the first hour); "
+                        "peak_mm_hr = the wettest single hour; prob = hourly precipitation "
+                        "probability — never call it confidence. Scale adjectives to "
+                        "peak_mm_hr: under 1 is drizzle, 1-4 steady, above 5 heavy. "
+                        "model_divergence "
                         "means the stations contradict the forecast: say so plainly; "
                         "the stations are the ones to believe. human_report events are "
                         "first-hand accounts from people nearby — credit them as such "

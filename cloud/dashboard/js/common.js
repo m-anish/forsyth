@@ -209,8 +209,11 @@ async function renderForecast(el, slug, opts = {}) {
     const max = a => { const v = vals(a); return v.length ? Math.max(...v) : null; };
     const sum = a => vals(a).reduce((x, y) => x + y, 0);
     const rain = sum(F.precip_mm), prob = max(F.precip_prob);
+    const t0 = new Date(d.ts[i] * 1000);
     segs.push({
-      label: new Date(d.ts[i] * 1000).toLocaleString([], { weekday: 'short', hour: 'numeric' }),
+      /* explicit "21:00" — a bare "21" reads as a date in 24-h locales */
+      label: t0.toLocaleString([], { weekday: 'short' }) + ' ' +
+             t0.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
       temp: avg(F.temp_c), rain, prob,
       glyph: wxGlyph(rain, prob, avg(F.cloud_cover_pct), avg(F.temp_c)),
     });

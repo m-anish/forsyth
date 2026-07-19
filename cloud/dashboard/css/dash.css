@@ -410,7 +410,12 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 
 /* the modes+tools block rides BESIDE the zoom column, not under it */
 .leaflet-top.leaflet-left { display: flex; flex-direction: row; align-items: flex-start; }
-.wx-ctl { display: flex; flex-direction: column; gap: 8px; clear: none !important; }
+/* each bar hugs its own buttons — stretched children drag their gray border
+   across empty space when the rows differ in width */
+.wx-ctl { display: flex; flex-direction: column; gap: 8px; clear: none !important;
+  align-items: flex-start; }
+.wx-tools button svg { display: block; }
+.wx-tools [data-t="me"].live { color: #4a90d9; }
 .wx-ctl .leaflet-bar { margin: 0; }
 
 /* small screens: while time-traveling, the scrub bar outranks the legend */

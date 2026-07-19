@@ -330,6 +330,9 @@ const forsythMap = (() => {
        valley range of the mesh — centering a viewer in Delhi on themselves
        would show an empty map. */
     const NEAR_KM = 60;
+    /* center: false = dot only · true = polite (center only near the mesh,
+       for the silent auto-locate) · 'force' = the user pressed the button,
+       center on them regardless — google-maps behavior */
     function showMe(lat, lon, center) {
       if (state.meMarker) state.meMarker.remove();
       state.meMarker = L.marker([lat, lon], {
@@ -337,10 +340,14 @@ const forsythMap = (() => {
                           iconSize: [12, 12], iconAnchor: [6, 6] }),
         keyboard: false, interactive: false, zIndexOffset: 500,
       }).addTo(map);
+      el.querySelector('.wx-tools [data-t="me"]')?.classList.add('live');
       const nearest = Math.min(...sited().map(s => Math.hypot(
         (s.lat - lat) * 111.32,
         (s.lon - lon) * 111.32 * Math.cos(lat * Math.PI / 180))));
-      if (center && nearest <= NEAR_KM) {
+      if (center === 'force') {
+        map.setView([lat, lon], nearest <= NEAR_KM ? Math.max(map.getZoom(), 12)
+                                                   : map.getZoom());
+      } else if (center && nearest <= NEAR_KM) {
         map.setView([lat, lon], Math.max(map.getZoom(), 12));
       }
     }
@@ -379,7 +386,7 @@ const forsythMap = (() => {
                      <button type="button" data-t="ltg" title="recent lightning">⚡</button>
                      <button type="button" data-t="rep" title="human weather reports, last 6 h">👁</button>
                      <button type="button" data-t="scrub" title="time travel, last 24 h">⏱</button>
-                     <button type="button" data-t="me" title="center on my location">📍</button>
+                     <button type="button" data-t="me" title="center on my location"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/></svg></button>
                      <button type="button" data-t="fit" title="fit stations">⌖</button>` +
         (opts.compact ? '' : `<button type="button" data-t="fs" title="fullscreen">⛶</button>`);
       tools.addEventListener('click', async e => {
@@ -390,7 +397,7 @@ const forsythMap = (() => {
           b.classList.add('on');
           navigator.geolocation.getCurrentPosition(
             pos => { b.classList.remove('on');
-                     showMe(pos.coords.latitude, pos.coords.longitude, true); },
+                     showMe(pos.coords.latitude, pos.coords.longitude, 'force'); },
             ()  => { b.classList.remove('on');
                      b.title = 'no location fix — check browser & OS permissions'; },
             { enableHighAccuracy: false, timeout: 8000, maximumAge: 120000 });
