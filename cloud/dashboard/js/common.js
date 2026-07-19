@@ -242,9 +242,10 @@ async function renderForecast(el, slug, opts = {}) {
     const rain = sum(F.precip_mm), prob = max(F.precip_prob);
     const t0 = new Date(d.ts[i] * 1000);
     segs.push({
-      /* explicit "21:00" — a bare "21" reads as a date in 24-h locales */
-      label: t0.toLocaleString([], { weekday: 'short' }) + ' ' +
-             t0.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+      /* day and time on separate lines — side by side they collide on
+         phones; explicit "21:00" because a bare "21" reads as a date */
+      day: t0.toLocaleString([], { weekday: 'short' }),
+      time: t0.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
       temp: avg(F.temp_c), rain, prob,
       glyph: wxGlyph(rain, prob, avg(F.cloud_cover_pct), avg(F.temp_c)),
     });
@@ -252,7 +253,8 @@ async function renderForecast(el, slug, opts = {}) {
   el.innerHTML = `
     <div class="fc-strip">${segs.map(s => `
       <div class="fc-seg">
-        <span class="t">${s.label}</span>
+        <span class="t">${s.day}</span>
+        <span class="t2">${s.time}</span>
         <span class="g">${s.glyph}</span>
         <span class="v">${fmt(s.temp, 0)}°</span>
         <span class="p">${s.prob !== null ? Math.round(s.prob) + '%' :

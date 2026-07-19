@@ -262,11 +262,30 @@ const forsythMap = (() => {
     }
     function drawReports() {
       state.reports.clearLayers();
+      /* stations are the anchor and never move; report pins that would land
+         on a chip (the "near which station?" picker puts them at EXACTLY the
+         station's coords) or on each other fan out in a small arc instead of
+         stacking. Pixel-space, so it's redrawn on zoom. */
+      const stationPts = sited().map(s => map.latLngToLayerPoint([s.lat, s.lon]));
+      const placedPts = [];
+      const collides = pt =>
+        stationPts.some(sp => sp.distanceTo(pt) < 30) ||
+        placedPts.some(pp => pp.distanceTo(pt) < 26);
       (state.rp || []).forEach(r => {
         const ageH = (Date.now() - new Date(r.ts).getTime()) / 3600e3;
         if (ageH < 0 || ageH > RP_WINDOW_H) return;
         const fade = Math.max(0.45, 1 - ageH / RP_WINDOW_H);
         const fresh = ageH < 0.5 ? ' fresh' : '';
+        let pt = map.latLngToLayerPoint([r.lat, r.lon]);
+        if (collides(pt)) {
+          for (let k = 0; k < 12; k++) {
+            const a = (k * 60 - 30) * Math.PI / 180;
+            const rad = 32 + 10 * Math.floor(k / 6);
+            const q = L.point(pt.x + rad * Math.cos(a), pt.y + rad * Math.sin(a));
+            if (!collides(q)) { pt = q; break; }
+          }
+        }
+        placedPts.push(pt);
         const icon = L.divIcon({
           className: 'rp-pin-wrap',
           html: `<div class="rp-pin${fresh}" style="opacity:${fade.toFixed(2)};` +
@@ -275,7 +294,7 @@ const forsythMap = (() => {
         });
         const label = r.kind.replace(/_/g, ' ')
           + (r.intensity ? [' (light)', ' (moderate)', ' (heavy)'][r.intensity - 1] : '');
-        L.marker([r.lat, r.lon], { icon, keyboard: false }).addTo(state.reports)
+        L.marker(map.layerPointToLatLng(pt), { icon, keyboard: false }).addTo(state.reports)
           .bindTooltip(`${label} · ${agoLabel(r.ts)}`)
           .bindPopup(`<div class="map-pop"><h4>👁 ${label}
               ${r.qc_flag === 'corroborated' ? '<span class="badge ok">✓ station agrees</span>' : ''}</h4>
@@ -289,6 +308,8 @@ const forsythMap = (() => {
       await ensureReports();
       drawReports();
     }
+    /* the fan-out is computed in pixels — re-lay it out when the scale changes */
+    map.on('zoomend', () => { if (map.hasLayer(state.reports)) drawReports(); });
 
     /* ---- you are here ----
        Auto-centering NEVER prompts: it only uses a geolocation grant the
