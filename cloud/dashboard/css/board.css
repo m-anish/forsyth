@@ -114,6 +114,22 @@
    button and dialog live on EVERY page, including index.html which loads
    only dash.css — they were invisible-ly unstyled there. */
 
+/* first-run tour: a spotlight hole (its giant shadow is the dimmer) + card */
+.tour-hole {
+  position: fixed; z-index: 1200; border-radius: 10px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.62); transition: all 0.25s ease;
+}
+.tour-card {
+  position: fixed; z-index: 1201; width: 300px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px 18px;
+  box-shadow: 0 16px 48px var(--shadow);
+}
+.tour-card h4 { font-family: var(--serif); font-weight: 500; font-size: 17px; margin: 0 0 6px; }
+.tour-card p { font-size: 13px; color: var(--text-dim); line-height: 1.55; margin: 0 0 12px; }
+.tour-card .row { display: flex; align-items: center; gap: 8px; }
+.tour-card .n { font: 10px var(--mono); color: var(--text-mute); margin-right: auto; }
+
 /* admin console + shared small forms */
 .tool-btn.danger { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); }
 .tool-btn.danger:hover { background: var(--bad); color: var(--bg); }

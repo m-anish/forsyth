@@ -314,7 +314,14 @@ def _compose_template(events: list[dict]) -> str:
     return sentence + "." + closer
 
 
-def _compose_llm(events: list[dict]) -> str | None:
+_LANGS = {
+    "en": "",
+    "hi": "Write the summary in everyday Hindi (Devanagari script); keep "
+          "station names and units in Latin script. ",
+}
+
+
+def _compose_llm(events: list[dict], lang: str = "en") -> str | None:
     if not settings.openai_api_key:
         return None
     try:
@@ -342,7 +349,8 @@ def _compose_llm(events: list[dict]) -> str | None:
                         "the stations are the ones to believe. human_report events are "
                         "first-hand accounts from people nearby — credit them as such "
                         "('people report hail near Ridge'), especially when corroborated. "
-                        "Dry and calm. No exclamation marks. Plain text only."},
+                        "Dry and calm. No exclamation marks. Plain text only. "
+                        + _LANGS.get(lang, "")},
                 ],
             },
             timeout=20,
@@ -356,8 +364,10 @@ def _compose_llm(events: list[dict]) -> str | None:
 
 
 @router.get("/summary")
-def summary(slug: str | None = None):
-    key = slug or "__mesh__"
+def summary(slug: str | None = None, lang: str = "en"):
+    if lang not in _LANGS:
+        lang = "en"
+    key = f"{slug or '__mesh__'}:{lang}"
     now = time.time()
     cached = _CACHE.get(key)
     if cached and now - cached[0] < _TTL:
@@ -371,12 +381,13 @@ def summary(slug: str | None = None):
         result = {"events": [], "summary": None, "generated_by": None,
                   "generated_at": generated_at}
     else:
-        text_ = _compose_llm(events)
+        text_ = _compose_llm(events, lang)
         result = {
             "events": events,
             "summary": text_ or _compose_template(events),
             "generated_by": "llm" if text_ else "rules",
             "generated_at": generated_at,
+            "lang": lang if text_ else "en",
         }
     _CACHE[key] = (now, result)
     return result

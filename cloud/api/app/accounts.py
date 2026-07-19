@@ -43,16 +43,23 @@ SESSION_DAYS = 30
 WIDGET_TYPES = {"now", "chart", "windrose", "aqi", "lightning", "camera", "map",
                 "forecast", "reports", "summary", "health"}
 
+# The homepage arrangement, following the weather-product canon (alert bar →
+# current hero → hourly forecast → map → detail), in Forsyth's own order of
+# honesty: the banner speaks first, the forecast shows its work, the map gives
+# the valley, feeds carry what people and the sky reported.
 DEFAULT_LAYOUT = {
     "title": "The mesh, at a glance",
     "widgets": [
-        {"id": "w1", "type": "summary",   "x": 0, "y": 0, "w": 12, "h": 1, "config": {}},
-        {"id": "w2", "type": "map",       "x": 0, "y": 1, "w": 6,  "h": 4, "config": {}},
-        {"id": "w3", "type": "now",       "x": 6, "y": 1, "w": 3,  "h": 4, "config": {"station": "ridge"}},
-        {"id": "w4", "type": "windrose",  "x": 9, "y": 1, "w": 3,  "h": 4, "config": {"station": "ridge"}},
-        {"id": "w5", "type": "chart",     "x": 0, "y": 5, "w": 8,  "h": 3,
-         "config": {"station": "ridge", "metrics": "temp_c,rh", "hours": 24, "title": "Ridge · temp & humidity"}},
-        {"id": "w6", "type": "lightning", "x": 8, "y": 5, "w": 4,  "h": 3, "config": {}},
+        {"id": "w1", "type": "summary",   "x": 0, "y": 0,  "w": 12, "h": 1, "config": {}},
+        {"id": "w2", "type": "now",       "x": 0, "y": 1,  "w": 3,  "h": 4, "config": {}},
+        {"id": "w3", "type": "forecast",  "x": 3, "y": 1,  "w": 6,  "h": 4, "config": {}},
+        {"id": "w4", "type": "windrose",  "x": 9, "y": 1,  "w": 3,  "h": 4, "config": {}},
+        {"id": "w5", "type": "map",       "x": 0, "y": 5,  "w": 8,  "h": 4, "config": {}},
+        {"id": "w6", "type": "lightning", "x": 8, "y": 5,  "w": 4,  "h": 2, "config": {}},
+        {"id": "w7", "type": "reports",   "x": 8, "y": 7,  "w": 4,  "h": 2, "config": {}},
+        {"id": "w8", "type": "chart",     "x": 0, "y": 9,  "w": 8,  "h": 3,
+         "config": {"metrics": "temp_c,rh", "hours": 24, "title": "Temperature & humidity · 24 h"}},
+        {"id": "w9", "type": "health",    "x": 8, "y": 9,  "w": 4,  "h": 3, "config": {}},
     ],
 }
 
@@ -457,9 +464,13 @@ class BoardCreate(BaseModel):
 
 @router.post("/boards", status_code=201)
 def create_board(body: BoardCreate, request: Request):
+    """New boards start as a copy of the homepage arrangement — a familiar
+    starting point to rearrange, not a blank page."""
     user = require_user(request)
-    layout = dict(DEFAULT_LAYOUT, title=body.title)
     with engine.begin() as conn:
+        home = _board_row(conn, "default")
+        base = home["layout"] if home else DEFAULT_LAYOUT
+        layout = dict(base, title=body.title)
         slug = _slugify(body.title, conn)
         conn.execute(text(
             "INSERT INTO boards (slug, owner, title, is_public, layout) "

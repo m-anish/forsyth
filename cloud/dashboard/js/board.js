@@ -365,6 +365,12 @@ async function boot() {
 
   window.addEventListener('themechange', renderAll);
   setInterval(() => { Widgets.invalidate(); if (!B.editing) renderAll(); }, 60_000);
+
+  Report.mount();
+  /* first sign-in (or ?tour=1) gets the walkthrough, once per browser */
+  if (B.user || new URLSearchParams(location.search).get('tour') === '1') {
+    setTimeout(() => Tour.maybeStart(), 800);   /* let widgets paint first */
+  }
 }
 
 boot();

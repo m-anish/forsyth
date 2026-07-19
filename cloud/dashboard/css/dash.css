@@ -185,6 +185,14 @@ h1.headline {
 
 /* freshness: the kicker whispers the age; past 15 min (an offline device on a
    service-worker-cached summary) it warns, past an hour the sentence dims */
+.wx-banner { position: relative; }
+.wx-banner .lang {
+  position: absolute; top: 12px; right: 14px;
+  background: none; border: 1px solid var(--border); border-radius: 4px;
+  color: var(--text-mute); font: 500 10px var(--mono); padding: 2px 7px;
+  cursor: pointer; letter-spacing: 0.08em;
+}
+.wx-banner .lang:hover { color: var(--accent); border-color: var(--accent); }
 .wx-banner .k.stale { color: var(--bad); }
 .wx-banner.dim { border-left-color: var(--border); }
 .wx-banner.dim p { opacity: 0.55; }

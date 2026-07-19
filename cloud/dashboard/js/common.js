@@ -142,6 +142,21 @@ function makeChart(el, series, data, opts = {}) {
   return u;
 }
 
+/* viewer's timezone, as their locale abbreviates it ("IST", "CEST", "GMT+2").
+   Every timestamp on the site is already rendered in the viewer's local time
+   (toLocale* APIs) — this label just says so out loud. */
+function tzLabel() {
+  try {
+    return new Intl.DateTimeFormat([], { timeZoneName: 'short' })
+      .formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value || '';
+  } catch { return ''; }
+}
+
+/* banner language preference (LLM summaries only; the rule-based fallback
+   speaks English). Stored per browser. */
+const LANG_KEY = 'forsyth-lang';
+function bannerLang() { return localStorage.getItem(LANG_KEY) || 'en'; }
+
 /* weather banner (shared by both pages) — present events and forecast ones.
    The kicker carries a freshness whisper ("just now" … "3 min ago") that
    turns into a real warning past 15 min — which only happens when the
@@ -159,8 +174,24 @@ function bannerFreshness(el) {
 async function refreshBanner(slug) {
   const el = document.getElementById('wx-banner');
   if (!el) return;
+  /* language toggle, built once — EN ⇄ हिं */
+  if (!el.querySelector('.lang')) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'lang';
+    b.title = 'banner language';
+    b.textContent = bannerLang() === 'hi' ? 'हिं' : 'EN';
+    b.onclick = () => {
+      localStorage.setItem(LANG_KEY, bannerLang() === 'hi' ? 'en' : 'hi');
+      b.textContent = bannerLang() === 'hi' ? 'हिं' : 'EN';
+      refreshBanner(slug);
+    };
+    el.appendChild(b);
+  }
   try {
-    const d = await getJSON('/summary' + (slug ? `?slug=${slug}` : ''));
+    const qs = new URLSearchParams();
+    if (slug) qs.set('slug', slug);
+    if (bannerLang() !== 'en') qs.set('lang', bannerLang());
+    const d = await getJSON('/summary' + (qs.size ? `?${qs}` : ''));
     if (d.summary) {
       el.querySelector('p').textContent = d.summary;
       el.dataset.kBase =
@@ -228,7 +259,7 @@ async function renderForecast(el, slug, opts = {}) {
                           s.rain > 0.2 ? s.rain.toFixed(1) + ' mm' : '·'}</span>
       </div>`).join('')}</div>
     <div class="fc-chart"></div>
-    <div class="fc-foot wg-sub">model ${d.model} · run ${agoLabel(d.run_at)}<span class="fc-skill"></span></div>`;
+    <div class="fc-foot wg-sub">model ${d.model} · run ${agoLabel(d.run_at)} · times ${tzLabel()}<span class="fc-skill"></span></div>`;
 
   /* signal "more →" when the strip overflows; the fade lifts at the end */
   const strip = el.querySelector('.fc-strip');
