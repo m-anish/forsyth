@@ -282,30 +282,46 @@ def oauth_start(provider: str):
     return RedirectResponse(f"{p['auth']}?{params}", status_code=303)
 
 
+def _auth_fail(msg: str) -> RedirectResponse:
+    """Send sign-in failures back to the board page, where the dialog shows
+    the message — nobody should ever see a naked JSON error screen."""
+    from urllib.parse import quote
+    return RedirectResponse("/board.html?auth_error=" + quote(msg), status_code=303)
+
+
+def _provider_call(fn, tries: int = 2):
+    """One retry — the droplet's route to some providers flakes for seconds."""
+    for attempt in range(tries):
+        try:
+            r = fn()
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            if attempt == tries - 1:
+                raise
+            log.warning("provider call failed (%s); retrying once", e)
+            time.sleep(1.5)
+
+
 @router.get("/auth/oauth/{provider}/callback")
 def oauth_callback(provider: str, code: str = "", state: str = "", error: str = ""):
     cid, sec = _oauth_creds(provider)
     p = _OAUTH[provider]
     if error or not code or not _oauth_state_ok(state):
-        raise HTTPException(403, "sign-in was cancelled or the state went stale — try again")
+        return _auth_fail("sign-in was cancelled or went stale - try again")
     try:
-        tok = httpx.post(p["token"], data={
+        tok = _provider_call(lambda: httpx.post(p["token"], data={
             "client_id": cid, "client_secret": sec, "code": code,
             "redirect_uri": _redirect_uri(provider),
             "grant_type": "authorization_code",
-        }, headers={"Accept": "application/json"}, timeout=15)
-        tok.raise_for_status()
-        access = tok.json().get("access_token", "")
-        info = httpx.get(p["userinfo"],
-                         headers={"Authorization": f"Bearer {access}"},
-                         timeout=15)
-        info.raise_for_status()
-        info = info.json()
-    except HTTPException:
-        raise
+        }, headers={"Accept": "application/json"}, timeout=15))
+        access = tok.get("access_token", "")
+        info = _provider_call(lambda: httpx.get(
+            p["userinfo"], headers={"Authorization": f"Bearer {access}"},
+            timeout=15))
     except Exception as e:
         log.warning("oauth %s failed: %s", provider, e)
-        raise HTTPException(502, f"{provider} didn't answer properly — try again")
+        return _auth_fail(f"{provider} didn't answer - try again in a minute")
 
     if provider == "google":
         sub = str(info.get("sub", ""))
@@ -314,7 +330,7 @@ def oauth_callback(provider: str, code: str = "", state: str = "", error: str = 
         sub = str(info.get("id", ""))
         wanted = info.get("login") or "github-user"
     if not sub:
-        raise HTTPException(502, f"{provider} returned no stable identity")
+        return _auth_fail(f"{provider} returned no usable identity - try again")
 
     with engine.begin() as conn:
         row = conn.execute(text(

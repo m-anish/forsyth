@@ -39,6 +39,7 @@ function widgetEl(w) {
     <div class="grid-stack-item-content">
       <div class="wg-head">
         <h3>${(w.config && w.config.title) || reg.label}</h3>
+        <span class="wg-range"></span>
         <span class="wg-tools">
           <button type="button" data-act="cfg" title="configure">⚙</button>
           <button type="button" data-act="del" title="remove">✕</button>
@@ -51,9 +52,29 @@ function widgetEl(w) {
   return el;
 }
 
+/* one-tap range presets in the header — a per-widget switch, no dialog.
+   Mutates config, so "save" while arranging persists the choice; outside
+   edit mode it simply lasts the session. */
+function rangeChips(el) {
+  const meta = B.meta.get(el.dataset.wid);
+  const span = el.querySelector('.wg-range');
+  if (!meta || !span) return;
+  const reg = Widgets.REGISTRY[meta.type];
+  if (!reg.ranges) { span.innerHTML = ''; return; }
+  const cur = Number(meta.config.hours || reg.defaultHours);
+  span.innerHTML = reg.ranges.map(([h, l]) =>
+    `<button type="button" data-h="${h}" class="${h === cur ? 'on' : ''}">${l}</button>`).join('');
+  span.querySelectorAll('button').forEach(b => b.onclick = () => {
+    meta.config.hours = Number(b.dataset.h);
+    rangeChips(el);
+    renderWidget(el);
+  });
+}
+
 async function renderWidget(el) {
   const meta = B.meta.get(el.dataset.wid);
   if (!meta) return;
+  rangeChips(el);
   const body = el.querySelector('.wg-body');
   try { await Widgets.REGISTRY[meta.type].render(body, meta.config); }
   catch (e) { body.innerHTML = `<p class="wg-empty">widget unhappy: ${e.message}</p>`; }
@@ -241,6 +262,17 @@ function wireChrome() {
     setMode(!signupMode);
   };
 
+  /* an OAuth round-trip that failed lands back here with ?auth_error= —
+     reopen the dialog with the message instead of a bare error page */
+  const authErr = new URLSearchParams(location.search).get('auth_error');
+  if (authErr) {
+    history.replaceState(null, '', location.pathname);
+    setMode(false);
+    prepDialog();
+    err.textContent = authErr;
+    dlg.showModal();
+  }
+
   loginBtn.onclick = async () => {
     if (B.user) {
       await apiJSON('/auth/logout', { method: 'POST' });
@@ -320,6 +352,8 @@ function wireChrome() {
 async function boot() {
   B.grid = GridStack.init({
     column: 12, cellHeight: 80, margin: 8, staticGrid: true, float: false,
+    /* phones get a single column instead of twelve slivers */
+    columnOpts: { breakpointForWindow: true, breakpoints: [{ w: 640, c: 1 }] },
   }, '#grid');
 
   wireChrome();

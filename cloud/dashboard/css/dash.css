@@ -135,6 +135,22 @@ h1.headline {
   font-family: var(--serif); font-style: italic;
   font-size: 19px; line-height: 1.45; margin: 0; color: var(--text);
 }
+/* uPlot hover legend: live values in the house mono, quiet until needed */
+.u-legend { font: 11px var(--mono) !important; color: var(--text-dim) !important; }
+.u-legend .u-value { color: var(--text); }
+.u-legend th { font-weight: 500 !important; }
+
+/* forecast strip: horizontal scroll with a "more →" fade that lifts at the
+   end, snap per card, thin scrollbar (narrow screens live here) */
+.fc-strip { scroll-snap-type: x proximity; scrollbar-width: thin; }
+.fc-seg { scroll-snap-align: start; }
+.fc-strip::-webkit-scrollbar { height: 5px; }
+.fc-strip::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.fc-strip.scrollable:not(.at-end) {
+  -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
+          mask-image: linear-gradient(90deg, #000 88%, transparent);
+}
+
 /* freshness: the kicker whispers the age; past 15 min (an offline device on a
    service-worker-cached summary) it warns, past an hour the sentence dims */
 .wx-banner .k.stale { color: var(--bad); }

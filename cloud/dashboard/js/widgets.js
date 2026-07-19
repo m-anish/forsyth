@@ -192,16 +192,23 @@ const Widgets = (() => {
     </table>`;
   }
 
+  /* ranges: one-tap presets rendered as chips in the widget header
+     (board.js); defaultHours = what the renderer assumes when unset */
   const REGISTRY = {
     now:       { label: 'Current conditions', render: now,       w: 3, h: 4, fields: ['station'] },
-    chart:     { label: 'Chart',              render: chart,     w: 6, h: 3, fields: ['station','metrics','hours','title'] },
-    windrose:  { label: 'Wind rose',          render: windrose,  w: 3, h: 4, fields: ['station','hours'] },
+    chart:     { label: 'Chart',              render: chart,     w: 6, h: 3, fields: ['station','metrics','hours','title'],
+                 ranges: [[24,'24h'],[168,'7d'],[720,'30d']], defaultHours: 24 },
+    windrose:  { label: 'Wind rose',          render: windrose,  w: 3, h: 4, fields: ['station','hours'],
+                 ranges: [[24,'24h'],[168,'7d'],[720,'30d']], defaultHours: 24 },
     aqi:       { label: 'Air quality',        render: aqiW,      w: 3, h: 3, fields: ['station'] },
-    lightning: { label: 'Lightning feed',     render: lightning, w: 4, h: 3, fields: ['stationOrAll','hours'] },
+    lightning: { label: 'Lightning feed',     render: lightning, w: 4, h: 3, fields: ['stationOrAll','hours'],
+                 ranges: [[24,'24h'],[48,'48h'],[168,'7d']], defaultHours: 48 },
     camera:    { label: 'Camera',             render: camera,    w: 3, h: 4, fields: ['station'] },
     map:       { label: 'Map',                render: map,       w: 6, h: 4, fields: [] },
-    forecast:  { label: 'Forecast',           render: forecast,  w: 6, h: 4, fields: ['station','hours'] },
-    reports:   { label: 'Human reports',      render: reports,   w: 4, h: 3, fields: ['hours'] },
+    forecast:  { label: 'Forecast',           render: forecast,  w: 6, h: 4, fields: ['station','hours'],
+                 ranges: [[24,'24h'],[48,'48h'],[96,'4d'],[168,'7d']], defaultHours: 48 },
+    reports:   { label: 'Human reports',      render: reports,   w: 4, h: 3, fields: ['hours'],
+                 ranges: [[24,'24h'],[72,'3d'],[168,'7d']], defaultHours: 24 },
     summary:   { label: 'Weather',            render: summary,   w: 12, h: 1, fields: ['stationOrAll'] },
     health:    { label: 'Mesh health',        render: health,    w: 4, h: 2, fields: [] },
   };

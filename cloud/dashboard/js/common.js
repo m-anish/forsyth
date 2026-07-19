@@ -113,8 +113,10 @@ function uplotAxis(extra = {}) {
 function uplotBase() {
   return {
     width: 600, height: 200,
-    cursor: { drag: { setScale: false } },
-    legend: { live: false },
+    /* hover shows a cursor line + live values in the legend; drag
+       horizontally to zoom in; double-click (or double-tap) resets */
+    cursor: { drag: { x: true, y: false, setScale: true } },
+    legend: { live: true },
     axes: [uplotAxis(), uplotAxis({ size: 46 })],
   };
 }
@@ -129,6 +131,11 @@ function makeChart(el, series, data, opts = {}) {
     ...opts.uplot,
   };
   const u = new uPlot(o, data, el);
+  /* helper series (band edges etc.) stay out of the legend */
+  const rows = u.root.querySelectorAll('.u-legend .u-series');
+  series.forEach((s, i) => {
+    if (s.noLegend && rows[i + 1]) rows[i + 1].style.display = 'none';
+  });
   if (el._ro) el._ro.disconnect();   // re-renders must not stack observers
   el._ro = new ResizeObserver(() => u.setSize({ width: el.clientWidth, height: o.height }));
   el._ro.observe(el);
@@ -220,6 +227,16 @@ async function renderForecast(el, slug, opts = {}) {
     <div class="fc-chart"></div>
     <div class="fc-foot wg-sub">model ${d.model} · run ${agoLabel(d.run_at)}<span class="fc-skill"></span></div>`;
 
+  /* signal "more →" when the strip overflows; the fade lifts at the end */
+  const strip = el.querySelector('.fc-strip');
+  const stripEdges = () => {
+    strip.classList.toggle('scrollable', strip.scrollWidth > strip.clientWidth + 4);
+    strip.classList.toggle('at-end',
+      strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 4);
+  };
+  stripEdges();
+  strip.addEventListener('scroll', stripEdges, { passive: true });
+
   const chartEl = el.querySelector('.fc-chart');
   if (opts.chart === false) { chartEl.remove(); return null; }
 
@@ -227,8 +244,8 @@ async function renderForecast(el, slug, opts = {}) {
   const hasSpread = F.temp_spread_c.some(v => v !== null);
   const series = [
     { label: '°C', stroke: cssVar('--ch-temp'), width: 1.5 },
-    ...(hasSpread ? [{ label: '+σ', stroke: 'transparent', width: 0 },
-                     { label: '−σ', stroke: 'transparent', width: 0 }] : []),
+    ...(hasSpread ? [{ label: '+σ', stroke: 'transparent', width: 0, noLegend: true },
+                     { label: '−σ', stroke: 'transparent', width: 0, noLegend: true }] : []),
     { label: 'mm', stroke: cssVar('--ch-rain'), fill: cssVar('--ch-rain-fill'), scale: 'mm',
       paths: uPlot.paths.bars ? uPlot.paths.bars({ size: [0.6, 100] }) : undefined },
   ];
@@ -260,7 +277,8 @@ async function renderSkillLine(el, slug) {
     if (!d.n_pairs || !d.leads.length) return;
     const lead = d.leads.find(l => l.lead_h >= 18) || d.leads[d.leads.length - 1];
     const bits = [];
-    if (lead.temp_mae_c !== null) bits.push(`temperature within ±${lead.temp_mae_c} °C about a day out`);
+    if (lead.temp_mae_c !== null)
+      bits.push(`temperature within ±${Math.round(lead.temp_mae_c * 10) / 10} °C about a day out`);
     if (lead.precip_pod !== null) bits.push(`${Math.round(lead.precip_pod * 100)}% of rainy hours called in advance`);
     if (bits.length) el.textContent = ` · past 30 days here: ${bits.join(', ')}`;
   } catch { /* skill is a luxury; silence is fine */ }

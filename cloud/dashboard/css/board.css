@@ -55,7 +55,20 @@
   text-transform: uppercase; color: var(--text-mute); margin: 0;
   font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.wg-tools { margin-left: auto; display: none; gap: 4px; }
+/* one-tap range presets (widgets with a `ranges` entry in the registry) */
+.wg-range { margin-left: auto; display: inline-flex; gap: 2px; }
+.wg-range button {
+  background: none; border: 1px solid transparent; cursor: pointer;
+  color: var(--text-mute); font: 500 10px var(--mono);
+  padding: 1px 6px; border-radius: 4px; letter-spacing: 0.04em;
+}
+.wg-range button:hover { color: var(--accent); }
+.wg-range button.on {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.wg-tools { display: none; gap: 4px; }
 .editing .wg-tools { display: inline-flex; }
 .wg-tools button {
   background: none; border: 1px solid var(--border); color: var(--text-dim);

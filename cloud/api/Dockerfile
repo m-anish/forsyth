@@ -5,6 +5,11 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends ffmpeg postgresql-client \
  && rm -rf /var/lib/apt/lists/*
 
+# The droplet has no global IPv6 route; without this, dual-stack hosts
+# (googleapis, openai, github) sometimes get dialed on their AAAA address
+# first → "Network is unreachable". Prefer IPv4-mapped addresses.
+RUN printf 'precedence ::ffff:0:0/96 100\n' >> /etc/gai.conf
+
 # Build context is cloud/ (see docker-compose.yml) so the dashboard can ride along.
 WORKDIR /srv
 COPY api/pyproject.toml ./
