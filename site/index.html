@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>forsyth — it knew it would rain</title>
-  <meta name="description" content="A solar-powered mesh of small weather stations — wind, rain, pressure, air, lightning — that talk over LoRa and tell you what the sky is planning. A starstucklab project." />
+  <meta name="description" content="A solar-powered mesh of small weather stations that talk over LoRa — and a forecast engine that checks the global models against what the valley actually did, in public. A starstucklab project." />
   <meta property="og:title" content="forsyth" />
   <meta property="og:description" content="A scatter of quiet machines that know what the sky is planning. A starstucklab project." />
   <meta property="og:image" content="https://forsyth.starstucklab.com/assets/hero.webp" />
@@ -50,7 +50,9 @@
       <span>Lower Himalayas, 2026</span>
     </div>
     <h1>forsyth<span class="tail">.</span></h1>
-    <p class="hero-tag">A scatter of quiet machines that know what the sky is planning.</p>
+    <p class="hero-tag">A scatter of quiet machines that know what the sky is planning —
+      and keep the forecasts honest about it.</p>
+    <a class="hero-cta" href="https://live.forsyth.starstucklab.com">watch it live ↗</a>
   </div>
 
   <!-- The aneroid: the needle falls first, then — only then — the rain starts. -->
@@ -171,6 +173,53 @@
           <p>You glance at a graph and move the picnic indoors an hour early. Nobody applauds. That's the point.</p>
         </li>
       </ol>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ THE ARGUMENT ============ -->
+<section class="text" id="argument">
+  <div class="wrap">
+    <div class="cols-two">
+      <div>
+        <span class="kicker">The other half</span>
+        <h2 class="headline">It doesn't just measure. It argues.</h2>
+      </div>
+      <div class="prose">
+        <p>
+          Every three hours, Forsyth asks the world's big forecast models —
+          ECMWF, GFS, ICON — what they expect for each station, and writes the
+          answer down. Then it waits, measures, and <em>scores them</em>. Every
+          station page shows the models' local report card: how far off the
+          temperature ran, how many rainy hours were called in advance. A
+          forecast that grades its own homework in public is a different kind
+          of forecast.
+        </p>
+        <p>
+          And when the sky contradicts the models — rain falling that nobody
+          predicted, pressure crashing faster than promised — Forsyth says so,
+          plainly, in one sentence at the top of the page (English or हिंदी,
+          as you prefer). In these valleys, where weather escalates faster
+          than any model keeps up, the disagreement <em>is</em> the warning.
+          Trust the sky, not the model.
+        </p>
+        <p>
+          The third voice is yours. Press <strong>“report the sky”</strong> —
+          hail, fog, the snow line, a blocked road, ten seconds, no account
+          needed. Each report is cross-checked against the nearest station,
+          and reporters who prove reliably right become trusted observers
+          whose word alone can raise the warning for the whole valley. No
+          affordable sensor measures hail; you do.
+        </p>
+        <p class="argue-links">
+          The full method — every threshold, every reason, written to be
+          argued with — is in
+          <a href="https://github.com/m-anish/forsyth/blob/main/cloud/docs/forecasting-whitepaper.md">the white paper ↗</a>.
+          The argument itself runs at
+          <a href="https://live.forsyth.starstucklab.com">live.forsyth.starstucklab.com ↗</a>.
+        </p>
+      </div>
     </div>
   </div>
 </section>
@@ -403,10 +452,12 @@
         soldered by hand.
       </p>
       <p>
-        The listening half, however, already runs: three imaginary stations are
+        The thinking half, however, already runs: three imaginary stations are
         rehearsing plausible weather at
         <a href="https://live.forsyth.starstucklab.com">live.forsyth.starstucklab.com</a>
-        so that the day the first real leaf speaks, somewhere is already listening.
+        — against <em>real</em> forecasts for real coordinates, scored for real,
+        with the report button live — so that the day the first real leaf
+        speaks, somewhere is already listening, and already keeping score.
       </p>
       <p>
         No SKU, no ship date, no promises — beyond this one: when it exists,
@@ -434,6 +485,10 @@
             It has strong feelings about surprises. That's the whole product.
           </li>
           <li>
+            <strong>Out-model the global forecasts.</strong>
+            It doesn't try. It checks their homework instead, and posts the grades.
+          </li>
+          <li>
             <strong>Say "I told you so."</strong>
             It thinks it, quietly, at 868&nbsp;MHz.
           </li>
@@ -457,7 +512,8 @@
       <div>
         <h4>The build</h4>
         <p>Architecture, BOM, research notes:<br><a href="https://github.com/m-anish/forsyth">github&nbsp;↗</a><br>
-        The mesh, rehearsing: <a href="https://live.forsyth.starstucklab.com">live&nbsp;dashboard&nbsp;↗</a></p>
+        The mesh, rehearsing: <a href="https://live.forsyth.starstucklab.com">live&nbsp;dashboard&nbsp;↗</a><br>
+        How the forecasting works: <a href="https://github.com/m-anish/forsyth/blob/main/cloud/docs/forecasting-whitepaper.md">white&nbsp;paper&nbsp;↗</a></p>
       </div>
       <div>
         <h4>The family</h4>
