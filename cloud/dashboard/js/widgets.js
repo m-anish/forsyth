@@ -209,7 +209,7 @@ const Widgets = (() => {
                  ranges: [[24,'24h'],[48,'48h'],[96,'4d'],[168,'7d']], defaultHours: 48 },
     reports:   { label: 'Human reports',      render: reports,   w: 4, h: 3, fields: ['hours'],
                  ranges: [[24,'24h'],[72,'3d'],[168,'7d']], defaultHours: 24 },
-    summary:   { label: 'Weather',            render: summary,   w: 12, h: 1, fields: ['stationOrAll'] },
+    summary:   { label: 'Weather',            render: summary,   w: 12, h: 2, fields: ['stationOrAll'] },
     health:    { label: 'Mesh health',        render: health,    w: 4, h: 2, fields: [] },
   };
 

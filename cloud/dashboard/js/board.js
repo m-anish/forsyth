@@ -99,7 +99,10 @@ async function loadBoard() {
   }
   B.board = board;
   const layout = board.layout;
+  document.getElementById('board-kicker').textContent =
+    B.slug === 'default' ? 'Live · the whole mesh' : 'A board of one’s own';
   document.getElementById('board-heading').textContent = board.title || layout.title || 'Board';
+  applyHomeBtn();
   document.getElementById('board-title').value = board.title || '';
   document.getElementById('is-public').checked = !!board.is_public;
   document.getElementById('vis-wrap').style.display = B.slug === 'default' ? 'none' : '';
@@ -132,12 +135,13 @@ async function loadPicker() {
   if (!B.user) { picker.hidden = true; return; }
   const { boards } = await apiJSON('/boards');
   picker.innerHTML =
-    `<option value="default" ${B.slug === 'default' ? 'selected' : ''}>· homepage board ·</option>` +
+    `<option value="__home__" ${B.slug === 'default' ? 'selected' : ''}>· homepage board ·</option>` +
     boards.map(b => `<option value="${b.slug}" ${b.slug === B.slug ? 'selected' : ''}>
-        ${b.title}${b.is_public ? ' ⚭' : ''}</option>`).join('');
+        ${b.title}${b.slug === B.user.default_board ? ' ★' : ''}${b.is_public ? ' ⚭' : ''}</option>`).join('');
   picker.hidden = false;
   picker.onchange = () => {
-    location.href = picker.value === 'default' ? 'board.html' : `board.html?b=${picker.value}`;
+    /* __home__ forces the site board even when you have a personal default */
+    location.href = picker.value === '__home__' ? 'board.html?b=default' : `board.html?b=${picker.value}`;
   };
 }
 
@@ -230,6 +234,21 @@ function applyAuthUI() {
   document.getElementById('btn-login').textContent = B.user ? `sign out (${B.user.username})` : 'sign in';
   document.getElementById('btn-new-board').hidden = !B.user;
   document.getElementById('admin-link').hidden = !(B.user && B.user.is_admin);
+  applyHomeBtn();
+}
+
+/* the ☆/★ "home" toggle: which board you land on with no ?b. Hidden on the
+   site 'default' board (landing there = having no preference set). */
+function applyHomeBtn() {
+  const btn = document.getElementById('btn-home');
+  const show = !!B.user && B.slug !== 'default';
+  btn.hidden = !show;
+  if (!show) return;
+  const isHome = B.user.default_board === B.slug;
+  btn.textContent = isHome ? '★ home' : '☆ home';
+  btn.title = isHome ? 'you land here when you sign in — click to unset'
+                     : 'land here when you sign in';
+  btn.classList.toggle('on', isHome);
 }
 
 function wireChrome() {
@@ -305,11 +324,33 @@ function wireChrome() {
     }
   };
 
-  document.getElementById('btn-new-board').onclick = async () => {
-    const title = prompt('Name the new board:', 'My corner of the sky');
+  const nbDlg = document.getElementById('newboard-dlg');
+  document.getElementById('btn-new-board').onclick = () => {
+    document.getElementById('newboard-form').reset();
+    document.getElementById('newboard-err').textContent = '';
+    nbDlg.showModal();
+  };
+  document.getElementById('newboard-form').addEventListener('submit', async (ev) => {
+    if (ev.submitter && ev.submitter.value === 'cancel') return;   // let it close
+    ev.preventDefault();
+    const title = nbDlg.querySelector('[name=title]').value.trim();
     if (!title) return;
-    const r = await apiJSON('/boards', { method: 'POST', body: JSON.stringify({ title }) });
-    location.href = `board.html?b=${r.slug}`;
+    try {
+      const r = await apiJSON('/boards', { method: 'POST', body: JSON.stringify({ title }) });
+      if (document.getElementById('newboard-home').checked) {
+        await apiJSON(`/boards/${r.slug}/default`, { method: 'POST' });
+      }
+      location.href = `board.html?b=${r.slug}`;
+    } catch (e) {
+      document.getElementById('newboard-err').textContent = e.message;
+    }
+  });
+
+  document.getElementById('btn-home').onclick = async (ev) => {
+    const r = await apiJSON(`/boards/${B.slug}/default`, { method: 'POST' });
+    B.user.default_board = r.default_board;
+    applyHomeBtn();
+    ev.target.blur();
   };
 
   document.getElementById('btn-share').onclick = async (ev) => {
@@ -360,11 +401,19 @@ async function boot() {
 
   wireChrome();
   B.user = await whoami();
+  /* no ?b in the URL: land on the user's chosen home board if they set one,
+     otherwise the public 'default'. The homepage ("/") comes through here. */
+  const qb = new URLSearchParams(location.search).get('b');
+  B.slug = qb || (B.user && B.user.default_board) || 'default';
   applyAuthUI();
   await Promise.all([loadBoard(), loadPicker()]);
+  refreshBanner();
 
   window.addEventListener('themechange', renderAll);
-  setInterval(() => { Widgets.invalidate(); if (!B.editing) renderAll(); }, 60_000);
+  setInterval(() => {
+    Widgets.invalidate();
+    if (!B.editing) { renderAll(); refreshBanner(); }
+  }, 60_000);
 
   Report.mount();
   /* first sign-in (or ?tour=1) gets the walkthrough, once per browser */

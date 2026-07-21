@@ -113,6 +113,8 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FAL
 -- pw_hash NULL means "sign in with the provider, not a password".
 ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_sub TEXT;
+-- the board a signed-in user lands on (board.html with no ?b=); NULL = site default
+ALTER TABLE users ADD COLUMN IF NOT EXISTS default_board TEXT;
 ALTER TABLE users ALTER COLUMN pw_hash DROP NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS users_oauth_idx ON users (oauth_provider, oauth_sub)
     WHERE oauth_provider IS NOT NULL;

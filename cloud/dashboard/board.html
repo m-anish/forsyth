@@ -3,22 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>forsyth · board</title>
-  <meta name="description" content="Your own arrangement of the Forsyth weather mesh." />
+  <title>forsyth · live</title>
+  <meta name="description" content="The Forsyth weather mesh, live — forecasts kept honest against the stations on the ground." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/uplot@1.6.31/dist/uPlot.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/gridstack@10.3.1/dist/gridstack.min.css" />
-  <link rel="stylesheet" href="css/dash.css?v=27" />
-  <link rel="stylesheet" href="css/board.css?v=27" />
+  <link rel="stylesheet" href="css/dash.css?v=28" />
+  <link rel="stylesheet" href="css/board.css?v=28" />
   <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#0b0c0e" />
-  <script src="js/theme.js?v=27"></script>
+  <script src="js/theme.js?v=28"></script>
 </head>
 <body>
 
@@ -28,6 +28,7 @@
     <span class="crumb">/ live / board</span>
     <span class="right">
       <select id="board-picker" class="board-picker" hidden></select>
+      <button class="tool-btn" id="btn-home" type="button" hidden title="land here when you sign in">☆ home</button>
       <button class="tool-btn" id="btn-new-board" type="button" hidden>+ board</button>
       <a href="admin.html" class="nav-chip" id="admin-link" hidden>admin →</a>
       <button class="theme-btn" type="button" aria-label="switch color theme">◐ auto</button>
@@ -68,10 +69,16 @@
 
 <main class="wrap board-wrap">
   <div class="pagehead">
-    <span class="kicker">A board of one's own</span>
+    <span class="kicker" id="board-kicker">A board of one's own</span>
     <h1 class="headline" id="board-heading">…</h1>
     <p class="sub" id="board-sub"></p>
   </div>
+
+  <div class="wx-banner" id="wx-banner" role="status">
+    <span class="k">Weather</span>
+    <p></p>
+  </div>
+
   <div class="grid-stack" id="grid"></div>
 </main>
 
@@ -87,6 +94,21 @@
     <div class="dlg-row">
       <button value="cancel" class="tool-btn" formnovalidate>cancel</button>
       <button value="ok" class="tool-btn save" id="login-submit">sign in</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- new board dialog -->
+<dialog id="newboard-dlg">
+  <form method="dialog" id="newboard-form">
+    <h3>A new board</h3>
+    <label>name <input name="title" maxlength="80" placeholder="My corner of the sky" required /></label>
+    <p class="rp-why" style="margin:10px 0 0">It starts as a copy of this arrangement — rearrange it however you like.</p>
+    <label class="pub"><input type="checkbox" id="newboard-home" /> land here when I sign in (make it my home)</label>
+    <p class="dlg-err" id="newboard-err"></p>
+    <div class="dlg-row">
+      <button value="cancel" class="tool-btn" formnovalidate>cancel</button>
+      <button value="ok" class="tool-btn save">create</button>
     </div>
   </form>
 </dialog>
@@ -115,11 +137,11 @@
 <script src="https://unpkg.com/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/gridstack@10.3.1/dist/gridstack-all.js"></script>
-<script src="js/common.js?v=27"></script>
-<script src="js/map.js?v=27"></script>
-<script src="js/report.js?v=27"></script>
-<script src="js/widgets.js?v=27"></script>
-<script src="js/tour.js?v=27"></script>
-<script src="js/board.js?v=27"></script>
+<script src="js/common.js?v=28"></script>
+<script src="js/map.js?v=28"></script>
+<script src="js/report.js?v=28"></script>
+<script src="js/widgets.js?v=28"></script>
+<script src="js/tour.js?v=28"></script>
+<script src="js/board.js?v=28"></script>
 </body>
 </html>

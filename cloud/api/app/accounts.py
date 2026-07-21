@@ -45,21 +45,23 @@ WIDGET_TYPES = {"now", "chart", "windrose", "aqi", "lightning", "camera", "map",
 
 # The homepage arrangement, following the weather-product canon (alert bar →
 # current hero → hourly forecast → map → detail), in Forsyth's own order of
-# honesty: the banner speaks first, the forecast shows its work, the map gives
-# the valley, feeds carry what people and the sky reported.
+# honesty. The alert BANNER is not a widget — it is a fixed page-level element
+# above every board (board.js), so it never clips and looks identical on the
+# homepage and station pages. The grid below carries the rest: the forecast
+# shows its work, the map gives the valley, feeds carry what people and the
+# sky reported, and mesh health lets the instrument show its own pulse.
 DEFAULT_LAYOUT = {
     "title": "The mesh, at a glance",
     "widgets": [
-        {"id": "w1", "type": "summary",   "x": 0, "y": 0,  "w": 12, "h": 1, "config": {}},
-        {"id": "w2", "type": "now",       "x": 0, "y": 1,  "w": 3,  "h": 4, "config": {}},
-        {"id": "w3", "type": "forecast",  "x": 3, "y": 1,  "w": 6,  "h": 4, "config": {}},
-        {"id": "w4", "type": "windrose",  "x": 9, "y": 1,  "w": 3,  "h": 4, "config": {}},
-        {"id": "w5", "type": "map",       "x": 0, "y": 5,  "w": 8,  "h": 4, "config": {}},
-        {"id": "w6", "type": "lightning", "x": 8, "y": 5,  "w": 4,  "h": 2, "config": {}},
-        {"id": "w7", "type": "reports",   "x": 8, "y": 7,  "w": 4,  "h": 2, "config": {}},
-        {"id": "w8", "type": "chart",     "x": 0, "y": 9,  "w": 8,  "h": 3,
+        {"id": "w2", "type": "now",       "x": 0, "y": 0,  "w": 3,  "h": 4, "config": {}},
+        {"id": "w3", "type": "forecast",  "x": 3, "y": 0,  "w": 6,  "h": 4, "config": {}},
+        {"id": "w4", "type": "windrose",  "x": 9, "y": 0,  "w": 3,  "h": 4, "config": {}},
+        {"id": "w5", "type": "map",       "x": 0, "y": 4,  "w": 8,  "h": 4, "config": {}},
+        {"id": "w6", "type": "lightning", "x": 8, "y": 4,  "w": 4,  "h": 2, "config": {}},
+        {"id": "w7", "type": "reports",   "x": 8, "y": 6,  "w": 4,  "h": 2, "config": {}},
+        {"id": "w8", "type": "chart",     "x": 0, "y": 8,  "w": 8,  "h": 3,
          "config": {"metrics": "temp_c,rh", "hours": 24, "title": "Temperature & humidity · 24 h"}},
-        {"id": "w9", "type": "health",    "x": 8, "y": 9,  "w": 4,  "h": 3, "config": {}},
+        {"id": "w9", "type": "health",    "x": 8, "y": 8,  "w": 4,  "h": 3, "config": {}},
     ],
 }
 
@@ -114,8 +116,8 @@ def current_user(request: Request) -> dict | None:
         return None
     with engine.connect() as conn:
         row = conn.execute(text(
-            "SELECT username, is_admin FROM users WHERE username = :u"), {"u": name}
-        ).mappings().first()
+            "SELECT username, is_admin, default_board FROM users WHERE username = :u"),
+            {"u": name}).mappings().first()
     return dict(row) if row else None
 
 
@@ -548,6 +550,20 @@ def delete_board(slug: str, request: Request):
     if not n:
         raise HTTPException(404, "no such board of yours")
     return {"ok": True}
+
+
+@router.post("/boards/{slug}/default")
+def set_default_board(slug: str, request: Request):
+    """Make this board what I land on (board.html with no ?b=). Calling it on
+    the current default clears the preference back to the site board."""
+    user = require_user(request)
+    with engine.begin() as conn:
+        if slug != "default" and _board_row(conn, slug) is None:
+            raise HTTPException(404, "no such board")
+        new = None if user.get("default_board") == slug or slug == "default" else slug
+        conn.execute(text("UPDATE users SET default_board = :b WHERE username = :u"),
+                     {"b": new, "u": user["username"]})
+    return {"ok": True, "default_board": new}
 
 
 @router.post("/boards/{slug}/publish-home")

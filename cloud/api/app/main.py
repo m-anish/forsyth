@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 # python's mimetypes predates web app manifests; without this the dashboard's
@@ -75,4 +76,15 @@ def run_job(job: str, request: Request):
 # media (frames, timelapses) then the dashboard at the root — order matters.
 app.mount("/media", StaticFiles(directory=settings.media_root, check_dir=False), name="media")
 _dash = Path(__file__).resolve().parent.parent / "dashboard"
+
+
+# The homepage IS the board: one layout (the 'default' board), rendered by
+# board.html — read-only for visitors, editable for its owners. This route
+# serves it at "/" so there is a single homepage implementation, not a
+# hand-built page drifting apart from the board it's meant to mirror.
+@app.get("/", include_in_schema=False)
+def homepage():
+    return FileResponse(_dash / "board.html")
+
+
 app.mount("/", StaticFiles(directory=str(_dash), html=True), name="dashboard")

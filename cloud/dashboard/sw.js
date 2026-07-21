@@ -7,7 +7,7 @@
    stale-while-revalidate is safe for them: a new version is a new URL.      */
 'use strict';
 
-const CACHE = 'forsyth-v1';
+const CACHE = 'forsyth-v2';   /* v2: "/" now serves the board, not the old index */
 
 self.addEventListener('install', e => {
   self.skipWaiting();

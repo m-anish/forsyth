@@ -11,6 +11,7 @@
   padding: 4px 12px;
 }
 .tool-btn:hover { color: var(--accent); border-color: var(--accent); }
+.tool-btn.on { color: var(--accent-2); border-color: var(--accent-2); }
 .tool-btn.save { color: var(--accent-2); border-color: color-mix(in srgb, var(--accent-2) 50%, transparent); }
 .tool-btn.save:hover { color: var(--bg); background: var(--accent-2); }
 
