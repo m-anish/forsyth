@@ -167,9 +167,14 @@ function openLocEditor(s) {
     if (!LOC.map) {
       LOC.map = L.map('loc-map');
       const dark = document.documentElement.dataset.theme === 'light' ? 'light_all' : 'dark_all';
-      L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark}/{z}/{x}/{y}{r}.png`,
+      const streets = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark}/{z}/{x}/{y}{r}.png`,
         { subdomains: 'abcd', maxZoom: 19,
-          attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>' }).addTo(LOC.map);
+          attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>' });
+      /* imagery first here: siting a mast is about which roof and which
+         field, which a street map cannot show you */
+      const sat = satelliteLayer().addTo(LOC.map);
+      L.control.layers({ 'satellite': sat, 'streets': streets },
+                       {}, { position: 'topright', collapsed: true }).addTo(LOC.map);
       LOC.marker = L.marker(start, { draggable: true }).addTo(LOC.map);
       LOC.marker.on('dragend', () => {
         const p = LOC.marker.getLatLng(); setLocPin(p.lat, p.lng, false);

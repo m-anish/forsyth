@@ -171,9 +171,13 @@ const forsythMap = (() => {
       subdomains: 'abcd', maxZoom: 19 });
     const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
       attribution: '© OSM © <a href="https://opentopomap.org">OpenTopoMap</a>', maxZoom: 17 });
+    const sat = satelliteLayer();
     carto.addTo(map);
     window.addEventListener('themechange', () => carto.setUrl(cartoUrl()));
-    L.control.layers({ 'streets': carto, 'terrain': topo }, {}, { position: 'topright', collapsed: true }).addTo(map);
+    /* streets stays the default — the station chips have to stay legible; the
+       imagery is there when you want to see the actual terrain under them */
+    L.control.layers({ 'streets': carto, 'terrain': topo, 'satellite': sat },
+                     {}, { position: 'topright', collapsed: true }).addTo(map);
 
     const fit = () => map.fitBounds(sited().map(s => [s.lat, s.lon]), { padding: [40, 40], maxZoom: 13 });
 

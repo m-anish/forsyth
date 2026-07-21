@@ -142,6 +142,18 @@ function makeChart(el, series, data, opts = {}) {
   return u;
 }
 
+/* Esri World Imagery — keyless, and the only basemap that shows the actual
+   roof, orchard or ridge a station sits on. Native detail runs out around z18
+   over the Himalaya (beyond that Esri serves a "no data" placeholder), so we
+   cap maxNativeZoom and let Leaflet upscale instead. Shared by the mesh map
+   and the admin siting picker so the URL and attribution live in one place. */
+function satelliteLayer() {
+  return L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    { attribution: 'Imagery © <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics',
+      maxNativeZoom: 18, maxZoom: 20 });
+}
+
 /* viewer's timezone, as their locale abbreviates it ("IST", "CEST", "GMT+2").
    Every timestamp on the site is already rendered in the viewer's local time
    (toLocale* APIs) — this label just says so out loud. */
