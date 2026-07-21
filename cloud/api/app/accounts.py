@@ -491,8 +491,12 @@ def get_board(slug: str, request: Request):
         row = _board_row(conn, slug)
     if row is None:
         if slug == "default":   # first boot: synthesize the site board
+            # admins must be able to arrange it BEFORE it has ever been saved —
+            # otherwise the homepage is uneditable until someone writes the row
+            u = current_user(request)
             return {"slug": "default", "owner": None, "title": DEFAULT_LAYOUT["title"],
-                    "is_public": True, "layout": DEFAULT_LAYOUT, "can_edit": False}
+                    "is_public": True, "layout": DEFAULT_LAYOUT,
+                    "can_edit": bool(u and u["is_admin"])}
         raise HTTPException(404, "no such board")
     user = current_user(request)
     is_owner = user and user["username"] == row["owner"]
