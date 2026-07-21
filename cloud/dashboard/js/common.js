@@ -152,17 +152,25 @@ function makeChart(el, series, data, opts = {}) {
    cap maxNativeZoom and let Leaflet upscale instead. Shared by the mesh map
    and the admin siting picker so the URL and attribution live in one place. */
 function satelliteLayer() {
-  const esri = (svc, o = {}) => L.tileLayer(
-    `https://server.arcgisonline.com/ArcGIS/rest/services/${svc}/MapServer/tile/{z}/{y}/{x}`,
-    { maxZoom: 20, ...o });
-  /* Hybrid, not bare imagery: roads and place names ride on top as transparent
-     reference tiles, so you can tell WHERE you are while still seeing the roof
-     or the ridge. Labels have data a zoom deeper than the imagery does. */
+  /* Hybrid, not bare imagery: you should be able to tell WHERE you are while
+     still seeing the roof or the ridge.
+
+     The labels come from OpenStreetMap via CARTO — deliberately the same data
+     and the same cartography as the `streets` basemap. Esri's own reference
+     tiles were the obvious choice and turned out to be the wrong one: they
+     carry Esri's commercial road data, which disagrees with OSM on geometry,
+     naming and (in these valleys especially) on which tracks exist at all, so
+     flipping to imagery looked like flipping to a different country's map.
+     OSM is also the richer source here — local mappers add the footpaths and
+     jeep tracks a global commercial dataset never hears about. */
   return L.layerGroup([
-    esri('World_Imagery', { maxNativeZoom: 18,
-      attribution: 'Imagery © <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics' }),
-    esri('Reference/World_Transportation', { maxNativeZoom: 19 }),
-    esri('Reference/World_Boundaries_and_Places', { maxNativeZoom: 19 }),
+    L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { maxNativeZoom: 18, maxZoom: 20,
+        attribution: 'Imagery © <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics' }),
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',
+      { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 20,
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>' }),
   ]);
 }
 
