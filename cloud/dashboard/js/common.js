@@ -244,6 +244,15 @@ async function renderForecast(el, slug, opts = {}) {
     el.innerHTML = '<p class="wg-empty">No forecast yet. The worker asks the models every three hours.</p>';
     return null;
   }
+  /* Same model run as last time, same window, DOM still intact → nothing to
+     redraw. Forecasts change every 3 h; the refresh loop runs every minute. */
+  if (opts.reuse && el._fcRun === d.run_at && el.querySelector('.fc-strip')) {
+    return el._fcPlot || null;   // strip-only widgets have no plot to return
+  }
+  /* rebuilding: tear the old plot down properly, or its resize observer leaks */
+  if (el._fcPlot) { el._fcPlot.destroy(); el._fcPlot = null; }
+  el._fcRun = d.run_at;
+
   const F = d.series;
 
   /* strip: the segment widens with the window, so a week reads as seven daily
@@ -365,6 +374,7 @@ async function renderForecast(el, slug, opts = {}) {
     refit();
     document.fonts?.ready?.then(refit);
   }
+  el._fcPlot = u;
   return u;
 }
 

@@ -49,13 +49,26 @@ const Widgets = (() => {
     const metrics = (config.metrics || 'temp_c').split(',').map(m => m.trim()).filter(Boolean);
     const hours = Number(config.hours || 24);
     const d = await getJSON(`/stations/${s.slug}/series?metrics=${metrics.join(',')}&hours=${hours}`);
+    const data = [d.ts, ...metrics.map(m => d.series[m])];
+    const key = `${s.slug}|${metrics.join(',')}|${hours}`;
+    /* same chart, new numbers: feed the existing plot instead of rebuilding it.
+       If the reader has dragged a zoom, leave their view alone this tick —
+       resetting it every minute would make zooming useless. */
+    if (el._uplot && el._chartKey === key) {
+      const u = el._uplot, x = u.data[0];
+      const zoomed = x.length > 1 &&
+        (u.scales.x.min > x[0] || u.scales.x.max < x[x.length - 1]);
+      if (!zoomed) u.setData(data);
+      return;
+    }
     destroyInstance(el);
     el.innerHTML = '';
     const palette = [cssVar('--ch-temp'), cssVar('--ch-rh'), cssVar('--ch-pres'),
                      cssVar('--ch-gust'), cssVar('--ch-batt'), cssVar('--ch-pm10')];
     const series = metrics.map((m, i) => ({ label: m.replace(/_/g, ' '), stroke: palette[i % palette.length], width: 1.5 }));
-    el._uplot = makeChart(el, series, [d.ts, ...metrics.map(m => d.series[m])],
+    el._uplot = makeChart(el, series, data,
                           { height: Math.max(120, el.clientHeight - 40) });
+    el._chartKey = key;
   }
 
   async function windrose(el, config) {
@@ -130,24 +143,37 @@ const Widgets = (() => {
   async function map(el, config) {
     const list = (await stations()).filter(s => s.lat !== null && s.lon !== null);
     if (!list.length) { el.innerHTML = '<p class="wg-empty">no sited stations</p>'; return; }
+    const mode = config.mode || 'temp';
+    /* Update in place. Rebuilding on every refresh threw away the reader's pan
+       and zoom once a minute and re-downloaded every tile — the map handle
+       exists precisely so new readings can flow into the live instance. */
+    if (el._maph && el._mapMode === mode && el.querySelector('.wg-map')) {
+      el._maph.update(list);
+      return;
+    }
     destroyInstance(el);
     el.innerHTML = '<div class="wg-map" style="position:absolute;inset:0"></div>';
     /* shared implementation (js/map.js) — compact: no legend/fullscreen */
-    const h = forsythMap(el.firstChild, list, { compact: true, mode: config.mode || 'temp' });
+    const h = forsythMap(el.firstChild, list, { compact: true, mode });
     el._map = h ? h.map : null;
     el._maph = h;
+    el._mapMode = mode;
   }
 
   async function forecast(el, config) {
     const s = await pick(config);
     if (!s) { el.innerHTML = '<p class="wg-empty">no stations yet</p>'; return; }
-    destroyInstance(el);
-    /* shared renderer (js/common.js) — strip only when the widget is short */
+    const hours = Number(config.hours || 48);
+    /* shared renderer (js/common.js) — strip only when the widget is short.
+       `reuse` lets it bail out when the model run hasn't changed: forecasts
+       refresh every 3 h, so rebuilding this every minute was pure churn. */
     el._uplot = await renderForecast(el, s.slug, {
-      hours: Number(config.hours || 48),
+      hours,
       chart: el.clientHeight > 190,
       fit: true,   /* measure the leftover space instead of guessing at it */
+      reuse: el._fcSig === `${s.slug}|${hours}`,
     });
+    el._fcSig = `${s.slug}|${hours}`;
   }
 
   async function reports(el, config) {
