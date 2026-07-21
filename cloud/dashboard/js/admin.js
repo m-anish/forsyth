@@ -78,7 +78,8 @@ function locLabel(s) {
 }
 
 async function loadStations() {
-  const { stations } = await getJSON('/stations');
+  /* admin endpoint: same stations plus the private ops metadata */
+  const { stations } = await api('/admin/stations');
   const tb = document.querySelector('#stations-table tbody');
   tb.innerHTML = stations.map(s => `
     <tr>
@@ -121,7 +122,8 @@ let LOC = { map: null, marker: null, slug: null };
 
 function locFields() {
   const f = document.getElementById('loc-form');
-  return { name: f.name, lat: f.lat, lon: f.lon, elev: f.elevation_m };
+  return { name: f.name, lat: f.lat, lon: f.lon, elev: f.elevation_m,
+           ops: ['contact_name','contact_phone','installed_on','hardware_rev','notes'] };
 }
 
 function setLocPin(lat, lon, moveMap) {
@@ -154,6 +156,8 @@ function openLocEditor(s) {
   const { name, lat: fl, lon: fo, elev } = locFields();
   const hasLoc = s.lat != null && s.lon != null;
   name.value = s.name || '';
+  const f = document.getElementById('loc-form');
+  locFields().ops.forEach(k => { f[k].value = s[k] == null ? '' : s[k]; });
   fl.value = hasLoc ? s.lat : ''; fo.value = hasLoc ? s.lon : '';
   elev.value = s.elevation_m != null ? Math.round(s.elevation_m) : '';
   document.getElementById('loc-dlg').showModal();
@@ -199,6 +203,13 @@ document.getElementById('loc-save').onclick = async (ev) => {
   const { name, lat: fl, lon: fo, elev } = locFields();
   const body = {};
   if (name.value.trim()) body.name = name.value.trim();
+  const form = document.getElementById('loc-form');
+  /* always send them: an emptied box must be able to CLEAR the column,
+     which omitting the key would never do */
+  locFields().ops.forEach(k => {
+    const v = form[k].value.trim();
+    body[k] = v === '' ? null : v;
+  });
   if (fl.value) body.lat = Number(fl.value);
   if (fo.value) body.lon = Number(fo.value);
   if (elev.value) body.elevation_m = Number(elev.value);

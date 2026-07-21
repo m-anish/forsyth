@@ -641,3 +641,11 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
 .map-pop .badge.ok { color: var(--good); border: 1px solid currentColor;
   border-radius: 4px; font-size: 10px; padding: 1px 5px; margin-left: 6px; }
 .wg-body .rp-open { margin-top: 8px; }
+
+/* admin: the "who hosts it" block, folded away until wanted */
+.ops-block { margin-top: 14px; border-top: 1px solid var(--border-2); padding-top: 10px; }
+.ops-block summary {
+  cursor: pointer; font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-mute);
+}
+.ops-block summary:hover { color: var(--accent); }

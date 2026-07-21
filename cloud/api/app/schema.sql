@@ -18,6 +18,16 @@ CREATE TABLE IF NOT EXISTS stations (
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Operational metadata: who hosts the mast, who to call when it goes quiet,
+-- when it went up, which board revision it is. Admin-only in both directions —
+-- never accepted from a device (see ingest._OPS_FIELDS) and never served on a
+-- public endpoint, because contact details are somebody's personal data.
+ALTER TABLE stations ADD COLUMN IF NOT EXISTS contact_name  TEXT;
+ALTER TABLE stations ADD COLUMN IF NOT EXISTS contact_phone TEXT;
+ALTER TABLE stations ADD COLUMN IF NOT EXISTS installed_on  DATE;
+ALTER TABLE stations ADD COLUMN IF NOT EXISTS hardware_rev  TEXT;
+ALTER TABLE stations ADD COLUMN IF NOT EXISTS notes         TEXT;
+
 CREATE TABLE IF NOT EXISTS readings (
     station_id   INTEGER NOT NULL REFERENCES stations(id) ON DELETE CASCADE,
     ts           TIMESTAMPTZ NOT NULL,

@@ -9,14 +9,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="css/dash.css?v=31" />
-  <link rel="stylesheet" href="css/board.css?v=31" />
+  <link rel="stylesheet" href="css/dash.css?v=32" />
+  <link rel="stylesheet" href="css/board.css?v=32" />
   <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#0b0c0e" />
-  <script src="js/theme.js?v=31"></script>
+  <script src="js/theme.js?v=32"></script>
 </head>
 <body>
 
@@ -100,6 +100,17 @@
     <p class="wg-empty" style="margin:0 0 10px">The display name is free to change — the slug is the station's identity and stays put. Click or drag the pin, or use your device's location; elevation auto-fills from the coordinates.</p>
     <label style="margin:0 0 12px">display name <input name="name" maxlength="60" placeholder="Ridge" /></label>
     <div id="loc-map"></div>
+    <details class="ops-block">
+      <summary>who hosts it, and other notes</summary>
+      <p class="wg-empty" style="margin:8px 0 0">Kept for operations only — never shown on the public site, never sent to a station, never in the CSV export.</p>
+      <div class="admin-form" style="margin-top:10px">
+        <label>contact <input name="contact_name" maxlength="80" placeholder="whose roof" /></label>
+        <label>phone <input name="contact_phone" maxlength="40" placeholder="who to call" /></label>
+        <label>installed <input name="installed_on" type="date" /></label>
+        <label>hardware <input name="hardware_rev" maxlength="40" placeholder="Board A REV0" /></label>
+      </div>
+      <label style="margin-top:10px">notes <input name="notes" maxlength="2000" placeholder="access, siting, quirks" /></label>
+    </details>
     <div class="admin-form" style="margin-top:12px">
       <label>lat <input name="lat" type="number" step="any" style="width:110px" /></label>
       <label>lon <input name="lon" type="number" step="any" style="width:110px" /></label>
@@ -138,7 +149,7 @@
 </footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="js/common.js?v=31"></script>
-<script src="js/admin.js?v=31"></script>
+<script src="js/common.js?v=32"></script>
+<script src="js/admin.js?v=32"></script>
 </body>
 </html>

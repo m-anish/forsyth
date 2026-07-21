@@ -1,7 +1,7 @@
 """Write paths: readings (single or batch), lightning, camera frames,
 station creation. Everything a leaf's data does on arrival starts here."""
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import secrets
@@ -174,6 +174,11 @@ class StationCreate(BaseModel):
 # it funnels through here so the HTTP editor and the coordinator's meta push
 # validate identically and can never diverge in what they accept.
 _LOCATION_FIELDS = ("name", "lat", "lon", "elevation_m")
+# Operational metadata. Deliberately NOT in _LOCATION_FIELDS: the MQTT `meta`
+# handler feeds device-supplied JSON into the same writer, and a coordinator
+# must never be able to set a host's phone number. Admin PATCH only.
+_OPS_FIELDS = ("contact_name", "contact_phone", "installed_on", "hardware_rev",
+               "notes")
 
 
 def _validate_location(lat=None, lon=None, elevation_m=None):
@@ -187,12 +192,15 @@ def _validate_location(lat=None, lon=None, elevation_m=None):
         raise HTTPException(422, "elevation_m out of range [-500, 9000]")
 
 
-def apply_station_location(slug: str, fields: dict) -> bool:
-    """Partial-update a station's location metadata. Only the keys present in
-    `fields` (a subset of _LOCATION_FIELDS) are written — omitted columns keep
-    their value, and the API key is never touched. Returns False if the slug
-    doesn't exist. Shared by PATCH /stations and the MQTT `meta` handler."""
-    updates = {k: v for k, v in fields.items() if k in _LOCATION_FIELDS}
+def apply_station_location(slug: str, fields: dict, allow=_LOCATION_FIELDS) -> bool:
+    """Partial-update a station's metadata. Only the keys present in `fields`
+    AND permitted by `allow` are written — omitted columns keep their value,
+    and the API key is never touched. Returns False if the slug doesn't exist.
+
+    `allow` is the privilege boundary: the MQTT `meta` handler takes the
+    default (location only, since the payload comes from a device), while the
+    admin PATCH widens it to include _OPS_FIELDS."""
+    updates = {k: v for k, v in fields.items() if k in allow}
     if not updates:
         return True
     _validate_location(updates.get("lat"), updates.get("lon"),
@@ -204,18 +212,25 @@ def apply_station_location(slug: str, fields: dict) -> bool:
             {**updates, "slug": slug},
         ).rowcount
     if n:
-        log.info("station %s location updated: %s", slug, sorted(updates))
+        # keys only — the values include personal data and must not reach logs
+        log.info("station %s metadata updated: %s", slug, sorted(updates))
     return bool(n)
 
 
 class StationUpdate(BaseModel):
     """Partial metadata update. Every field optional; unset fields untouched.
     Deliberately cannot change the API key, is_simulated, or WU credentials —
-    it exists to *edit location*, not to re-register."""
+    it edits metadata, it does not re-register."""
     name: str | None = None
     lat: float | None = None
     lon: float | None = None
     elevation_m: float | None = None
+    # operational, admin-only, never public (see _OPS_FIELDS)
+    contact_name: str | None = Field(None, max_length=80)
+    contact_phone: str | None = Field(None, max_length=40)
+    installed_on: date | None = None
+    hardware_rev: str | None = Field(None, max_length=40)
+    notes: str | None = Field(None, max_length=2000)
 
 
 @router.post("/stations", status_code=201)
@@ -248,6 +263,21 @@ def create_station(body: StationCreate, request: Request):
     return {"id": row[0], "slug": body.slug, "api_key": key}
 
 
+@router.get("/admin/stations")
+def admin_list_stations(request: Request):
+    """Stations WITH their operational metadata (contact details, notes). The
+    public GET /stations deliberately selects a fixed column list and will
+    never carry these — this is the only way they leave the database."""
+    from .accounts import require_admin
+    require_admin(request)
+    cols = ("slug", "name", "lat", "lon", "elevation_m", "is_simulated",
+            *_OPS_FIELDS)
+    with engine.connect() as conn:
+        rows = conn.execute(text(
+            f"SELECT {', '.join(cols)} FROM stations ORDER BY slug")).mappings().all()
+    return {"stations": [dict(r) for r in rows]}
+
+
 @router.patch("/stations/{slug}")
 def update_station(slug: str, body: StationUpdate, request: Request):
     """Edit a station's metadata (name / location) WITHOUT rotating its API key
@@ -256,7 +286,8 @@ def update_station(slug: str, body: StationUpdate, request: Request):
     from .accounts import require_admin
     require_admin(request)
     fields = body.model_dump(exclude_unset=True)
-    if not apply_station_location(slug, fields):
+    # admin path: location fields plus the operational/private ones
+    if not apply_station_location(slug, fields, _LOCATION_FIELDS + _OPS_FIELDS):
         raise HTTPException(404, "no such station")
     return {"ok": True, "slug": slug, "updated": sorted(fields)}
 
