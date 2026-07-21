@@ -99,8 +99,14 @@ async function loadBoard() {
   }
   B.board = board;
   const layout = board.layout;
-  document.getElementById('board-kicker').textContent =
-    B.slug === 'default' ? 'Live · the whole mesh' : 'A board of one’s own';
+  /* On the homepage the weather is the headline — the banner does the talking,
+     so the page furniture gets out of its way entirely. Named boards keep
+     their title, because the owner chose it. */
+  const isHome = B.slug === 'default';
+  document.querySelector('.topbar .crumb').textContent = isHome ? '/ live' : '/ live / board';
+  document.querySelector('.pagehead').classList.toggle('minimal', isHome);
+  document.getElementById('board-kicker').hidden = true;
+  document.getElementById('board-heading').hidden = isHome;
   document.getElementById('board-heading').textContent = board.title || layout.title || 'Board';
   applyHomeBtn();
   document.getElementById('board-title').value = board.title || '';
@@ -111,13 +117,19 @@ async function loadBoard() {
   document.getElementById('btn-edit').hidden = !board.can_edit;
 
   const sub = document.getElementById('board-sub');
-  if (B.slug === 'default') {
-    sub.textContent = B.user
-      ? (B.user.is_admin ? 'The homepage board. What visitors see; you can edit it.'
-                         : 'The homepage board. Make your own with “+ board”.')
-      : 'The public arrangement. Sign in to make your own.';
+  if (!isHome) {
+    sub.textContent = board.is_public ? 'Public — anyone with this link' : 'Private';
+  } else if (B.user && B.user.is_admin) {
+    /* the admin's one reminder that this board is everybody's */
+    sub.textContent = 'The public homepage — “arrange” changes what every visitor sees.';
+  } else if (B.user) {
+    sub.textContent = '';
   } else {
-    sub.textContent = `${board.owner}'s board · ${board.is_public ? 'public — anyone with this link' : 'private'}`;
+    sub.innerHTML = '<a href="#" id="signin-hint">Sign in</a> to customize.';
+    sub.querySelector('#signin-hint').onclick = (ev) => {
+      ev.preventDefault();
+      document.getElementById('btn-login').click();
+    };
   }
 
   B.grid.removeAll();
