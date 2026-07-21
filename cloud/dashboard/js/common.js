@@ -151,18 +151,31 @@ function makeChart(el, series, data, opts = {}) {
    over the Himalaya (beyond that Esri serves a "no data" placeholder), so we
    cap maxNativeZoom and let Leaflet upscale instead. Shared by the mesh map
    and the admin siting picker so the URL and attribution live in one place. */
+/* front-end config from the server (satellite key, feature flags). Fetched
+   once, cached; every page that builds a map already awaits data first, so by
+   the time satelliteLayer() runs this has resolved. */
+let _cfg = null;
+const _cfgReady = (async () => { try { _cfg = await getJSON('/config'); } catch { _cfg = {}; } })();
+
 function satelliteLayer() {
   /* Hybrid, not bare imagery: you should be able to tell WHERE you are while
      still seeing the roof or the ridge.
 
-     The labels come from OpenStreetMap via CARTO — deliberately the same data
-     and the same cartography as the `streets` basemap. Esri's own reference
-     tiles were the obvious choice and turned out to be the wrong one: they
-     carry Esri's commercial road data, which disagrees with OSM on geometry,
-     naming and (in these valleys especially) on which tracks exist at all, so
-     flipping to imagery looked like flipping to a different country's map.
-     OSM is also the richer source here — local mappers add the footpaths and
-     jeep tracks a global commercial dataset never hears about. */
+     Preferred: a keyed provider (SATELLITE_TILE_URL) that bakes imagery, roads
+     AND labels into one OSM-derived tileset — proper road geometry on the
+     photo, and the same OpenStreetMap lineage as the streets/terrain views so
+     switching layers doesn't switch cartographies.
+
+     Fallback when no key is configured: keyless Esri imagery with OSM labels
+     from CARTO. Labels harmonize with streets, but there's no road geometry —
+     you read the roads off the photo itself. Deliberately NOT Esri's own
+     reference tiles: their commercial road data disagrees with OSM on
+     geometry, naming and which tracks exist, which is what looked wrong. */
+  const sat = _cfg && _cfg.satellite;
+  if (sat && sat.url) {
+    return L.tileLayer(sat.url,
+      { maxZoom: sat.maxZoom || 20, attribution: sat.attribution });
+  }
   return L.layerGroup([
     L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',

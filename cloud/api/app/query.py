@@ -7,10 +7,23 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy import text
 
+from .config import settings
 from .db import engine
 from .ingest import READING_FIELDS
 
 router = APIRouter(prefix="/api/v1")
+
+
+@router.get("/config")
+def public_config():
+    """Non-secret front-end configuration — the dashboard reads this at load to
+    feature-detect. Only values that are meant to be public (map keys ride in
+    tile URLs and are domain-restricted, not secret) ever appear here."""
+    sat = settings.satellite_tile_url
+    return {
+        "satellite": ({"url": sat, "attribution": settings.satellite_attribution,
+                       "maxZoom": settings.satellite_max_zoom} if sat else None),
+    }
 
 NUMERIC_METRICS = [f for f in READING_FIELDS if f != "solar_state"]
 

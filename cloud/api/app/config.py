@@ -38,6 +38,19 @@ class Settings:
     # feature: POST 404s, GET says disabled, the dashboard shows no report UI
     reports_enabled: bool = os.environ.get("REPORTS_ENABLED", "true").lower() in ("1", "true", "yes")
 
+    # Optional keyed satellite basemap. Provider-agnostic: paste the full XYZ
+    # raster template (key and all) and its required attribution. When set, the
+    # map's "satellite" layer uses this proper hybrid (imagery + roads + labels
+    # in one tileset); when empty it falls back to keyless Esri imagery + OSM
+    # labels. The key rides in tile URLs — it is not a secret, so restrict it
+    # to this domain in the provider's dashboard.
+    satellite_tile_url: str = os.environ.get("SATELLITE_TILE_URL", "")
+    satellite_attribution: str = os.environ.get(
+        "SATELLITE_ATTRIBUTION",
+        '© <a href="https://www.maptiler.com/copyright/">MapTiler</a> '
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>')
+    satellite_max_zoom: int = int(os.environ.get("SATELLITE_MAX_ZOOM", "20"))
+
     # self-serve accounts (engagement-roadmap §4). OAuth providers appear in
     # the sign-in dialog only when their id+secret are set; redirect URI to
     # register with each provider: {PUBLIC_BASE_URL}/api/v1/auth/oauth/{provider}/callback
