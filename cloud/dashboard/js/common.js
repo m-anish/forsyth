@@ -152,10 +152,18 @@ function makeChart(el, series, data, opts = {}) {
    cap maxNativeZoom and let Leaflet upscale instead. Shared by the mesh map
    and the admin siting picker so the URL and attribution live in one place. */
 function satelliteLayer() {
-  return L.tileLayer(
-    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    { attribution: 'Imagery © <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics',
-      maxNativeZoom: 18, maxZoom: 20 });
+  const esri = (svc, o = {}) => L.tileLayer(
+    `https://server.arcgisonline.com/ArcGIS/rest/services/${svc}/MapServer/tile/{z}/{y}/{x}`,
+    { maxZoom: 20, ...o });
+  /* Hybrid, not bare imagery: roads and place names ride on top as transparent
+     reference tiles, so you can tell WHERE you are while still seeing the roof
+     or the ridge. Labels have data a zoom deeper than the imagery does. */
+  return L.layerGroup([
+    esri('World_Imagery', { maxNativeZoom: 18,
+      attribution: 'Imagery © <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics' }),
+    esri('Reference/World_Transportation', { maxNativeZoom: 19 }),
+    esri('Reference/World_Boundaries_and_Places', { maxNativeZoom: 19 }),
+  ]);
 }
 
 /* viewer's timezone, as their locale abbreviates it ("IST", "CEST", "GMT+2").
