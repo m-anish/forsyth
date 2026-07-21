@@ -156,11 +156,12 @@ const forsythMap = (() => {
     const state = { stations, mode: opts.mode || 'temp', markers: [], radar: null, radarTimer: null };
     if (!stations.filter(s => s.lat != null && s.lon != null).length) return null;
 
-    const map = L.map(el, { scrollWheelZoom: false, attributionControl: !opts.compact, zoomControl: true });
+    /* Attribution is always on, widgets included: OSM, CARTO and Esri all
+       require the credit, so a compact map is not licence to drop it. */
+    const map = L.map(el, { scrollWheelZoom: false, attributionControl: true, zoomControl: true });
     /* Leaflet's default prefix carries a flag; keep the credit, drop the rest.
        (The OSM/CARTO lines on the tile layers are license-required — untouched.) */
-    if (map.attributionControl)
-      map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
+    map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
     /* wheel zoom armed by intent (click), disarmed when the pointer leaves —
        stops the page-scroll hijack without making zoom unreachable */
     map.on('click focus', () => map.scrollWheelZoom.enable());

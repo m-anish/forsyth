@@ -166,6 +166,8 @@ function openLocEditor(s) {
   setTimeout(() => {
     if (!LOC.map) {
       LOC.map = L.map('loc-map');
+      /* same as the mesh map: keep the credit, drop Leaflet's default flag */
+      LOC.map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
       const dark = document.documentElement.dataset.theme === 'light' ? 'light_all' : 'dark_all';
       const streets = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark}/{z}/{x}/{y}{r}.png`,
         { subdomains: 'abcd', maxZoom: 19,

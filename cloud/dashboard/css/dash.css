@@ -649,3 +649,15 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
   letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-mute);
 }
 .ops-block summary:hover { color: var(--accent); }
+
+/* Map attribution is license-required (OSM, CARTO, Esri), so it is always
+   shown — including inside board widgets. Styled to belong to the page and
+   to stay quiet in a small map rather than shouting in default Leaflet white. */
+.leaflet-control-attribution {
+  background: color-mix(in srgb, var(--bg-card) 80%, transparent) !important;
+  color: var(--text-mute) !important;
+  font: 9.5px var(--mono) !important;
+  padding: 1px 6px !important;
+}
+.leaflet-control-attribution a { color: var(--text-dim) !important; border-bottom: none; }
+.leaflet-control-attribution a:hover { color: var(--accent) !important; }
