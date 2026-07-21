@@ -88,7 +88,7 @@ async function loadStations() {
       <td>${s.is_simulated ? '<span class="badge sim">rehearsal</span>' : 'real'}</td>
       <td class="mono">${agoLabel(s.last_seen)}</td>
       <td>
-        <button class="tool-btn" data-loc-station="${s.slug}">locate</button>
+        <button class="tool-btn" data-loc-station="${s.slug}">edit</button>
         <button class="tool-btn danger" data-del-station="${s.slug}">delete</button>
       </td>
     </tr>`).join('');
@@ -121,7 +121,7 @@ let LOC = { map: null, marker: null, slug: null };
 
 function locFields() {
   const f = document.getElementById('loc-form');
-  return { lat: f.lat, lon: f.lon, elev: f.elevation_m };
+  return { name: f.name, lat: f.lat, lon: f.lon, elev: f.elevation_m };
 }
 
 function setLocPin(lat, lon, moveMap) {
@@ -151,8 +151,9 @@ function openLocEditor(s) {
   LOC.slug = s.slug;
   document.getElementById('loc-slug').textContent = s.slug;
   document.getElementById('loc-err').textContent = '';
-  const { lat: fl, lon: fo, elev } = locFields();
+  const { name, lat: fl, lon: fo, elev } = locFields();
   const hasLoc = s.lat != null && s.lon != null;
+  name.value = s.name || '';
   fl.value = hasLoc ? s.lat : ''; fo.value = hasLoc ? s.lon : '';
   elev.value = s.elevation_m != null ? Math.round(s.elevation_m) : '';
   document.getElementById('loc-dlg').showModal();
@@ -195,8 +196,9 @@ document.getElementById('loc-here').onclick = () => {
 
 document.getElementById('loc-save').onclick = async (ev) => {
   ev.preventDefault();
-  const { lat: fl, lon: fo, elev } = locFields();
+  const { name, lat: fl, lon: fo, elev } = locFields();
   const body = {};
+  if (name.value.trim()) body.name = name.value.trim();
   if (fl.value) body.lat = Number(fl.value);
   if (fo.value) body.lon = Number(fo.value);
   if (elev.value) body.elevation_m = Number(elev.value);
