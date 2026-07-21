@@ -146,7 +146,7 @@ const Widgets = (() => {
     el._uplot = await renderForecast(el, s.slug, {
       hours: Number(config.hours || 48),
       chart: el.clientHeight > 190,
-      height: Math.max(140, el.clientHeight - 130),
+      fit: true,   /* measure the leftover space instead of guessing at it */
     });
   }
 
@@ -157,13 +157,13 @@ const Widgets = (() => {
       return;
     }
     const btn = (typeof Report !== 'undefined')
-      ? '<button class="tool-btn rp-open" type="button">👁 report the sky</button>' : '';
+      ? '<button class="tool-btn rp-open" type="button">💬 report the sky</button>' : '';
     if (!d.reports.length) {
       el.innerHTML = `<p class="wg-empty">No one has reported the sky lately.</p>${btn}`;
     } else {
       el.innerHTML = '<ul class="feed">' + d.reports.slice(0, 30).map(r => `
         <li><span class="t">${new Date(r.ts).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
-            <span class="bolt">${Report?.GLYPH?.[r.kind] || '👁'}</span>
+            <span class="bolt">${Report?.GLYPH?.[r.kind] || '💬'}</span>
             <span>${r.kind.replace(/_/g, ' ')}${r.intensity ? [' · light',' · moderate',' · heavy'][r.intensity-1] : ''}
                   ${r.qc_flag === 'corroborated' ? ' ✓' : ''}</span>
             <span class="d">${r.reporter || 'anon'}${r.trusted ? ' ★' : ''}</span></li>`).join('') + `</ul>${btn}`;

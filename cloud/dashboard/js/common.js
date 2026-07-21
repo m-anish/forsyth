@@ -139,6 +139,10 @@ function makeChart(el, series, data, opts = {}) {
   if (el._ro) el._ro.disconnect();   // re-renders must not stack observers
   el._ro = new ResizeObserver(() => u.setSize({ width: el.clientWidth, height: o.height }));
   el._ro.observe(el);
+  /* callers that only learn the right height after layout (see renderForecast's
+     `fit`) correct it here — o.height is updated too, so the resize observer
+     honors the correction instead of snapping back to the original guess */
+  u.resizeHeight = (h) => { o.height = h; u.setSize({ width: el.clientWidth, height: h }); };
   return u;
 }
 
@@ -296,13 +300,35 @@ async function renderForecast(el, slug, opts = {}) {
   const chartEl = el.querySelector('.fc-chart');
   if (opts.chart === false) { chartEl.remove(); return null; }
 
+  /* fit: size the chart to whatever space is actually left after the strip and
+     the footer, uPlot's own legend included — guessing at it (and forgetting
+     the legend) is what made tall widgets overflow into a scrollbar */
+  let chartH = opts.height || 200;
+  let showLegend = true;
+  if (opts.fit) {
+    const stripH = el.querySelector('.fc-strip').offsetHeight;
+    const footH = el.querySelector('.fc-foot').offsetHeight;
+    const avail = el.clientHeight - stripH - footH - 14;   // 14 = the two margins
+    const LEGEND_H = 26;
+    /* In a short widget the strip, legend and footer together leave the chart
+       nothing — so the legend goes rather than the chart being crushed. Hover
+       still reads values off the cursor; a squashed plot reads nothing. */
+    showLegend = avail - LEGEND_H >= 120;
+    chartH = Math.max(90, avail - (showLegend ? LEGEND_H : 0));
+  }
+
   /* temp line (with ensemble ±σ band when the GEFS rows exist) + rain bars */
   const hasSpread = F.temp_spread_c.some(v => v !== null);
   const series = [
     { label: '°C', stroke: cssVar('--ch-temp'), width: 1.5 },
-    ...(hasSpread ? [{ label: '+σ', stroke: 'transparent', width: 0, noLegend: true },
-                     { label: '−σ', stroke: 'transparent', width: 0, noLegend: true }] : []),
+    /* band edges are scaffolding for the shaded area — no line, and crucially
+       no POINTS, which otherwise speckle the chart above and below the line */
+    ...(hasSpread ? [{ label: '+σ', stroke: 'transparent', width: 0, noLegend: true,
+                       points: { show: false } },
+                     { label: '−σ', stroke: 'transparent', width: 0, noLegend: true,
+                       points: { show: false } }] : []),
     { label: 'mm', stroke: cssVar('--ch-rain'), fill: cssVar('--ch-rain-fill'), scale: 'mm',
+      points: { show: false },
       paths: uPlot.paths.bars ? uPlot.paths.bars({ size: [0.6, 100] }) : undefined },
   ];
   const data = [
@@ -313,9 +339,10 @@ async function renderForecast(el, slug, opts = {}) {
     ] : []),
     F.precip_mm,
   ];
-  return makeChart(chartEl, series, data, {
-    height: opts.height || 200,
+  const u = makeChart(chartEl, series, data, {
+    height: chartH,
     uplot: {
+      legend: { show: showLegend, live: true },
       scales: { mm: { range: (u, mn, mx) => [0, Math.max(1, mx)] } },
       axes: [uplotAxis(), uplotAxis({ size: 46 }),
              uplotAxis({ size: 40, scale: 'mm', side: 1, grid: { show: false } })],
@@ -323,6 +350,22 @@ async function renderForecast(el, slug, opts = {}) {
         fill: cssVar('--ch-temp-band') || 'rgba(214, 129, 62, 0.14)' }] } : {}),
     },
   });
+
+  /* The legend's real height is only knowable once uPlot has drawn it, so
+     rather than guess again, measure what actually overflowed and give that
+     much back. Run it again when the web fonts land: the strip and footer are
+     measured in fallback metrics first, and Fraunces/JetBrains Mono arriving
+     grows them by ~10px — which is exactly the scrollbar we were chasing. */
+  if (opts.fit) {
+    let curH = chartH;
+    const refit = () => {
+      const over = el.scrollHeight - el.clientHeight;
+      if (over > 0) { curH = Math.max(90, curH - over); u.resizeHeight(curH); }
+    };
+    refit();
+    document.fonts?.ready?.then(refit);
+  }
+  return u;
 }
 
 /* one dry line about how the models have actually done here — appended to

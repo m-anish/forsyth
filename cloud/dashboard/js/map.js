@@ -293,14 +293,14 @@ const forsythMap = (() => {
         const icon = L.divIcon({
           className: 'rp-pin-wrap',
           html: `<div class="rp-pin${fresh}" style="opacity:${fade.toFixed(2)};` +
-                `--rp-c:${RP_COLOR[r.kind] || 'var(--accent-2)'}">${RP_GLYPH[r.kind] || '👁'}</div>`,
+                `--rp-c:${RP_COLOR[r.kind] || 'var(--accent-2)'}">${RP_GLYPH[r.kind] || '💬'}</div>`,
           iconSize: null, iconAnchor: [15, 15],
         });
         const label = r.kind.replace(/_/g, ' ')
           + (r.intensity ? [' (light)', ' (moderate)', ' (heavy)'][r.intensity - 1] : '');
         L.marker(map.layerPointToLatLng(pt), { icon, keyboard: false }).addTo(state.reports)
           .bindTooltip(`${label} · ${agoLabel(r.ts)}`)
-          .bindPopup(`<div class="map-pop"><h4>👁 ${label}
+          .bindPopup(`<div class="map-pop"><h4>💬 ${label}
               ${r.qc_flag === 'corroborated' ? '<span class="badge ok">✓ station agrees</span>' : ''}</h4>
             <div class="l">${agoLabel(r.ts)} · ${r.reporter || 'someone nearby'}${r.trusted ? ' ★' : ''}</div>
             ${r.note ? `<div class="r"><span>note</span><b>${r.note.replace(/</g, '&lt;')}</b></div>` : ''}
@@ -409,7 +409,7 @@ const forsythMap = (() => {
       const tools = L.DomUtil.create('div', 'wx-tools leaflet-bar', wrap);
       tools.innerHTML = `<button type="button" data-t="radar" title="rain radar (RainViewer)">☂</button>
                      <button type="button" data-t="ltg" title="recent lightning">⚡</button>
-                     <button type="button" data-t="rep" title="human weather reports, last 6 h">👁</button>
+                     <button type="button" data-t="rep" title="human weather reports, last 6 h">💬</button>
                      <button type="button" data-t="scrub" title="time travel, last 24 h">⏱</button>
                      <button type="button" data-t="me" title="center on my location"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/></svg></button>
                      <button type="button" data-t="fit" title="fit stations">⌖</button>` +

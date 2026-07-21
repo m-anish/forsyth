@@ -200,7 +200,7 @@ const Report = (() => {
     fab.className = 'report-fab';
     fab.type = 'button';
     fab.title = 'report what the sky is doing';
-    fab.innerHTML = '<span class="g">👁</span> report the sky';
+    fab.innerHTML = '<span class="g">💬</span> report the sky';
     fab.onclick = open;
     document.body.appendChild(fab);
   }

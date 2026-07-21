@@ -32,18 +32,38 @@ def wait_for_api(client: httpx.Client) -> None:
 
 
 def register(client: httpx.Client) -> dict[str, str]:
-    """Create/rekey the dummy stations; returns slug → api key."""
+    """Create/rekey the dummy stations; returns slug → api key.
+
+    The sim has no persistent key store, so it must re-register on every boot
+    to get usable keys — but re-registering must not undo a human. A station
+    that already exists keeps ITS name and location (whatever an admin set in
+    the console); only genuinely new ones get the fictional defaults."""
+    existing = {}
+    try:
+        r = client.get(f"{API}/api/v1/stations")
+        r.raise_for_status()
+        existing = {s["slug"]: s for s in r.json()["stations"]}
+    except httpx.HTTPError:
+        pass   # first boot / API hiccup: fall back to the defaults below
+
     keys = {}
     for slug, (name, lat, lon, elev, _t, _p) in STATIONS.items():
+        cur = existing.get(slug)
+        if cur:   # echo back what's already there rather than resetting it
+            payload = {"slug": slug, "name": cur["name"], "lat": cur["lat"],
+                       "lon": cur["lon"], "elevation_m": cur["elevation_m"],
+                       "is_simulated": True}
+        else:
+            payload = {"slug": slug, "name": name, "lat": lat, "lon": lon,
+                       "elevation_m": elev, "is_simulated": True}
         r = client.post(
             f"{API}/api/v1/stations",
             headers={"Authorization": f"Bearer {ADMIN_KEY}"},
-            json={"slug": slug, "name": name, "lat": lat, "lon": lon,
-                  "elevation_m": elev, "is_simulated": True},
+            json=payload,
         )
         r.raise_for_status()
         keys[slug] = r.json()["api_key"]
-        log.info("registered %s", slug)
+        log.info("registered %s%s", slug, "" if cur else " (new)")
     return keys
 
 

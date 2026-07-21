@@ -249,13 +249,20 @@ def create_station(body: StationCreate, request: Request):
                             :is_simulated, :sensors, :wu_station_id, :wu_station_key)
                     ON CONFLICT (slug) DO UPDATE
                         SET name = EXCLUDED.name,
-                            lat = EXCLUDED.lat, lon = EXCLUDED.lon,
-                            elevation_m = EXCLUDED.elevation_m,
+                            -- re-registering is how a station gets a fresh key;
+                            -- it must not wipe curated metadata, so omitted
+                            -- (NULL) fields keep whatever is already there
+                            lat = COALESCE(EXCLUDED.lat, stations.lat),
+                            lon = COALESCE(EXCLUDED.lon, stations.lon),
+                            elevation_m = COALESCE(EXCLUDED.elevation_m,
+                                                   stations.elevation_m),
                             api_key_hash = EXCLUDED.api_key_hash,
                             is_simulated = EXCLUDED.is_simulated,
                             sensors = EXCLUDED.sensors,
-                            wu_station_id = EXCLUDED.wu_station_id,
-                            wu_station_key = EXCLUDED.wu_station_key
+                            wu_station_id = COALESCE(EXCLUDED.wu_station_id,
+                                                     stations.wu_station_id),
+                            wu_station_key = COALESCE(EXCLUDED.wu_station_key,
+                                                      stations.wu_station_key)
                     RETURNING id"""),
             {**body.model_dump(), "h": hash_key(key)},
         ).first()
