@@ -27,7 +27,10 @@ class Settings:
     # forecast layer (docs/insight-roadmap.md): open-meteo pulls, every run kept
     # so forecast-vs-observed pairs accrue. Base URLs are overridable for tests.
     forecast_enabled: bool = os.environ.get("FORECAST_ENABLED", "true").lower() in ("1", "true", "yes")
-    forecast_days: int = int(os.environ.get("FORECAST_DAYS", "3"))
+    # 7 days: the dashboard offers a 7-day window, so the archive must actually
+    # reach that far. Skill decays with lead time — the ensemble spread band is
+    # what keeps the far end honest rather than hiding it.
+    forecast_days: int = int(os.environ.get("FORECAST_DAYS", "7"))
     forecast_ensemble: bool = os.environ.get("FORECAST_ENSEMBLE", "true").lower() in ("1", "true", "yes")
     forecast_retention_days: int = int(os.environ.get("FORECAST_RETENTION_DAYS", "730"))
 

@@ -118,6 +118,9 @@
   color: var(--text-dim); white-space: nowrap; }
 .fc-seg .g { font-size: 17px; line-height: 1.2; }
 .fc-seg .v { font-family: var(--mono); font-size: 13px; }
+/* daily cards carry "27°/18°", which needs a little more room than one value */
+.fc-strip.daily .fc-seg { flex-basis: 68px; min-width: 68px; }
+.fc-strip.daily .fc-seg .v { font-size: 12px; }
 .fc-seg .p { font-family: var(--mono); font-size: 10.5px; color: var(--text-dim); }
 .fc-chart { margin-top: 8px; }
 .fc-foot { margin: 6px 0 0; }

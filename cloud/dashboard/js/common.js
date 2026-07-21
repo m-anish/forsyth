@@ -230,14 +230,18 @@ async function renderForecast(el, slug, opts = {}) {
   }
   const F = d.series;
 
-  /* strip: one card per 6 h */
+  /* strip: the segment widens with the window, so a week reads as seven daily
+     cards rather than twenty-eight six-hourly slivers */
+  const segH = hours <= 48 ? 6 : hours <= 96 ? 12 : 24;
+  const daily = segH >= 24;
   const segs = [];
-  for (let i = 0; i < d.ts.length; i += 6) {
+  for (let i = 0; i < d.ts.length; i += segH) {
     const idx = [];
-    for (let k = i; k < Math.min(i + 6, d.ts.length); k++) idx.push(k);
+    for (let k = i; k < Math.min(i + segH, d.ts.length); k++) idx.push(k);
     const vals = a => idx.map(k => a[k]).filter(v => v !== null && v !== undefined);
     const avg = a => { const v = vals(a); return v.length ? v.reduce((x, y) => x + y, 0) / v.length : null; };
     const max = a => { const v = vals(a); return v.length ? Math.max(...v) : null; };
+    const min = a => { const v = vals(a); return v.length ? Math.min(...v) : null; };
     const sum = a => vals(a).reduce((x, y) => x + y, 0);
     const rain = sum(F.precip_mm), prob = max(F.precip_prob);
     const t0 = new Date(d.ts[i] * 1000);
@@ -245,18 +249,22 @@ async function renderForecast(el, slug, opts = {}) {
       /* day and time on separate lines — side by side they collide on
          phones; explicit "21:00" because a bare "21" reads as a date */
       day: t0.toLocaleString([], { weekday: 'short' }),
-      time: t0.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-      temp: avg(F.temp_c), rain, prob,
+      time: daily ? t0.toLocaleDateString([], { day: 'numeric', month: 'short' })
+                  : t0.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
+      /* daily cards headline the high and low, the way forecasts are read */
+      temp: daily ? `${fmt(max(F.temp_c), 0)}°/${fmt(min(F.temp_c), 0)}°`
+                  : `${fmt(avg(F.temp_c), 0)}°`,
+      rain, prob,
       glyph: wxGlyph(rain, prob, avg(F.cloud_cover_pct), avg(F.temp_c)),
     });
   }
   el.innerHTML = `
-    <div class="fc-strip">${segs.map(s => `
+    <div class="fc-strip${daily ? ' daily' : ''}">${segs.map(s => `
       <div class="fc-seg">
         <span class="t">${s.day}</span>
         <span class="t2">${s.time}</span>
         <span class="g">${s.glyph}</span>
-        <span class="v">${fmt(s.temp, 0)}°</span>
+        <span class="v">${s.temp}</span>
         <span class="p">${s.prob !== null ? Math.round(s.prob) + '%' :
                           s.rain > 0.2 ? s.rain.toFixed(1) + ' mm' : '·'}</span>
       </div>`).join('')}</div>
