@@ -26,9 +26,11 @@ def main() -> None:
     sched.add_job(elevation.run, IntervalTrigger(hours=1),
                   name="elevation", next_run_time=None)
     sched.add_job(elevation.run, "date", name="elevation-boot")
-    # global models refresh 4–8×/day; every 3 h is plenty, and a boot run means
-    # a fresh deploy has a forecast within a minute rather than within 3 h
-    sched.add_job(forecast.run, CronTrigger(hour="*/3", minute=15), name="forecast")
+    # Hourly. The models publish 4–8×/day but at staggered, drifting times, so
+    # polling hourly is what catches a new run promptly instead of up to three
+    # hours late; the job itself skips writing when the content hasn't changed,
+    # so the archive still holds one row-set per actual run (jobs/forecast.py).
+    sched.add_job(forecast.run, CronTrigger(minute=15), name="forecast")
     sched.add_job(forecast.run, "date", name="forecast-boot")
     log.info("worker up; jobs scheduled")
     sched.start()

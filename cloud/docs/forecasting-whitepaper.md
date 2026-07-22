@@ -65,7 +65,7 @@ From these constraints, four theses (the whole design is their consequence):
 | Source | What | Cadence | Cost | Trust model |
 |---|---|---|---|---|
 | Forsyth stations | temp, RH, pressure, wind avg/gust/dir, rain, PM1/2.5/10, lightning (distance) | ~minutes | owned | §3.1 |
-| [Open-Meteo](https://open-meteo.com) NWP | ECMWF IFS 0.25°, GFS "seamless", ICON "seamless", and its `best_match` blend; GEFS 0.25° ensemble | pulled every 3 h ⚙ | free (non-commercial) | §3.2 |
+| [Open-Meteo](https://open-meteo.com) NWP | ECMWF IFS 0.25°, GFS "seamless", ICON "seamless", and its `best_match` blend; GEFS 0.25° ensemble | polled hourly ⚙, stored only when the run changes | free (non-commercial) | §3.2 |
 | Human reports | 7 kinds: rain, hail, fog, snow line, wind damage, road blocked, flood; optional 1–3 intensity, 140-char note | event-driven | free | §3.3 |
 | *Planned:* IMD | district nowcast warnings, city forecasts (API key requested 2026-07-18); DWR imagery | — | free, registration-gated | overlay, not input, at first |
 | *Planned:* MOSDAC / ISRO | INSAT-3D/3DR products; GSMaP-ISRO gauge-corrected rain (0.1°, hourly) | — | free, registration-gated | satellite-vs-mesh cross-check |
@@ -76,7 +76,7 @@ deterministic call (hourly 2 m temperature, RH, surface pressure, 10 m
 wind/gust/direction, precipitation, precipitation probability, cloud cover;
 3 forecast days ⚙; station elevation passed for terrain downscaling) and one
 GEFS ensemble call reduced immediately to per-hour mean and standard
-deviation (members are not stored). Every run is kept for **730 days** ⚙ in a
+deviation (members are not stored). The job polls hourly but writes only when the returned numbers differ from the stored run: the models publish 4–8×/day at staggered times, so hourly polling catches a new run promptly while the archive still holds one row-set per actual run rather than one per poll. Every run so identified is kept for **730 days** ⚙ in a
 `forecasts` hypertable whose columns deliberately mirror the observations
 table, keyed by `(station, model, run_at, valid_at)` so that *lead time* —
 `valid_at − run_at`, the dimension any correction scheme conditions on — is a

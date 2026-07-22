@@ -5,7 +5,7 @@ scores (/skill) and, later, bias correction train on. See docs/insight-roadmap.m
 
 Two batched HTTP requests per cycle regardless of station count (comma-separated
 coordinate lists, same trick as the elevation job): one multi-model deterministic
-call, one GEFS ensemble call reduced to mean/spread. Runs every 3 h — global
+call, one GEFS ensemble call reduced to mean/spread. Runs hourly — global
 models only refresh 4–8×/day, so polling faster buys nothing.
 """
 import logging
@@ -48,10 +48,54 @@ _UPSERT = text(f"""
 
 
 def _run_bucket(now: datetime) -> datetime:
-    """Fetch-cycle bucket: now truncated to 3 h, so a re-run (admin button,
-    worker restart) within the same cycle upserts rather than duplicates."""
-    now = now.replace(minute=0, second=0, microsecond=0)
-    return now.replace(hour=now.hour - now.hour % 3)
+    """Fetch-cycle bucket: now truncated to the hour, so a re-run (admin
+    button, worker restart) within the same hour upserts rather than
+    duplicates. A *new* run_at is only ever written when the forecast content
+    actually changed — see _unchanged."""
+    return now.replace(minute=0, second=0, microsecond=0)
+
+
+def _differs(a, b, tol=1e-6) -> bool:
+    if a is None or b is None:
+        return (a is None) != (b is None)
+    return abs(a - b) > tol
+
+
+def _latest_snapshot(conn) -> dict:
+    """{(station_id, model): {valid_at: (temp_c, precip_mm)}} for the most
+    recent stored run of each pair — enough to recognise a fetch we already
+    have."""
+    rows = conn.execute(text("""
+        SELECT f.station_id, f.model, f.valid_at, f.temp_c, f.precip_mm
+        FROM forecasts f
+        JOIN (SELECT station_id, model, max(run_at) AS run_at
+              FROM forecasts GROUP BY station_id, model) l
+          ON l.station_id = f.station_id AND l.model = f.model
+         AND l.run_at = f.run_at""")).all()
+    snap: dict = {}
+    for sid, model, valid_at, t, p in rows:
+        snap.setdefault((sid, model), {})[valid_at] = (t, p)
+    return snap
+
+
+def _unchanged(prev: dict, rows: list[dict]) -> bool:
+    """True when every hour this fetch shares with the stored run carries the
+    same numbers — i.e. upstream hasn't published a new model run yet, and
+    writing this would only duplicate what we already have.
+
+    The horizon slides forward between polls, so the tail hours are legitimately
+    new; only the overlap is evidence, and we want a decent amount of it."""
+    if not prev:
+        return False
+    shared = 0
+    for r in rows:
+        old = prev.get(r["valid_at"])
+        if old is None:
+            continue
+        shared += 1
+        if _differs(old[0], r["temp_c"]) or _differs(old[1], r["precip_mm"]):
+            return False
+    return shared >= 6
 
 
 def _hourly_value(hourly: dict, var: str, model: str, i: int, single_model: bool):
@@ -163,9 +207,28 @@ def run() -> dict:
         except Exception as e:
             log.warning("ensemble fetch failed (%s); deterministic rows kept", e)
 
+    # Only persist model runs we don't already have. Polling hourly catches a
+    # new run within the hour it lands, but the models themselves only publish
+    # a few times a day — without this, most polls would write a fresh run_at
+    # holding numbers identical to the last one, bloating the archive and
+    # double-counting the same forecast in the skill statistics.
+    by_pair: dict = {}
+    for r in rows:
+        by_pair.setdefault((r["station_id"], r["model"]), []).append(r)
+
     with engine.begin() as conn:
-        conn.execute(_UPSERT, rows)
-    result = {"stations": len(stations), "rows": len(rows),
-              "run_at": run_at.isoformat()}
+        snap = _latest_snapshot(conn)
+        fresh, unchanged = [], 0
+        for pair, group in by_pair.items():
+            if _unchanged(snap.get(pair, {}), group):
+                unchanged += 1
+            else:
+                fresh.extend(group)
+        if fresh:
+            conn.execute(_UPSERT, fresh)
+
+    result = {"stations": len(stations), "rows": len(fresh),
+              "updated_models": len(by_pair) - unchanged,
+              "unchanged_models": unchanged, "run_at": run_at.isoformat()}
     log.info("forecast: %s", result)
     return result

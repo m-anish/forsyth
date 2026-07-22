@@ -38,7 +38,7 @@ public. Full detail, with every threshold and the reasoning behind each decision
 
 **Sources** — (1) the mesh's own stations (cheap sensors, trusted for *tendencies and
 density*, never for absolute calibration); (2) free global models via Open-Meteo — ECMWF,
-GFS, ICON and a GEFS ensemble, pulled every 3 h per station and **archived forever
+GFS, ICON and a GEFS ensemble, pulled hourly per station and **archived forever
 alongside what actually happened**; (3) quality-controlled human reports (hail, fog,
 snow line, blocked roads — the things no affordable sensor measures). Himachal has
 little usable radar at valley scale; the design assumes none and improves with any.
