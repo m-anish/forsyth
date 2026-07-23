@@ -291,21 +291,31 @@ const forsythMap = (() => {
           }
         }
         placedPts.push(pt);
+        /* composite: one pin, the primary kind's glyph, with a small ×N when
+           several things were reported together */
+        const obs = r.observations || [{ kind: r.kind, intensity: r.intensity }];
+        const primary = obs[0].kind;
+        const badge = obs.length > 1 ? `<span class="rp-pin-n">${obs.length}</span>` : '';
+        const alertCls = r.alert_level ? ` rp-alert-${r.alert_level}` : '';
         const icon = L.divIcon({
           className: 'rp-pin-wrap',
-          html: `<div class="rp-pin${fresh}" style="opacity:${fade.toFixed(2)};` +
-                `--rp-c:${RP_COLOR[r.kind] || 'var(--accent-2)'}">${RP_GLYPH[r.kind] || '💬'}</div>`,
+          html: `<div class="rp-pin${fresh}${alertCls}" style="opacity:${fade.toFixed(2)};` +
+                `--rp-c:${RP_COLOR[primary] || 'var(--accent-2)'}">${RP_GLYPH[primary] || '💬'}${badge}</div>`,
           iconSize: null, iconAnchor: [15, 15],
         });
-        const label = r.kind.replace(/_/g, ' ')
-          + (r.intensity ? [' (light)', ' (moderate)', ' (heavy)'][r.intensity - 1] : '');
+        const one = o => o.kind.replace(/_/g, ' ')
+          + (o.intensity ? ` (${['light', 'moderate', 'heavy'][o.intensity - 1]})` : '');
+        const label = obs.map(one).join(', ');
+        const agrees = obs.some(o => o.qc_flag === 'corroborated');
+        const alertBadge = r.alert_level
+          ? `<span class="badge alert alert-${r.alert_level}">${['', 'yellow', 'orange', 'red'][r.alert_level]} alert</span>` : '';
         L.marker(map.layerPointToLatLng(pt), { icon, keyboard: false }).addTo(state.reports)
           .bindTooltip(`${label} · ${agoLabel(r.ts)}`)
-          .bindPopup(`<div class="map-pop"><h4>💬 ${label}
-              ${r.qc_flag === 'corroborated' ? '<span class="badge ok">✓ station agrees</span>' : ''}</h4>
+          .bindPopup(`<div class="map-pop"><h4>💬 ${label} ${alertBadge}
+              ${agrees ? '<span class="badge ok">✓ station agrees</span>' : ''}</h4>
             <div class="l">${agoLabel(r.ts)} · ${r.reporter || 'someone nearby'}${r.trusted ? ' ★' : ''}</div>
             ${r.note ? `<div class="r"><span>note</span><b>${r.note.replace(/</g, '&lt;')}</b></div>` : ''}
-          </div>`, { maxWidth: 240 });
+          </div>`, { maxWidth: 260 });
       });
     }
     async function reportsUpdate() {
@@ -621,8 +631,34 @@ const forsythMap = (() => {
 
     map.on('popupopen', ev => fillCam(ev.popup.getElement()));
 
+    /* ---- community alert rings ----
+       Always on (not a toggle): a raised weather alert is the most important
+       thing the map can show. A coloured ring sits behind the alerted
+       station's chip; the colour is the standard warning palette. */
+    state.alertRings = L.layerGroup().addTo(map);
+    const ALERT_COLOR = { 1: '#d9a300', 2: '#e07a1f', 3: '#cc2f2f' };
+    async function drawAlerts() {
+      try {
+        if (!state.al || Date.now() - state.alAt > 60_000) {
+          const d = await getJSON('/alerts');
+          state.al = d.enabled ? d.stations : {};
+          state.alAt = Date.now();
+        }
+      } catch { return; }
+      state.alertRings.clearLayers();
+      sited().forEach(s => {
+        const a = state.al[s.slug];
+        if (!a) return;
+        L.circleMarker([s.lat, s.lon], {
+          radius: 26, color: ALERT_COLOR[a.level], weight: 2.5,
+          fill: true, fillColor: ALERT_COLOR[a.level], fillOpacity: 0.12,
+          className: 'alert-ring', interactive: false,
+        }).addTo(state.alertRings);
+      });
+    }
+
     state.stations = stations;
-    fit(); renderMarkers(); renderLegend();
+    fit(); renderMarkers(); renderLegend(); drawAlerts();
     window.addEventListener('themechange', renderMarkers);
 
     return {
@@ -630,6 +666,7 @@ const forsythMap = (() => {
       update(next) {
         state.stations = next;
         if (state.scrubAt == null) renderMarkers();
+        drawAlerts();
       },
       destroy() {
         clearInterval(state.radarTimer);

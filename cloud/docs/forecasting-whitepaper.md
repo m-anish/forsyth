@@ -66,7 +66,7 @@ From these constraints, four theses (the whole design is their consequence):
 |---|---|---|---|---|
 | Forsyth stations | temp, RH, pressure, wind avg/gust/dir, rain, PM1/2.5/10, lightning (distance) | ~minutes | owned | §3.1 |
 | [Open-Meteo](https://open-meteo.com) NWP | ECMWF IFS 0.25°, GFS "seamless", ICON "seamless", and its `best_match` blend; GEFS 0.25° ensemble | polled hourly ⚙, stored only when the run changes | free (non-commercial) | §3.2 |
-| Human reports | 7 kinds: rain, hail, fog, snow line, wind damage, road blocked, flood; optional 1–3 intensity, 140-char note | event-driven | free | §3.3 |
+| Human reports | composite: any of 7 kinds (rain, hail, fog, snow line, wind damage, road blocked, flood) in one submission, each with optional 1–3 intensity, plus an optional weighted yellow/orange/red alert and a 140-char note | event-driven | free | §4.3 |
 | *Planned:* IMD | district nowcast warnings, city forecasts (API key requested 2026-07-18); DWR imagery | — | free, registration-gated | overlay, not input, at first |
 | *Planned:* MOSDAC / ISRO | INSAT-3D/3DR products; GSMaP-ISRO gauge-corrected rain (0.1°, hourly) | — | free, registration-gated | satellite-vs-mesh cross-check |
 
@@ -183,12 +183,18 @@ advance"). The reasoning: a forecast product that shows its own error record
 earns the trust it asks for — and this join *is* the future bias-correction
 training query, so credibility and capability share one piece of SQL.
 
-### 4.3 Human reports — QC and reputation
+### 4.3 Human reports — composite, QC, reputation, and alerts
 
-Reports are anonymous-first (friction kills reporting; mPING's design), rate
-limited per HMAC of IP + user-agent (3 per 10 min, 20 per day ⚙ — no raw PII
-stored), and cross-checked at insert against the nearest station within
-**5 km** ⚙ heard from in the last **15 min** ⚙:
+A report is **composite**: one submission at one place carries every kind seen
+at once (fog *and* rain *and* a blocked road), each with its own 1–3 intensity,
+sharing a `report_group`. This matches how weather actually presents — a
+person on a mountain road sees several things — and it means the rate limit
+counts *submissions*, not observations: a three-part report is one action, not
+three toward the 3-per-10-min ⚙ / 20-per-day ⚙ ceiling. Reports are
+anonymous-first (friction kills reporting; mPING's design), rate limited per
+HMAC of IP + user-agent (no raw PII stored), and each observation is
+cross-checked at insert against the nearest station within **5 km** ⚙ heard
+from in the last **15 min** ⚙:
 
 | Kind | Corroborated when | Contradicted when |
 |---|---|---|
@@ -204,6 +210,32 @@ contradicted** ⚙ over 90 days become *trusted observers*: their single report
 of a severe kind (hail, wind damage, road blocked, flood) can raise the
 banner alone, where anonymous reports need two independent voices within
 25 km of the same station. Public coordinates are rounded to ~100 m.
+
+**Weighted weather alerts (yellow/orange/red).** A report may optionally raise
+a weather alert at the standard severity colours. A single voice — especially
+an anonymous one — must never turn a valley red, so the *effective* level per
+station is a **weighted consensus**, computed on read (`reports.station_alerts`,
+never stored — always current). Each alert-flagged submission within
+**15 km** ⚙ contributes `source_weight × recency` to every level at or below
+the one it claims; source weight is **anon 1.0 · signed-in 1.5 · trusted
+observer 3.0** ⚙ and recency decays linearly over **6 h** ⚙. A level lights
+when its summed weight clears the threshold — **yellow 1.5 · orange 3.0 ·
+red 5.0** ⚙. Consequences (the whole point of the weighting):
+
+- one anonymous voice alone stays below yellow — noticed, not alarmed;
+- two anonymous voices agreeing, or one signed-in reporter, reach yellow;
+- one trusted observer's red reaches orange (a second voice is needed for red);
+- red needs strong weighted consensus — two trusted observers, or one trusted
+  plus a few others.
+
+The effective level surfaces three ways: it **leads the banner** ("Orange
+alert near Ridge — 3 reports. People are raising the alarm; take it
+seriously."), draws a coloured **ring on the map** around the alerted station,
+and tags the report feed. *Deliberately not yet fused with sensor data* —
+sensor-driven severity already reaches the banner through the divergence and
+observed-event engines (§4.4); folding a station's own measurements into the
+alert score is a documented next step, kept out of v1 so the weighting is a
+clean, interpretable statement about *human* consensus.
 
 ### 4.4 The event engine — observed, expected, divergent, human
 
@@ -227,7 +259,10 @@ pressure fall exceeding the forecast's own 3 h trend by > 1.5 hPa. Phrased
 in the product as it is meant: *"trust the sky, not the model."*
 
 **Human** (§4.3): two same-kind reports near one station within 3 h, or one
-corroborated/trusted severe report.
+corroborated/trusted severe report. A **weather alert** event fires when the
+weighted consensus at a station clears a colour threshold, and — because it is
+what a reader most needs to hear — it *leads* the banner ahead of the
+sensor-derived lines.
 
 **Derived quantities** shown alongside: dew point (Magnus formula,
 a = 17.62, b = 243.12) and estimated cloud base via the lifting-condensation

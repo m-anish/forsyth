@@ -107,8 +107,15 @@ CREATE TABLE IF NOT EXISTS obs_reports (
     qc_flag     TEXT,               -- corroborated | contradicted | no_station | NULL
     qc_station  INTEGER REFERENCES stations(id) ON DELETE SET NULL
 );
+-- Composite reports: one submission may carry several observations (fog AND
+-- rain AND a blocked road), which share a report_group, and may raise a weather
+-- alert (0 none · 1 yellow · 2 orange · 3 red) that reports.py aggregates,
+-- weighted by reporter trust, into an effective per-station level.
+ALTER TABLE obs_reports ADD COLUMN IF NOT EXISTS report_group TEXT;
+ALTER TABLE obs_reports ADD COLUMN IF NOT EXISTS alert_level SMALLINT NOT NULL DEFAULT 0;
 CREATE INDEX IF NOT EXISTS obs_reports_ts_idx ON obs_reports (ts DESC);
 CREATE INDEX IF NOT EXISTS obs_reports_hash_idx ON obs_reports (client_hash, ts DESC);
+CREATE INDEX IF NOT EXISTS obs_reports_group_idx ON obs_reports (report_group);
 
 CREATE TABLE IF NOT EXISTS users (
     id         SERIAL PRIMARY KEY,

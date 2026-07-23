@@ -96,6 +96,22 @@ def _detect_events(slug: str | None) -> list[dict]:
 
         events.extend(_detect_forecast_events(conn, flt, p, events))
         events.extend(_detect_report_events(conn, flt, p))
+        events.extend(_detect_alert_events(conn, slug))
+    return events
+
+
+def _detect_alert_events(conn, slug) -> list[dict]:
+    """Weighted community weather alerts (reports.station_alerts). These are the
+    most urgent thing the banner can say, so they carry a high sort weight."""
+    from .reports import station_alerts, ALERT_NAMES
+    a = station_alerts(conn)
+    events = []
+    for s_slug, info in a["stations"].items():
+        if slug and s_slug != slug:
+            continue
+        events.append({"kind": "weather_alert", "station": info["name"],
+                       "level": info["level"], "level_name": ALERT_NAMES[info["level"]],
+                       "reports": info["contributors"]})
     return events
 
 
@@ -254,6 +270,12 @@ def _detect_forecast_events(conn, flt: str, p: dict, present: list[dict]) -> lis
 def _compose_template(events: list[dict]) -> str:
     """Rule-based fallback: one dry sentence, ~20–30 words."""
     bits = []
+    # a community weather alert leads — it is the most urgent thing here
+    alerts = [e for e in events if e["kind"] == "weather_alert"]
+    if alerts:
+        top = max(alerts, key=lambda e: e["level"])
+        bits.append(f"{top['level_name']} alert near {top['station']} "
+                    f"({top['reports']} report{'s' if top['reports'] != 1 else ''})")
     lightning = [e for e in events if e["kind"] == "lightning"]
     if lightning:
         near = min(e["nearest_km"] for e in lightning)
@@ -307,7 +329,10 @@ def _compose_template(events: list[dict]) -> str:
         return ""
     sentence = "; ".join(bits[:3])
     sentence = sentence[0].upper() + sentence[1:]
-    closer = (" Forsyth suggests being near a roof." if (lightning or rain) else
+    red = any(e["level"] == 3 for e in alerts)
+    closer = (" Take care." if red else
+              " People are raising the alarm; take it seriously." if alerts else
+              " Forsyth suggests being near a roof." if (lightning or rain) else
               " Trust the sky, not the model." if diverging else
               " Forsyth suggests planning accordingly." if (expect_rain or frost or expect_wind) else
               " Forsyth is watching.")
@@ -337,6 +362,9 @@ def _compose_llm(events: list[dict], lang: str = "en") -> str | None:
                         "Current weather events from the station mesh, as JSON: "
                         f"{events}\n\nWrite ONE summary of 20-30 words for the dashboard "
                         "banner. Mention station names and the most important numbers. "
+                        "A weather_alert event is a community-raised alert "
+                        "(yellow/orange/red) and must LEAD the sentence, named by its "
+                        "colour, calm but clear — it is the most urgent thing here. "
                         "Events whose kind ends in _expected come from a forecast — "
                         "phrase them as expectation, not observation. For rain_expected: "
                         "in_hours = first hour with meaningful rain; mm_12h = the TOTAL "

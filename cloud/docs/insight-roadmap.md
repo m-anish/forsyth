@@ -71,8 +71,19 @@ Shipped as designed below (`app/reports.py`, `dashboard/js/report.js`): the
 "report the sky" button on every page, anonymous-first with DB-backed rate
 limiting, inline sensor QC, a 👀 map layer, a board widget, `human_report`
 events in the banner, and a `REPORTS_ENABLED` kill switch. Still pending from
-the engagement side: self-serve accounts (today reports are anonymous or
-admin-created users), trusted-observer weighting, event-moment prompts.
+the engagement side: event-moment prompts.
+
+**Extended 2026-07-23 — composite reports + weighted alerts.** A submission now
+carries *many* observations (fog *and* rain *and* a blocked road, each with its
+own intensity) in one `report_group`, and the rate limit counts submissions,
+not observations. A report may also raise a yellow/orange/red **weather alert**,
+resolved per station as a **weighted consensus** so no single voice — least of
+all an anonymous one — can escalate the valley alone (weights anon 1.0 /
+signed-in 1.5 / trusted 3.0, 6 h decay, thresholds 1.5 / 3.0 / 5.0, computed on
+read in `reports.station_alerts` and surfaced via `GET /alerts`, a map ring, and
+the head of the banner). Full math and design rationale:
+[forecasting-whitepaper.md §4.3](forecasting-whitepaper.md). Self-serve accounts
+and trusted-observer weighting shipped 2026-07-18.
 
 Precedents: NOAA's mPING (anonymous phone reports of precipitation type, used
 operationally to tune radar algorithms), CoCoRaHS (20k+ volunteers feeding NWS),

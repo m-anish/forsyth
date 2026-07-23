@@ -46,14 +46,28 @@ promised or designed until the free loop demonstrably works.
   reporting; its reports are anonymous and still operationally useful because
   they are cross-checked. Ours are QC'd against the nearest fresh station at
   insert (see insight-roadmap §3). Rate limiting by hashed client, not identity.
+- **One report, everything you see.** A submission is **composite** — fog *and*
+  rain *and* a blocked road, each with its own intensity, in one tap-through
+  rather than three separate reports. It matches how weather actually presents
+  and it keeps the rate limit honest: the limit counts submissions, so telling
+  the whole truth is never penalised as spam.
+- **Weighted alerts anyone can raise.** A report can also raise a
+  yellow/orange/red weather alert, but no single voice — least of all an
+  anonymous one — can turn the valley red. The effective level per station is a
+  **weighted consensus** (anon 1.0 · signed-in 1.5 · trusted observer 3.0,
+  decaying over 6 h; thresholds yellow 1.5 / orange 3.0 / red 5.0). One anon
+  voice is noticed but stays sub-yellow; two agreeing reach yellow; red needs
+  real consensus. This is the engagement hook and the safety mechanism in one:
+  raising an alarm is open to everyone, and *earning trust* is what makes your
+  alarm carry. Full math in [forecasting-whitepaper.md §4.3](forecasting-whitepaper.md); shipped mechanics in insight-roadmap §3.
 - **Accounts make reports count.** Attribution, streaks (CoCoRaHS-style),
   and a **trust score that is earned mechanically**: reporters whose reports
   keep getting corroborated by nearby sensors graduate to *trusted observer*.
-  Trusted reports carry more weight in the QC engine and can trigger alerts
-  on their own (a trusted "hailing now" is actionable; an anonymous one wants
-  a second signal). The score is functional, not decorative — and therefore
-  self-cleaning: gaming it requires being reliably right about the weather,
-  which is the desired behavior.
+  Trusted reports carry more weight in the QC engine and in the alert
+  consensus above, and can trigger alerts on their own (a trusted "hailing now"
+  is actionable; an anonymous one wants a second signal). The score is
+  functional, not decorative — and therefore self-cleaning: gaming it requires
+  being reliably right about the weather, which is the desired behavior.
 - **Ask at the right moment.** Reports spike during events. When divergence or
   lightning fires near a subscriber, prompt: "The models didn't see this.
   What's the sky doing where you are?" A request for help at the moment
@@ -136,6 +150,7 @@ but never optimized.
 | Step | What | Tied to |
 |---|---|---|
 | E1 | Report flow anonymous-first; self-serve accounts (username/password + Google/GitHub OAuth, buttons appear when creds configured); attribution + streaks in the report dialog | ✅ 2026-07-18 |
+| E1.5 | Composite reports (many kinds + intensities per submission) and weighted yellow/orange/red alerts anyone can raise (consensus math in forecasting-whitepaper §4.3) | ✅ 2026-07-23 |
 | E2 | Trusted-observer mechanics (✅ 2026-07-18: ≥5 corroborated & ≤25 % contradicted over 90 d → severe reports fire the banner solo, ★ badges); event-moment prompts; WhatsApp broadcast list (manual) | insight Phase C |
 | E3 | Digests, shareable cards, Monsoon Report v1; school + Bir outreach; Hindi report flow | after B stabilizes |
 | E4 | Sponsorships, SMS/WhatsApp automation, commercial API — only if E1–E3 earn it | after Phase D |
