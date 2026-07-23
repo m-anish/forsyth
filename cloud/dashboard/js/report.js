@@ -98,7 +98,7 @@ const Report = (() => {
       <div class="rp-int-row" data-kind="${k}">
         <span class="rp-int-label">${GLYPH[k]} ${labelFor(k)}</span>
         <span class="chips">${INTENSITY.map(([v, l]) =>
-          `<button type="button" class="chip" data-i="${v}">${l}</button>`).join('')}</span>
+          `<button type="button" class="chip${state.obs[k] === v ? ' on' : ''}" data-i="${v}">${l}</button>`).join('')}</span>
       </div>`).join('');
     wrap.querySelectorAll('.rp-int-row').forEach(row => {
       const k = row.dataset.kind;
