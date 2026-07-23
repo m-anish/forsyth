@@ -50,7 +50,9 @@ const Widgets = (() => {
     const hours = Number(config.hours || 24);
     const d = await getJSON(`/stations/${s.slug}/series?metrics=${metrics.join(',')}&hours=${hours}`);
     const data = [d.ts, ...metrics.map(m => d.series[m])];
-    const key = `${s.slug}|${metrics.join(',')}|${hours}`;
+    /* theme in the key: a light/dark switch rebuilds so the line colours (not
+       just the live-read axis colours) come from the new palette */
+    const key = `${s.slug}|${metrics.join(',')}|${hours}|${document.documentElement.dataset.theme}`;
     /* same chart, new numbers: feed the existing plot instead of rebuilding it.
        If the reader has dragged a zoom, leave their view alone this tick —
        resetting it every minute would make zooming useless. */

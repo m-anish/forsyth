@@ -101,10 +101,13 @@ function cssVar(name) {
 }
 
 function uplotAxis(extra = {}) {
+  /* Colours are functions, not captured strings: uPlot re-reads them on every
+     draw, so a chart that outlives a light/dark switch recolours on its next
+     redraw instead of keeping the old theme's near-black grid on a pale page. */
   return {
-    stroke: cssVar('--ch-axis'),
-    grid: { stroke: cssVar('--ch-grid') },
-    ticks: { stroke: cssVar('--ch-grid') },
+    stroke: () => cssVar('--ch-axis'),
+    grid: { stroke: () => cssVar('--ch-grid') },
+    ticks: { stroke: () => cssVar('--ch-grid') },
     font: '11px JetBrains Mono, monospace',
     ...extra,
   };
@@ -275,12 +278,15 @@ async function renderForecast(el, slug, opts = {}) {
   }
   /* Same model run as last time, same window, DOM still intact → nothing to
      redraw. Forecasts change every 3 h; the refresh loop runs every minute. */
-  if (opts.reuse && el._fcRun === d.run_at && el.querySelector('.fc-strip')) {
+  const theme = document.documentElement.dataset.theme;
+  if (opts.reuse && el._fcRun === d.run_at && el._fcTheme === theme
+      && el.querySelector('.fc-strip')) {
     return el._fcPlot || null;   // strip-only widgets have no plot to return
   }
   /* rebuilding: tear the old plot down properly, or its resize observer leaks */
   if (el._fcPlot) { el._fcPlot.destroy(); el._fcPlot = null; }
   el._fcRun = d.run_at;
+  el._fcTheme = theme;   // a theme switch forces a rebuild, recolouring series too
 
   const F = d.series;
 
