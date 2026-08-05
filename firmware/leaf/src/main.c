@@ -267,18 +267,15 @@ static void do_report(void)
     size_t   po = 0;
     sensor_fault_flags = 0;
 
-    int16_t  temp; uint16_t rh;
-    if (shtc3_read(&temp, &rh) == 0) {
-        mask |= FLP_R_TEMP | FLP_R_RH;
-        po = flp_put16(payload, po, (uint16_t)temp);
-        po = flp_put16(payload, po, rh);
-    } else sensor_fault_flags |= FLP_F_I2C_FAULT;
-
-    uint32_t pa;
-    if (bme280_read_pressure(&pa) == 0) {
-        mask |= FLP_R_PRESS;
-        po = flp_put32(payload, po, pa);
-    } else sensor_fault_flags |= FLP_F_I2C_FAULT;
+    /* Priority stack: SHTx (SHT3x/SHTC3) owns temp+RH; BMx280 owns pressure and
+     * fills temp (and, on a BME280, RH) when no SHTx is present. Packed in
+     * mask-bit order: TEMP(0), RH(1), PRESS(2).                              */
+    int16_t  temp; uint16_t rh; uint32_t pa;
+    uint8_t  env = env_read(&temp, &rh, &pa);
+    if (env & ENV_TEMP)  { mask |= FLP_R_TEMP;  po = flp_put16(payload, po, (uint16_t)temp); }
+    if (env & ENV_RH)    { mask |= FLP_R_RH;    po = flp_put16(payload, po, rh); }
+    if (env & ENV_PRESS) { mask |= FLP_R_PRESS; po = flp_put32(payload, po, pa); }
+    if (env == 0) sensor_fault_flags |= FLP_F_I2C_FAULT;
 
     /* wind: snapshot + reset the report accumulators; fold in the partial
      * gate so slow winds near the interval boundary aren't lost            */
@@ -401,8 +398,13 @@ static uint8_t classify_button(void)
     while (stable_hi < BTN_DEBOUNCE_MS) {        /* wait for a debounced release */
         hal_delay_ms(1);
         hal_wdt_reset();
-        if (BTN_PORT.IN & BTN_bm) stable_hi++;  /* high — count toward release   */
-        else                      stable_hi = 0;/* bounced low — restart the count */
+        if (BTN_PORT.IN & BTN_bm) {
+            stable_hi++;                        /* high — count toward release   */
+        } else {
+            stable_hi = 0;                      /* still held (or a bounce)      */
+            if (g_uptime_s - start_s >= BTN_RESET_HOLD_S)
+                hal_reset();                    /* held 5s+ -> hard reset (no return) */
+        }
         if (g_uptime_s - start_s >= BTN_STUCK_MAX_S) break;  /* stuck: give up   */
     }
     return (g_uptime_s - start_s >= BTN_LONG_PRESS_MS / 1000) ? 2 : 1;

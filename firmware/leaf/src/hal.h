@@ -10,6 +10,7 @@
 void hal_init(void);                 /* clock, WDT, GPIO safe states, RTC+PIT */
 void hal_sleep_powerdown(void);      /* returns on any enabled interrupt      */
 void hal_wdt_reset(void);
+void hal_reset(void);                /* immediate software reset (RSTCTRL.SWRR) */
 
 /* Time base: PIT gives a 1 Hz uptime; the RTC counter gives ~1024 Hz ticks
  * for debounce math (16-bit, wraps every 64 s — compare with wraparound-safe

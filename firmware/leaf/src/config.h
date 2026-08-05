@@ -168,6 +168,8 @@ typedef struct { uint16_t adc; uint16_t deg_x10; } vane_entry_t;
                                         defaults, 30 s interval, for 10 min.  */
 #define BTN_STUCK_MAX_S     12       /* cap on the debounced release wait, so a
                                         shorted/stuck line can't spin forever   */
+#define BTN_RESET_HOLD_S    5        /* hold this long -> hard reset (re-detects
+                                        sensors, incl. the boot-only AS3935)    */
 #define SAFE_MODE_INTERVAL_S 30
 #define SAFE_MODE_DURATION_S 600
 

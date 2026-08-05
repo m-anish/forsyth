@@ -103,6 +103,8 @@ void hal_sleep_powerdown(void)
 
 void hal_wdt_reset(void) { wdt_reset(); }
 
+void hal_reset(void) { _PROTECTED_WRITE(RSTCTRL.SWRR, RSTCTRL_SWRE_bm); }
+
 uint16_t hal_ticks(void)
 {
     /* RTC.CNT needs a synchronized read; two reads until stable is the
