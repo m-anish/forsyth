@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>forsyth · map</title>
+  <meta name="description" content="The Forsyth weather mesh, mapped — every station, live." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="css/dash.css?v=46" />
+  <link rel="stylesheet" href="css/board.css?v=46" />
+  <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0b0c0e" />
+  <script src="js/theme.js?v=46"></script>
+  <style>
+    /* full-frame map app: topbar fixed height, map fills the rest */
+    html, body { height: 100%; }
+    body { display: flex; flex-direction: column; margin: 0; }
+    .map-topbar { flex: none; }
+    #fullmap { flex: 1 1 auto; position: relative; min-height: 0; }
+    #fullmap .wg-map { position: absolute; inset: 0; }
+    #fullmap .wg-empty { padding: 24px; }
+  </style>
+</head>
+<body>
+
+<header class="topbar map-topbar">
+  <div class="topbar-inner">
+    <a href="/" class="brand"><img src="assets/mark.svg" alt="" aria-hidden="true" />forsyth<sup class="beta">beta</sup></a>
+    <span class="crumb">/ map</span>
+    <span class="right">
+      <a href="/" class="nav-chip">← home</a>
+      <button class="theme-btn" type="button" aria-label="switch color theme">◐ auto</button>
+    </span>
+  </div>
+</header>
+
+<div id="fullmap"><div class="wg-map"></div></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/common.js?v=46"></script>
+<script src="js/report.js?v=46"></script>
+<script src="js/map.js?v=46"></script>
+<script>
+  (async () => {
+    const el = document.querySelector('#fullmap .wg-map');
+    let handle = null;
+    async function sited() {
+      return (await getJSON('/stations')).stations.filter(s => s.lat != null && s.lon != null);
+    }
+    try {
+      const list = await sited();
+      if (!list.length) { el.innerHTML = '<p class="wg-empty">No sited stations yet.</p>'; return; }
+      /* full (non-compact) map: legend + mode switcher + fullscreen built in */
+      handle = forsythMap(el, list, { compact: false, mode: 'temp' });
+      setTimeout(() => handle.map && handle.map.invalidateSize(), 200);
+      /* keep it live without throwing away the reader's pan/zoom */
+      setInterval(async () => { try { handle.update(await sited()); } catch {} }, 60000);
+    } catch (e) { console.error(e); el.innerHTML = '<p class="wg-empty">Map failed to load.</p>'; }
+    /* the "report the sky" button, same as every other page */
+    if (typeof Report !== 'undefined' && Report.mount) Report.mount({});
+  })();
+</script>
+</body>
+</html>

@@ -328,9 +328,18 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 /* footer */
 .sl-footer { border-top: 1px solid var(--border-2); padding: 40px 0 60px;
   color: var(--text-dim); font-size: 13px; }
-.sl-signoff { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+.sl-signoff { display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 10px 20px;
   font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--text-mute); }
+.sl-signoff a { white-space: nowrap; }        /* wrap between links, never mid-link */
+.sl-ver { opacity: 0.65; }
+/* mobile: stack the sign-off so the links get a full row instead of cramming
+   into a tight, overlapping second row next to the label */
+@media (max-width: 620px) {
+  .sl-signoff { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .sl-footer { padding: 28px 0 44px; }
+}
 
 /* uPlot tweaks */
 .uplot { font-family: var(--mono) !important; }
