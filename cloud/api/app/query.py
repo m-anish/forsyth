@@ -42,13 +42,21 @@ def list_stations():
         SELECT s.slug, s.name, s.lat, s.lon, s.elevation_m, s.is_simulated,
                r.ts AS last_seen,
                r.temp_c, r.rh, r.pressure_pa, r.wind_avg_ms, r.wind_gust_ms,
-               r.wind_dir_deg, r.rain_mm, r.pm1, r.pm25, r.pm10,
+               r.wind_dir_deg, r.rain_mm,
+               p.pm1, p.pm25, p.pm10, p.ts AS pm_ts,
                r.batt_v, r.solar_state, r.rssi_dbm
         FROM stations s
         LEFT JOIN LATERAL (
             SELECT * FROM readings WHERE station_id = s.id
             ORDER BY ts DESC LIMIT 1
         ) r ON TRUE
+        -- PM rides only every Nth reading, so the latest reading usually has no
+        -- PM; carry the last reading that actually had it (with its timestamp).
+        LEFT JOIN LATERAL (
+            SELECT pm1, pm25, pm10, ts FROM readings
+            WHERE station_id = s.id AND pm25 IS NOT NULL
+            ORDER BY ts DESC LIMIT 1
+        ) p ON TRUE
         ORDER BY s.slug
     """)
     with engine.connect() as conn:
@@ -64,9 +72,20 @@ def latest(slug: str):
             text("SELECT * FROM readings WHERE station_id = :sid ORDER BY ts DESC LIMIT 1"),
             {"sid": sid},
         ).mappings().first()
-    if row is None:
-        raise HTTPException(404, "no readings yet")
-    return dict(row)
+        if row is None:
+            raise HTTPException(404, "no readings yet")
+        d = dict(row)
+        # overlay the last actually-measured PM (sparse — every Nth reading)
+        pm = conn.execute(
+            text("""SELECT pm1, pm25, pm10, ts FROM readings
+                    WHERE station_id = :sid AND pm25 IS NOT NULL
+                    ORDER BY ts DESC LIMIT 1"""),
+            {"sid": sid},
+        ).mappings().first()
+        if pm:
+            d.update({"pm1": pm["pm1"], "pm25": pm["pm25"],
+                      "pm10": pm["pm10"], "pm_ts": pm["ts"]})
+    return d
 
 
 @router.get("/stations/{slug}/series")
