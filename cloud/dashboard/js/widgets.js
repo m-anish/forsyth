@@ -12,10 +12,25 @@ const Widgets = (() => {
   }
   function invalidate() { stationsCache = null; }
 
-  async function pick(config) {
+  /* Resolve the station a widget should show. config.station may be a slug, ''
+     (first station), or the '@here' sentinel — which follows the reader's active
+     location (js/location.js). When '@here' has no location yet, render a
+     "pick a location" placeholder into `el` and return null; the caller just
+     `return`s. Also returns null (with a message) when there are no stations. */
+  async function pick(config, el) {
     const list = await stations();
-    if (!list.length) return null;
-    return list.find(s => s.slug === (config.station || '')) || list[0];
+    if (!list.length) { if (el) el.innerHTML = '<p class="wg-empty">no stations yet</p>'; return null; }
+    let slug = config.station || '';
+    if (slug === '@here') {
+      slug = (window.ForsythLoc && ForsythLoc.active()) || '';
+      if (!slug) {
+        if (el) el.innerHTML =
+          `<div class="wg-pickloc"><p class="wg-empty">Pick a location to see this.</p>
+           <button class="tool-btn wg-pickloc-btn" type="button">choose a location</button></div>`;
+        return null;
+      }
+    }
+    return list.find(s => s.slug === slug) || list[0];
   }
 
   function destroyInstance(el) {
@@ -27,8 +42,8 @@ const Widgets = (() => {
   /* ---------- renderers ---------- */
 
   async function now(el, config) {
-    const s = await pick(config);
-    if (!s) { el.innerHTML = '<p class="wg-empty">no stations yet</p>'; return; }
+    const s = await pick(config, el);
+    if (!s) return;
     const a = aqi(s.pm25, s.pm10);
     el.innerHTML = `
       <div class="wg-big">${fmt(s.temp_c,1)}<span class="u">°C</span></div>
@@ -44,8 +59,8 @@ const Widgets = (() => {
   }
 
   async function chart(el, config) {
-    const s = await pick(config);
-    if (!s) { el.innerHTML = '<p class="wg-empty">no stations yet</p>'; return; }
+    const s = await pick(config, el);
+    if (!s) return;
     const metrics = (config.metrics || 'temp_c').split(',').map(m => m.trim()).filter(Boolean);
     const hours = Number(config.hours || 24);
     const d = await getJSON(`/stations/${s.slug}/series?metrics=${metrics.join(',')}&hours=${hours}`);
@@ -74,8 +89,8 @@ const Widgets = (() => {
   }
 
   async function windrose(el, config) {
-    const s = await pick(config);
-    if (!s) { el.innerHTML = '<p class="wg-empty">no stations yet</p>'; return; }
+    const s = await pick(config, el);
+    if (!s) return;
     const { bins, total } = await getJSON(`/stations/${s.slug}/windrose?hours=${config.hours || 24}`);
     const size = Math.max(140, Math.min(el.clientWidth, el.clientHeight) - 10);
     const cx = 110, cy = 110, rMax = 88;
@@ -99,8 +114,8 @@ const Widgets = (() => {
   }
 
   async function aqiW(el, config) {
-    const s = await pick(config);
-    if (!s) { el.innerHTML = '<p class="wg-empty">no stations yet</p>'; return; }
+    const s = await pick(config, el);
+    if (!s) return;
     const a = aqi(s.pm25, s.pm10);
     el.innerHTML = `
       <div class="wg-big">${a ?? '—'}</div>
@@ -126,8 +141,8 @@ const Widgets = (() => {
   }
 
   async function camera(el, config) {
-    const s = await pick(config);
-    if (!s) { el.innerHTML = '<p class="wg-empty">no stations yet</p>'; return; }
+    const s = await pick(config, el);
+    if (!s) return;
     try {
       const f = await getJSON(`/stations/${s.slug}/frames/latest`);
       const { timelapses } = await getJSON(`/stations/${s.slug}/timelapses`);
@@ -163,8 +178,8 @@ const Widgets = (() => {
   }
 
   async function forecast(el, config) {
-    const s = await pick(config);
-    if (!s) { el.innerHTML = '<p class="wg-empty">no stations yet</p>'; return; }
+    const s = await pick(config, el);
+    if (!s) return;
     const hours = Number(config.hours || 48);
     /* shared renderer (js/common.js) — strip only when the widget is short.
        `reuse` lets it bail out when the model run hasn't changed: forecasts

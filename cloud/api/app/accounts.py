@@ -52,20 +52,27 @@ WIDGET_TYPES = {"now", "chart", "windrose", "aqi", "lightning", "camera", "map",
 # sky reported, and mesh health lets the instrument show its own pulse.
 DEFAULT_LAYOUT = {
     "title": "The mesh, at a glance",
+    # The homepage mixes mesh-wide widgets (map, reports, lightning, health)
+    # with location-bound ones (forecast, current conditions, wind rose, temp/RH)
+    # that follow the reader's chosen/nearest station via the '@here' sentinel
+    # (js/location.js). The mesh map takes the prominent top slot; the sticky
+    # location banner (board.js) switches what the '@here' widgets show.
     "widgets": [
-        # human reports get a tall column from the top row: community
-        # observation is half the product, not a footnote — a week's window so
-        # the feed has something to say.
+        {"id": "w5", "type": "map",       "x": 0, "y": 0,  "w": 8,  "h": 6, "config": {}},
+        # community observation is half the product — a tall column, week window.
         {"id": "w7", "type": "reports",   "x": 8, "y": 0,  "w": 4,  "h": 8,
          "config": {"hours": 168}},
-        {"id": "w2", "type": "now",       "x": 0, "y": 0,  "w": 3,  "h": 4, "config": {}},
-        {"id": "w3", "type": "forecast",  "x": 3, "y": 0,  "w": 5,  "h": 4, "config": {}},
-        {"id": "w5", "type": "map",       "x": 0, "y": 4,  "w": 5,  "h": 4, "config": {}},
-        {"id": "w4", "type": "windrose",  "x": 5, "y": 4,  "w": 3,  "h": 4, "config": {}},
-        {"id": "w8", "type": "chart",     "x": 0, "y": 8,  "w": 8,  "h": 3,
-         "config": {"metrics": "temp_c,rh", "hours": 24, "title": "Temperature & humidity · 24 h"}},
+        {"id": "w3", "type": "forecast",  "x": 0, "y": 6,  "w": 5,  "h": 5,
+         "config": {"station": "@here"}},
+        {"id": "w2", "type": "now",       "x": 5, "y": 6,  "w": 3,  "h": 4,
+         "config": {"station": "@here"}},
         {"id": "w6", "type": "lightning", "x": 8, "y": 8,  "w": 4,  "h": 3, "config": {}},
-        {"id": "w9", "type": "health",    "x": 0, "y": 11, "w": 12, "h": 2, "config": {}},
+        {"id": "w4", "type": "windrose",  "x": 5, "y": 10, "w": 3,  "h": 5,
+         "config": {"station": "@here"}},
+        {"id": "w8", "type": "chart",     "x": 0, "y": 11, "w": 5,  "h": 4,
+         "config": {"station": "@here", "metrics": "temp_c,rh", "hours": 24,
+                    "title": "Temperature & humidity · 24 h"}},
+        {"id": "w9", "type": "health",    "x": 8, "y": 11, "w": 4,  "h": 4, "config": {}},
     ],
 }
 

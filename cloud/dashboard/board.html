@@ -11,14 +11,14 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/uplot@1.6.31/dist/uPlot.min.css" />
   <link rel="stylesheet" href="https://unpkg.com/gridstack@10.3.1/dist/gridstack.min.css" />
-  <link rel="stylesheet" href="css/dash.css?v=48" />
-  <link rel="stylesheet" href="css/board.css?v=48" />
+  <link rel="stylesheet" href="css/dash.css?v=49" />
+  <link rel="stylesheet" href="css/board.css?v=49" />
   <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#0b0c0e" />
-  <script src="js/theme.js?v=48"></script>
+  <script src="js/theme.js?v=49"></script>
 </head>
 <body>
 
@@ -31,6 +31,7 @@
       <button class="tool-btn" id="btn-home" type="button" hidden title="land here when you sign in">☆ home</button>
       <button class="tool-btn" id="btn-new-board" type="button" hidden>+ board</button>
       <a href="admin.html" class="nav-chip" id="admin-link" hidden>admin →</a>
+      <a href="map.html" class="nav-chip nav-map">map</a>
       <button class="theme-btn" type="button" aria-label="switch color theme">◐ auto</button>
       <button class="tool-btn" id="btn-login" type="button">sign in</button>
       <button class="tool-btn" id="btn-edit" type="button" hidden>arrange</button>
@@ -38,6 +39,9 @@
     <button class="nav-menu" type="button" aria-label="menu" aria-expanded="false">☰</button>
   </div>
 </header>
+
+<!-- homepage sticky sub-nav: which location the @here widgets follow (board.js) -->
+<div id="loc-banner" class="loc-banner" hidden></div>
 
 <!-- edit toolbar (visible in edit mode) -->
 <div class="edit-bar" id="edit-bar" hidden>
@@ -137,11 +141,12 @@
 <script src="https://unpkg.com/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/gridstack@10.3.1/dist/gridstack-all.js"></script>
-<script src="js/common.js?v=48"></script>
-<script src="js/map.js?v=48"></script>
-<script src="js/report.js?v=48"></script>
-<script src="js/widgets.js?v=48"></script>
-<script src="js/tour.js?v=48"></script>
-<script src="js/board.js?v=48"></script>
+<script src="js/common.js?v=49"></script>
+<script src="js/location.js?v=49"></script>
+<script src="js/map.js?v=49"></script>
+<script src="js/report.js?v=49"></script>
+<script src="js/widgets.js?v=49"></script>
+<script src="js/tour.js?v=49"></script>
+<script src="js/board.js?v=49"></script>
 </body>
 </html>
