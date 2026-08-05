@@ -243,6 +243,61 @@ const Widgets = (() => {
     </table>`;
   }
 
+  /* ---- location panel: one card enclosing the location-bound widgets, with
+     the location selector in its own title. The nav applies only to this
+     group; the rest of the homepage (map, reports, lightning, health) is
+     mesh-wide. Follows ForsythLoc (js/location.js). ---- */
+  function locNavHTML() {
+    if (!window.ForsythLoc) return '';
+    const list = ForsythLoc.stations();
+    const active = ForsythLoc.active();
+    const cur = list.find(s => s.slug === active);
+    return `<span class="lp-lead">Conditions &amp; forecast for</span>
+      <select class="lp-select" aria-label="choose a location">
+        ${cur ? '' : '<option value="" selected>— pick a location —</option>'}
+        ${list.map(s => `<option value="${s.slug}"${s.slug === active ? ' selected' : ''}>${s.name}</option>`).join('')}
+      </select>
+      ${cur ? `<a class="lp-link" href="station.html?slug=${cur.slug}">${cur.name} →</a>` : ''}
+      <button class="lp-here" type="button" title="use my location">📍</button>`;
+  }
+  function wireLocNav(el) {
+    const sel = el.querySelector('.lp-select');
+    if (sel) sel.onchange = (e) => { if (e.target.value) ForsythLoc.set(e.target.value); };
+    const here = el.querySelector('.lp-here');
+    if (here) here.onclick = async (e) => {
+      e.currentTarget.disabled = true;
+      if (!(await ForsythLoc.useMyLocation())) e.currentTarget.disabled = false;
+    };
+  }
+
+  async function localpanel(el, config) {
+    if (!window.ForsythLoc) { el.innerHTML = '<p class="wg-empty">—</p>'; return; }
+    const active = ForsythLoc.active();
+    const stateKey = active || '__none__';
+    if (el._lpState !== stateKey) {        // rebuild the shell only when the state category flips
+      el._lpState = stateKey;
+      el.innerHTML = active
+        ? `<div class="lp-head">${locNavHTML()}</div>
+           <div class="lp-grid">
+             <div class="lp-cell lp-c-forecast"></div>
+             <div class="lp-cell lp-c-now"></div>
+             <div class="lp-cell lp-c-wind"></div>
+             <div class="lp-cell lp-c-chart"></div>
+           </div>`
+        : `<div class="lp-head">${locNavHTML()}</div>
+           <div class="lp-empty"><p class="wg-empty">Pick a location above to see local conditions &amp; forecast.</p></div>`;
+      wireLocNav(el);
+    }
+    if (!active) return;
+    const cfg = { station: active };
+    await Promise.allSettled([
+      forecast(el.querySelector('.lp-c-forecast'), { ...cfg, hours: 48 }),
+      now(el.querySelector('.lp-c-now'), cfg),
+      windrose(el.querySelector('.lp-c-wind'), { ...cfg, hours: 24 }),
+      chart(el.querySelector('.lp-c-chart'), { ...cfg, metrics: 'temp_c,rh', hours: 24 }),
+    ]);
+  }
+
   /* ranges: one-tap presets rendered as chips in the widget header
      (board.js); defaultHours = what the renderer assumes when unset */
   const REGISTRY = {
@@ -262,6 +317,7 @@ const Widgets = (() => {
                  ranges: [[24,'24h'],[72,'3d'],[168,'7d']], defaultHours: 24 },
     summary:   { label: 'Weather',            render: summary,   w: 12, h: 2, fields: ['stationOrAll'] },
     health:    { label: 'Mesh health',        render: health,    w: 4, h: 2, fields: [] },
+    localpanel:{ label: 'Local conditions',   render: localpanel, w: 8, h: 10, fields: [] },
   };
 
   return { REGISTRY, stations, invalidate, destroyInstance };

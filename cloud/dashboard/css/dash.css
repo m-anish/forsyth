@@ -341,36 +341,46 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
   .sl-footer { padding: 28px 0 44px; }
 }
 
-/* ---------- homepage location sticky sub-nav (board.js renderLocBanner) ---------- */
-.loc-banner {
-  position: sticky; top: 0; z-index: 50;
-  display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap;
-  padding: 9px 18px;
-  background: var(--bg-elev); border-bottom: 1px solid var(--border);
+/* ---------- homepage local-conditions panel (widgets.js localpanel) ---------- */
+/* the panel supplies its own header (the location picker), so hide the generic one */
+.gs-type-localpanel .wg-head { display: none; }
+.gs-type-localpanel .wg-body { padding: 14px 16px 16px; overflow: auto; }
+
+.lp-head {
+  display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap;
+  padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid var(--border);
 }
-.loc-banner .loc-lead {
+.lp-lead {
   color: var(--text-mute); text-transform: uppercase; letter-spacing: 0.1em;
   font: 500 10.5px 'JetBrains Mono', monospace;
 }
-.loc-banner .loc-select {
-  font: 500 13.5px 'Inter', sans-serif; padding: 4px 10px;
+.lp-select {
+  font: 500 14px 'Inter', sans-serif; padding: 4px 10px;
   background: var(--bg-card); color: var(--text);
   border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
 }
-.loc-banner .loc-link { color: var(--accent); font: 600 13.5px 'Inter', sans-serif; text-decoration: none; }
-.loc-banner .loc-link:hover { text-decoration: underline; }
-.loc-banner .loc-here {
+.lp-link { color: var(--accent); font: 600 14px 'Inter', sans-serif; text-decoration: none; }
+.lp-link:hover { text-decoration: underline; }
+.lp-here {
   background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
   padding: 3px 9px; cursor: pointer; font-size: 14px; line-height: 1;
 }
-.loc-banner .loc-here:disabled { opacity: 0.5; cursor: default; }
+.lp-here:disabled { opacity: 0.5; cursor: default; }
 
-/* "pick a location" placeholder shown by a location-bound widget with no active location */
-.wg-pickloc {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 10px; height: 100%; min-height: 90px; text-align: center;
+.lp-grid {
+  display: grid; gap: 16px 18px; align-items: start;
+  grid-template-columns: 1.6fr 1fr;
+  grid-template-areas: "forecast now" "forecast wind" "chart chart";
 }
-.wg-pickloc .wg-empty { margin: 0; }
+.lp-c-forecast { grid-area: forecast; min-height: 280px; }
+.lp-c-now      { grid-area: now; }
+.lp-c-wind     { grid-area: wind; min-height: 180px; }
+.lp-c-chart    { grid-area: chart; min-height: 200px; }
+.lp-empty { display: flex; align-items: center; justify-content: center; min-height: 120px; }
+
+@media (max-width: 720px) {
+  .lp-grid { grid-template-columns: 1fr; grid-template-areas: "forecast" "now" "wind" "chart"; }
+}
 
 /* uPlot tweaks */
 .uplot { font-family: var(--mono) !important; }

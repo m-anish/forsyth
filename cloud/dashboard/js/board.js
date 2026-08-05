@@ -28,7 +28,7 @@ async function whoami() {
 
 function widgetEl(w) {
   const el = document.createElement('div');
-  el.className = 'grid-stack-item';
+  el.className = 'grid-stack-item gs-type-' + w.type;
   el.setAttribute('gs-x', w.x); el.setAttribute('gs-y', w.y);
   el.setAttribute('gs-w', w.w); el.setAttribute('gs-h', w.h);
   const id = w.id || `w${Date.now()}_${widSeq++}`;
@@ -84,42 +84,6 @@ function renderAll() {
   document.querySelectorAll('.grid-stack-item').forEach(renderWidget);
 }
 
-/* Homepage-only sticky sub-nav: which location the @here widgets follow. Switch
-   it here; click the name to open that station's page; 📍 uses your location. */
-function renderLocBanner() {
-  const el = document.getElementById('loc-banner');
-  if (!el || !window.ForsythLoc) return;
-  const list = ForsythLoc.stations();
-  if (B.slug !== 'default' || !list.length) { el.hidden = true; return; }
-  const active = ForsythLoc.active();
-  const cur = list.find(s => s.slug === active);
-  el.hidden = false;
-  /* stick just under the (also-sticky) topbar rather than behind it */
-  const tb = document.querySelector('.topbar');
-  if (tb) el.style.top = tb.offsetHeight + 'px';
-  el.innerHTML = `
-    <span class="loc-lead">Conditions &amp; forecast for</span>
-    <select class="loc-select" aria-label="choose a location">
-      ${cur ? '' : '<option value="" selected>— pick a location —</option>'}
-      ${list.map(s => `<option value="${s.slug}"${s.slug === active ? ' selected' : ''}>${s.name}</option>`).join('')}
-    </select>
-    ${cur ? `<a class="loc-link" href="station.html?slug=${cur.slug}">${cur.name} →</a>` : ''}
-    <button class="loc-here" type="button" title="use my location">📍</button>`;
-  el.querySelector('.loc-select').onchange = (e) => { if (e.target.value) ForsythLoc.set(e.target.value); };
-  el.querySelector('.loc-here').onclick = async (e) => {
-    e.currentTarget.disabled = true;
-    if (!(await ForsythLoc.useMyLocation())) e.currentTarget.disabled = false;
-  };
-}
-
-/* the "choose a location" button inside a placeholder widget just focuses the
-   banner selector — one obvious place to pick from */
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.wg-pickloc-btn')) return;
-  const banner = document.getElementById('loc-banner');
-  const sel = banner && banner.querySelector('.loc-select');
-  if (sel) { banner.scrollIntoView({ block: 'start', behavior: 'smooth' }); sel.focus(); }
-});
 
 /* ---------- board load/save ---------- */
 
@@ -462,10 +426,9 @@ async function boot() {
   if (isHome && window.ForsythLoc) await ForsythLoc.init();
   await Promise.all([loadBoard(), loadPicker()]);
   refreshBanner();
-  if (isHome && window.ForsythLoc) {
-    renderLocBanner();
-    ForsythLoc.onChange(() => { renderAll(); renderLocBanner(); });
-  }
+  /* changing the active location re-renders the board; the local-conditions
+     panel (whose title carries the selector) picks up the new station */
+  if (isHome && window.ForsythLoc) ForsythLoc.onChange(renderAll);
 
   window.addEventListener('themechange', renderAll);
   setInterval(() => {

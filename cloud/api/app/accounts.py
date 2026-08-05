@@ -58,21 +58,15 @@ DEFAULT_LAYOUT = {
     # (js/location.js). The mesh map takes the prominent top slot; the sticky
     # location banner (board.js) switches what the '@here' widgets show.
     "widgets": [
-        {"id": "w5", "type": "map",       "x": 0, "y": 0,  "w": 8,  "h": 6, "config": {}},
+        {"id": "w5", "type": "map",        "x": 0, "y": 0,  "w": 8, "h": 6, "config": {}},
         # community observation is half the product — a tall column, week window.
-        {"id": "w7", "type": "reports",   "x": 8, "y": 0,  "w": 4,  "h": 8,
+        {"id": "w7", "type": "reports",    "x": 8, "y": 0,  "w": 4, "h": 8,
          "config": {"hours": 168}},
-        {"id": "w3", "type": "forecast",  "x": 0, "y": 6,  "w": 5,  "h": 5,
-         "config": {"station": "@here"}},
-        {"id": "w2", "type": "now",       "x": 5, "y": 6,  "w": 3,  "h": 4,
-         "config": {"station": "@here"}},
-        {"id": "w6", "type": "lightning", "x": 8, "y": 8,  "w": 4,  "h": 3, "config": {}},
-        {"id": "w4", "type": "windrose",  "x": 5, "y": 10, "w": 3,  "h": 5,
-         "config": {"station": "@here"}},
-        {"id": "w8", "type": "chart",     "x": 0, "y": 11, "w": 5,  "h": 4,
-         "config": {"station": "@here", "metrics": "temp_c,rh", "hours": 24,
-                    "title": "Temperature & humidity · 24 h"}},
-        {"id": "w9", "type": "health",    "x": 8, "y": 11, "w": 4,  "h": 4, "config": {}},
+        # one card enclosing the location-bound widgets (forecast, current
+        # conditions, temp/RH, wind rose); its title carries the location picker.
+        {"id": "wl", "type": "localpanel", "x": 0, "y": 6,  "w": 8, "h": 10, "config": {}},
+        {"id": "w6", "type": "lightning",  "x": 8, "y": 8,  "w": 4, "h": 4, "config": {}},
+        {"id": "w9", "type": "health",     "x": 8, "y": 12, "w": 4, "h": 4, "config": {}},
     ],
 }
 
