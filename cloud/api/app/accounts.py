@@ -55,8 +55,9 @@ DEFAULT_LAYOUT = {
     # The homepage mixes mesh-wide widgets (map, reports, lightning, health)
     # with location-bound ones (forecast, current conditions, wind rose, temp/RH)
     # that follow the reader's chosen/nearest station via the '@here' sentinel
-    # (js/location.js). The mesh map takes the prominent top slot; the sticky
-    # location banner (board.js) switches what the '@here' widgets show.
+    # (js/location.js). The mesh map takes the prominent top slot; the location-
+    # bound widgets live inside one 'localpanel' card whose title carries the
+    # picker that switches what those '@here' widgets show.
     "widgets": [
         {"id": "w5", "type": "map",        "x": 0, "y": 0,  "w": 8, "h": 6, "config": {}},
         # community observation is half the product — a tall column, week window.
