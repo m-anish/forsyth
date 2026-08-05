@@ -5,7 +5,7 @@ const API = '/api/v1';
 
 /* App version — shown in the footer (esp. useful for the PWA, where a stale
    cached build is otherwise invisible). Bump alongside the asset ?v= query. */
-const APP_VERSION = '0.47';
+const APP_VERSION = '0.48';
 addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.app-ver').forEach(el => { el.textContent = 'v' + APP_VERSION; });
 });
@@ -137,7 +137,10 @@ function makeChart(el, series, data, opts = {}) {
     ...base,
     width: el.clientWidth || 600,
     height: opts.height || 200,
-    series: [{}, ...series],
+    /* line-only by default (uPlot otherwise auto-shows point markers on sparse
+       series, which looked inconsistent next to the dense line charts). A caller
+       can still opt a series back in with points:{show:true}. */
+    series: [{}, ...series.map(s => ({ points: { show: false }, ...s }))],
     ...opts.uplot,
   };
   const u = new uPlot(o, data, el);

@@ -160,12 +160,12 @@ async function drawCharts() {
       paths: uPlot.paths.bars ? uPlot.paths.bars({ size: [0.8, 100] }) : undefined },
   ], ts2data(rainD, ['rain_mm']));
 
-  /* PM is sparse (rides only every Nth reading), so connect across the null
-     gaps and always show the point markers — otherwise it's just invisible
-     dots you can only find by hovering. */
+  /* PM is sparse (rides only every Nth reading), so spanGaps connects across
+     the null gaps into a continuous line — no point markers (line-only, like
+     the other charts; makeChart defaults points off). */
   S.charts.pm = makeChart(document.getElementById('chart-pm'), [
-    { label: 'PM2.5', stroke: COL.pm25, width: 1.5, spanGaps: true, points: { show: true, size: 5 } },
-    { label: 'PM10', stroke: COL.pm10, width: 1, spanGaps: true, points: { show: true, size: 5 } },
+    { label: 'PM2.5', stroke: COL.pm25, width: 1.5, spanGaps: true },
+    { label: 'PM10', stroke: COL.pm10, width: 1, spanGaps: true },
   ], ts2data(pmD, ['pm25', 'pm10']));
 
   S.charts.batt = makeChart(document.getElementById('chart-batt'), [
