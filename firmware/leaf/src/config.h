@@ -166,6 +166,8 @@ typedef struct { uint16_t adc; uint16_t deg_x10; } vane_entry_t;
 #define BTN_LONG_PRESS_MS   3000     /* short press: reading + TX now.
                                         long press: safe mode — compiled
                                         defaults, 30 s interval, for 10 min.  */
+#define BTN_STUCK_MAX_S     12       /* cap on the debounced release wait, so a
+                                        shorted/stuck line can't spin forever   */
 #define SAFE_MODE_INTERVAL_S 30
 #define SAFE_MODE_DURATION_S 600
 

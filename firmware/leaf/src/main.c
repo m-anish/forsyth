@@ -26,13 +26,14 @@
 #include "as3935.h"
 #include "pms7003.h"
 #include "e220.h"
+#include "uart.h"
 
 /* ---------------- ISR-shared state -------------------------------------- */
 
 static volatile uint16_t v_anemo_pulses;    /* pulses this second            */
 static volatile uint16_t v_rain_tips;       /* cumulative, wraps (protocol)  */
 static volatile uint8_t  v_as3935_flag;
-static volatile uint8_t  v_btn_event;       /* 0 none, 1 short, 2 long       */
+static volatile uint8_t  v_btn_wake;        /* button edge seen — wake & poll */
 
 ISR(PORTA_PORT_vect)
 {
@@ -58,24 +59,13 @@ ISR(PORTA_PORT_vect)
     }
 }
 
+/* Both-edges only to WAKE us from power-down; a bouncy tactile switch makes
+ * edge-level classification here unreliable, so the ISR does nothing but ack
+ * and flag. The settled level is debounced in classify_button().             */
 ISR(PORTB_PORT_vect)
 {
     PORTB.INTFLAGS = BTN_bm;
-    static uint16_t pressed_at;
-    static uint32_t pressed_s;
-    uint16_t now = hal_ticks();
-    if (!(BTN_PORT.IN & BTN_bm)) {          /* press                         */
-        pressed_at = now;
-        pressed_s  = g_uptime_s;
-    } else {                                /* release — classify            */
-        uint32_t held_s = g_uptime_s - pressed_s;
-        uint16_t held_t = (uint16_t)(now - pressed_at);
-        if (held_s >= (BTN_LONG_PRESS_MS / 1000) + 1 ||
-            (held_s <= 3 && held_t >= BTN_LONG_PRESS_MS))
-            v_btn_event = 2;
-        else if (held_t >= BTN_DEBOUNCE_MS || held_s > 0)
-            v_btn_event = 1;
-    }
+    v_btn_wake = 1;
 }
 
 ISR(PORTC_PORT_vect)
@@ -392,6 +382,32 @@ static void tx_status(uint8_t reset_cause, uint8_t nvram_ok)
     radio_session(frame, (uint8_t)o);
 }
 
+/* Debounced button read, run from the main loop after a wake. Samples the
+ * settled level rather than trusting bounce-prone edges: confirms a stable
+ * press, then times the hold until a stable release. Blocking, but a press is
+ * a user-present event and the WDT is fed the whole way. Returns 0 (nothing /
+ * too short to count), 1 (short press), 2 (long press >= BTN_LONG_PRESS_MS).  */
+static uint8_t classify_button(void)
+{
+    if (BTN_PORT.IN & BTN_bm) return 0;         /* not low: a release-edge wake */
+
+    for (uint8_t i = 0; i < BTN_DEBOUNCE_MS; i++) {   /* press must hold steady */
+        if (BTN_PORT.IN & BTN_bm) return 0;     /* let go mid-debounce: ignore  */
+        hal_delay_ms(1);
+    }
+
+    uint32_t start_s  = g_uptime_s;
+    uint16_t stable_hi = 0;
+    while (stable_hi < BTN_DEBOUNCE_MS) {        /* wait for a debounced release */
+        hal_delay_ms(1);
+        hal_wdt_reset();
+        if (BTN_PORT.IN & BTN_bm) stable_hi++;  /* high — count toward release   */
+        else                      stable_hi = 0;/* bounced low — restart the count */
+        if (g_uptime_s - start_s >= BTN_STUCK_MAX_S) break;  /* stuck: give up   */
+    }
+    return (g_uptime_s - start_s >= BTN_LONG_PRESS_MS / 1000) ? 2 : 1;
+}
+
 /* ---------------- main ---------------------------------------------------- */
 
 int main(void)
@@ -400,6 +416,90 @@ int main(void)
     RSTCTRL.RSTFR = reset_cause;            /* write-1-to-clear              */
 
     hal_init();
+
+#ifdef DIAG_BOOST
+    /* Bench diagnostic (build with DIAG_BOOST=1): bring up ONLY the E220's
+     * 5 V boost via the normal pre-power sequence and hold it on, so the
+     * TPS61023 output can be measured on the E220 VCC rail. No radio config,
+     * no sensors, no sleep. The LED gives a slow ~1 Hz heartbeat so it's
+     * obvious the board is in diag mode; the WDT is fed the whole time. */
+    rail_radio_on();
+    for (;;) {
+        hal_led_blink(1, 40);
+        hal_delay_ms(900);                  /* hal_delay_ms feeds the WDT    */
+        hal_wdt_reset();
+    }
+#endif
+
+#ifdef DIAG_LORATX
+    /* RF-link bring-up (build with DIAG_LORATX=1): NO E220 config at all —
+     * factory-default, transparent mode. Power the radio in NORMAL mode and
+     * blind-send an 8-byte test packet every ~2 s; the LED blinks once per
+     * send. A coordinator also left at factory default flashes its LED on
+     * receive. Isolates the pure RF + UART path from every line of config code. */
+    rail_radio_on();                        /* EN high + M0=0/M1=0 = NORMAL   */
+    hal_delay_ms(250);                      /* let the module boot after power */
+    uart_init();                            /* USART0 @ 9600 = E220 default    */
+    uint8_t seq = 0;
+    for (;;) {
+        uint8_t pkt[8] = { 'F','O','R','S','Y','T','H', seq++ };
+        uart_tx(pkt, sizeof pkt);
+        hal_led_blink(1, 60);               /* one blink per send             */
+        hal_delay_ms(2000);                 /* ~0.5 Hz; feeds the WDT          */
+        hal_wdt_reset();
+    }
+#endif
+
+#ifdef DIAG_LORARX
+    /* RF RX diagnostic (build with DIAG_LORARX=1): configure the E220 to the
+     * compiled production settings (ch15, crypt, FIXED mode) via the normal
+     * AUX/echo discipline, then listen for the coordinator's directed packets.
+     * No console — status is on the LED:
+     *   boot            2 blinks
+     *   5-blink groups  radio_on() failed  (power/AUX — can't reach module)
+     *   3-blink groups  radio_ensure_nvram() failed  (config echo mismatch)
+     *   slow heartbeat  configured OK, listening (nothing yet)
+     *   long 300ms ON   a packet arrived from the coordinator                 */
+    hal_led_blink(2, 100);
+    if (!radio_on()) {
+        for (;;) { hal_led_blink(5, 60); hal_delay_ms(1000); hal_wdt_reset(); }
+    }
+    if (!radio_ensure_nvram()) {
+        for (;;) { hal_led_blink(3, 60); hal_delay_ms(1000); hal_wdt_reset(); }
+    }
+    for (;;) {
+        uint8_t rx[64];
+        uint8_t n = radio_rx(rx, sizeof rx, 800);
+        if (n) { hal_led(1); hal_delay_ms(600); hal_led(0); hal_delay_ms(150); }
+        else   { hal_led_blink(1, 30); hal_delay_ms(900); }   /* heartbeat */
+        hal_wdt_reset();
+    }
+#endif
+
+#ifdef DIAG_LORATXC
+    /* TX-with-config diagnostic (build with DIAG_LORATXC=1): same config path as
+     * DIAG_LORARX (ch15/crypt/fixed via radio_ensure_nvram), then TRANSMIT a test
+     * frame every ~2s via radio_tx (which prepends the fixed-mode header). This
+     * exercises the leaf's real TX current surge — watch for brownout. LED:
+     *   5/3-blink groups = radio_on / config failed (as DIAG_LORARX)
+     *   600ms flash      = one packet transmitted                              */
+    hal_led_blink(2, 100);
+    if (!radio_on()) {
+        for (;;) { hal_led_blink(5, 60); hal_delay_ms(1000); hal_wdt_reset(); }
+    }
+    if (!radio_ensure_nvram()) {
+        for (;;) { hal_led_blink(3, 60); hal_delay_ms(1000); hal_wdt_reset(); }
+    }
+    uint8_t seq = 0;
+    for (;;) {
+        uint8_t frame[12] = { 'L','E','A','F','-','T','X','-', 0, 0, 0, seq++ };
+        radio_tx(frame, sizeof frame);
+        hal_led(1); hal_delay_ms(600); hal_led(0);   /* 600ms flash per TX */
+        hal_delay_ms(1400);                          /* ~2s period          */
+        hal_wdt_reset();
+    }
+#endif
+
     cfg_load();
     twi_init();
     hal_led_blink(2, 100);
@@ -426,16 +526,19 @@ int main(void)
             wind_second_tick();
         }
 
-        if (v_btn_event) {
-            uint8_t ev = v_btn_event; v_btn_event = 0;
+        if (v_btn_wake) {
+            v_btn_wake = 0;
+            uint8_t ev = classify_button();
             if (ev == 2) {                  /* long press → safe mode        */
                 safe_mode = 1;
                 safe_mode_until = g_uptime_s + SAFE_MODE_DURATION_S;
                 hal_led_blink(5, 60);
-            } else {
+                next_report = g_uptime_s;   /* report now                    */
+            } else if (ev == 1) {
                 hal_led_blink(1, 60);
+                next_report = g_uptime_s;   /* report now                    */
             }
-            next_report = g_uptime_s;       /* either way: report now        */
+            /* ev == 0: bounce or release-edge wake — nothing to do          */
         }
         if (safe_mode && g_uptime_s >= safe_mode_until) safe_mode = 0;
 

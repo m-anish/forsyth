@@ -78,8 +78,12 @@ class E220:
         time.sleep_ms(5)
         reply = self._uart.read()
         self._set_mode(0, 0)                 # NORMAL
+        # Ebyte's spec answers a write with the 0xC1 read-header, but some
+        # E220 builds echo the command byte (0xC2) instead. The register
+        # payload is the real proof of success, so accept either header.
         ok = bool(ok and reply and len(reply) >= 11 and
-                  reply[0] == _CMD_RET and reply[3:11] == payload)
+                  reply[0] in (_CMD_RET, _CMD_WRITE_RAM) and
+                  reply[3:11] == payload)
         print("e220: configured" if ok else
               "e220: config echo mismatch %r" % (reply,))
         return ok

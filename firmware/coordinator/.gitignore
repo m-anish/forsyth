@@ -1,1 +1,8 @@
 __pycache__/
+
+# device-only runtime state and SECRETS — must never be committed.
+# These live on the ESP32, not in the repo (see config.py secrets note).
+wifi.json
+state.json
+spool.jsonl
+location.json

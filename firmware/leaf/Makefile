@@ -43,6 +43,31 @@ ifdef STATION_ID
 CFLAGS += -DSTATION_ID_OVERRIDE=$(STATION_ID)
 endif
 
+# Bench diagnostic: hold the E220 5 V boost on so its rail can be measured.
+#   make clean && make DIAG_BOOST=1 && make flash PORT=...
+ifdef DIAG_BOOST
+CFLAGS += -DDIAG_BOOST
+endif
+
+# RF-link diagnostic: unconfigured (factory-default) E220, blind-send test
+# packets. Pair with the coordinator debug listener.
+#   make clean && make DIAG_LORATX=1 && make flash PORT=...
+ifdef DIAG_LORATX
+CFLAGS += -DDIAG_LORATX
+endif
+
+# RF RX diagnostic: real config (ch15/crypt/fixed) + listen; LED status codes.
+#   make clean && make DIAG_LORARX=1 && make flash PORT=...
+ifdef DIAG_LORARX
+CFLAGS += -DDIAG_LORARX
+endif
+
+# RF TX diagnostic: real config + transmit every ~2s (exercises TX surge).
+#   make clean && make DIAG_LORATXC=1 && make flash PORT=...
+ifdef DIAG_LORATXC
+CFLAGS += -DDIAG_LORATXC
+endif
+
 all: $(BUILD)/$(TARGET).hex size
 
 $(BUILD)/%.o: src/%.c $(wildcard src/*.h) | $(BUILD)
