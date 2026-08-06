@@ -20,11 +20,6 @@ function widgetEl(w) {
   el.className = 'grid-stack-item gs-type-' + w.type;
   el.setAttribute('gs-x', w.x); el.setAttribute('gs-y', w.y);
   el.setAttribute('gs-w', w.w); el.setAttribute('gs-h', w.h);
-  /* widgets whose height is dictated by their content (the local-conditions
-     panel) grow to fit instead of clipping or scrolling inside a fixed box —
-     gs-h is then only the starting guess. */
-  const reg0 = Widgets.REGISTRY[w.type];
-  if (reg0 && reg0.sizeToContent) el.setAttribute('gs-size-to-content', 'true');
   const id = w.id || `w${Date.now()}_${widSeq++}`;
   el.dataset.wid = id;
   B.meta.set(id, { type: w.type, config: w.config || {} });
@@ -72,12 +67,29 @@ async function renderWidget(el) {
   const body = el.querySelector('.wg-body');
   try { await Widgets.REGISTRY[meta.type].render(body, meta.config); }
   catch (e) { body.innerHTML = `<p class="wg-empty">widget unhappy: ${e.message}</p>`; }
-  /* content just landed — remeasure so a grow-to-fit widget takes the height it
-     actually needs (the sub-cards inside it are content-sized, and that total
-     differs between phone and desktop) */
-  if (Widgets.REGISTRY[meta.type].sizeToContent && B.grid) {
-    requestAnimationFrame(() => { try { B.grid.resizeToContent(el); } catch {} });
-  }
+  if (Widgets.REGISTRY[meta.type].sizeToContent) fitToContent(el);
+}
+
+/* Grow a widget's row span to whatever its content actually needs. The local
+   panel's sub-cards are content-sized and the total differs a lot between one
+   column and two, so a fixed gs-h either clipped it or left a gap. GridStack's
+   own sizeToContent reshuffled the board, so measure and set gs-h ourselves —
+   rows are exactly cellHeight tall. Never shrinks below the widget's default. */
+function fitToContent(el) {
+  if (!B.grid || B.editing) return;
+  requestAnimationFrame(() => {
+    const content = el.querySelector('.grid-stack-item-content');
+    const head = el.querySelector('.wg-head');
+    const body = el.querySelector('.wg-body');
+    if (!content || !body) return;
+    const cs = getComputedStyle(body);
+    const headH = head && head.offsetParent ? head.offsetHeight : 0;   // hidden on this widget
+    const needed = body.scrollHeight + parseFloat(cs.paddingBottom) + headH;
+    const cell = B.grid.getCellHeight(true) || 80;
+    const rows = Math.max(1, Math.ceil(needed / cell));
+    const node = el.gridstackNode;
+    if (node && rows !== node.h) B.grid.update(el, { h: rows });
+  });
 }
 
 function renderAll() {
@@ -370,6 +382,16 @@ async function boot() {
   if (isHome && window.ForsythLoc) ForsythLoc.onChange(renderAll);
 
   window.addEventListener('themechange', renderAll);
+  /* crossing the one-column breakpoint restacks the sub-cards, so a
+     grow-to-fit widget needs its height measured again */
+  let fitT;
+  window.addEventListener('resize', () => {
+    clearTimeout(fitT);
+    fitT = setTimeout(() => document.querySelectorAll('.grid-stack-item').forEach(el => {
+      const m = B.meta.get(el.dataset.wid);
+      if (m && Widgets.REGISTRY[m.type].sizeToContent) fitToContent(el);
+    }), 200);
+  });
   setInterval(() => {
     Widgets.invalidate();
     if (!B.editing) { renderAll(); refreshBanner(); }
