@@ -5,7 +5,7 @@ const API = '/api/v1';
 
 /* App version — shown in the footer (esp. useful for the PWA, where a stale
    cached build is otherwise invisible). Bump alongside the asset ?v= query. */
-const APP_VERSION = '0.54';
+const APP_VERSION = '0.55';
 addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.app-ver').forEach(el => { el.textContent = 'v' + APP_VERSION; });
 });
@@ -207,8 +207,14 @@ function satelliteLayer() {
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       { maxNativeZoom: 18, maxZoom: 20,
         attribution: 'Imagery © <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics' }),
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png',
-      { subdomains: 'abcd', maxNativeZoom: 19, maxZoom: 20,
+    /* Labels at double size: ask for the @2x tile one zoom level back and draw
+       it at 512 px (tileSize 512 + zoomOffset -1). CARTO's label tiles are cut
+       for 256 px, so at native size the place names came out too small to read
+       over imagery — this trades a little label density for legibility, and the
+       @2x asset keeps the text crisp rather than upscaled-blurry. ({r} without
+       detectRetina resolved to nothing, so we were serving plain 1x tiles.) */
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}@2x.png',
+      { subdomains: 'abcd', tileSize: 512, zoomOffset: -1, maxNativeZoom: 18, maxZoom: 20,
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>' }),
   ]);
 }

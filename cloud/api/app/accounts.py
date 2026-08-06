@@ -65,7 +65,7 @@ DEFAULT_LAYOUT = {
          "config": {"hours": 168}},
         # one card enclosing the location-bound widgets (forecast, current
         # conditions, temp/RH, wind rose); its title carries the location picker.
-        {"id": "wl", "type": "localpanel", "x": 0, "y": 6,  "w": 8, "h": 10, "config": {}},
+        {"id": "wl", "type": "localpanel", "x": 0, "y": 6,  "w": 8, "h": 11, "config": {}},
         {"id": "w6", "type": "lightning",  "x": 8, "y": 8,  "w": 4, "h": 4, "config": {}},
         {"id": "w9", "type": "health",     "x": 8, "y": 12, "w": 4, "h": 4, "config": {}},
     ],

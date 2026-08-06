@@ -349,7 +349,10 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 }
 .rose .spoke { fill: color-mix(in srgb, var(--accent) 50%, transparent); stroke: var(--accent); stroke-width: 0.5; }
 .rose .ring { fill: none; stroke: var(--border); }
-.rose text { fill: var(--text-mute); font-family: var(--mono); font-size: 9px; }
+/* sized in viewBox units (240 wide), so this scales with the rose — 9px was
+   ~6 real px in a small card, which was barely legible */
+.rose text { fill: var(--text-mute); font-family: var(--mono); font-size: 14px; }
+.rose text.rose-empty { font-size: 11px; }
 
 /* footer */
 .sl-footer { border-top: 1px solid var(--border-2); padding: 40px 0 60px;
@@ -398,19 +401,21 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 .lp-grid {
   display: grid; gap: 14px; align-items: stretch;
   grid-template-columns: 1.7fr 1fr;
-  grid-template-rows: 250px 210px 210px;
+  grid-template-rows: 260px 260px 220px;
   grid-template-areas: "forecast now" "forecast wind" "chart chart";
 }
 /* each sub-widget is its own card inside the panel */
 .lp-cell {
   display: flex; flex-direction: column; min-width: 0; min-height: 0;
   background: var(--bg-elev); border: 1px solid var(--border);
-  border-radius: 10px; padding: 12px 14px 14px;
+  border-radius: 10px; padding: 10px 12px 12px;
 }
+/* the title row is pure overhead for the square widgets (the rose is
+   height-bound), so keep it tight — every px saved becomes rose */
 .lp-cell > h4 {
   font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em;
   text-transform: uppercase; color: var(--text-mute);
-  margin: 0 0 10px; font-weight: 500; flex: none;
+  margin: 0 0 6px; font-weight: 500; flex: none; line-height: 1.2;
 }
 .lp-body { flex: 1 1 auto; min-height: 0; position: relative; }
 
@@ -434,7 +439,7 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 @media (max-width: 720px) {
   .lp-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: 250px 230px 210px 200px;
+    grid-template-rows: 260px 240px 260px 210px;
     grid-template-areas: "forecast" "now" "wind" "chart";
   }
 }

@@ -92,7 +92,9 @@ const Widgets = (() => {
     const s = await pick(config, el);
     if (!s) return;
     const { bins, total } = await getJSON(`/stations/${s.slug}/windrose?hours=${config.hours || 24}`);
-    const cx = 110, cy = 110, rMax = 88;
+    /* 240-unit viewBox: the cardinal labels scale with the SVG, so they need to
+       be a decent fraction of it to stay readable in a small card */
+    const cx = 120, cy = 120, rMax = 96, rLab = rMax + 14;
     const maxN = Math.max(1, ...bins.map(b => b.n));
     let out = '';
     for (const rr of [0.33, 0.66, 1.0]) out += `<circle class="ring" cx="${cx}" cy="${cy}" r="${rMax*rr}"/>`;
@@ -105,14 +107,14 @@ const Widgets = (() => {
     });
     for (const [t, i] of [['N',0],['E',4],['S',8],['W',12]]) {
       const a = ((i*22.5 - 90) * Math.PI) / 180;
-      out += `<text x="${cx + (rMax+12)*Math.cos(a)}" y="${cy + (rMax+12)*Math.sin(a)+3}" text-anchor="middle">${t}</text>`;
+      out += `<text x="${cx + rLab*Math.cos(a)}" y="${cy + rLab*Math.sin(a)+5}" text-anchor="middle">${t}</text>`;
     }
-    if (!total) out += `<text x="${cx}" y="${cy}" text-anchor="middle">no wind data</text>`;
+    if (!total) out += `<text class="rose-empty" x="${cx}" y="${cy}" text-anchor="middle">no wind data</text>`;
     /* no width/height: the SVG scales to its container via the viewBox (CSS
        keeps it square), so the rose fills whatever card it is dropped into.
        `label: false` drops the caption where the station is already named by
        an enclosing title (station page panel, homepage local panel). */
-    el.innerHTML = `<svg class="rose" viewBox="0 0 220 220" preserveAspectRatio="xMidYMid meet">${out}</svg>`
+    el.innerHTML = `<svg class="rose" viewBox="0 0 240 240" preserveAspectRatio="xMidYMid meet">${out}</svg>`
       + (config.label === false ? ''
          : `<div class="wg-sub" style="text-align:center">${s.name} · ${config.hours || 24} h</div>`);
   }
@@ -335,7 +337,7 @@ const Widgets = (() => {
                  ranges: [[24,'24h'],[72,'3d'],[168,'7d']], defaultHours: 24 },
     summary:   { label: 'Weather',            render: summary,   w: 12, h: 2, fields: ['stationOrAll'] },
     health:    { label: 'Mesh health',        render: health,    w: 4, h: 2, fields: [] },
-    localpanel:{ label: 'Local conditions',   render: localpanel, w: 8, h: 10, fields: [] },
+    localpanel:{ label: 'Local conditions',   render: localpanel, w: 8, h: 11, fields: [] },
   };
 
   return { REGISTRY, stations, invalidate, destroyInstance };
