@@ -58,16 +58,20 @@ DEFAULT_LAYOUT = {
     # (js/location.js). The mesh map takes the prominent top slot; the location-
     # bound widgets live inside one 'localpanel' card whose title carries the
     # picker that switches what those '@here' widgets show.
+    # Order matters twice over: on a phone GridStack collapses to one column and
+    # sorts by (y, x), so the reading order below IS the mobile order —
+    # map, local conditions, reports, lightning, health.
     "widgets": [
-        {"id": "w5", "type": "map",        "x": 0, "y": 0,  "w": 8, "h": 6, "config": {}},
-        # community observation is half the product — a tall column, week window.
-        {"id": "w7", "type": "reports",    "x": 8, "y": 0,  "w": 4, "h": 8,
-         "config": {"hours": 168}},
+        {"id": "w5", "type": "map",        "x": 0, "y": 0,  "w": 12, "h": 6, "config": {}},
         # one card enclosing the location-bound widgets (forecast, current
         # conditions, temp/RH, wind rose); its title carries the location picker.
-        {"id": "wl", "type": "localpanel", "x": 0, "y": 6,  "w": 8, "h": 11, "config": {}},
-        {"id": "w6", "type": "lightning",  "x": 8, "y": 8,  "w": 4, "h": 4, "config": {}},
-        {"id": "w9", "type": "health",     "x": 8, "y": 12, "w": 4, "h": 4, "config": {}},
+        # Grows to fit its content rather than sitting at a fixed height.
+        {"id": "wl", "type": "localpanel", "x": 0, "y": 6,  "w": 8,  "h": 11, "config": {}},
+        # community observation is half the product — a tall column, week window.
+        {"id": "w7", "type": "reports",    "x": 8, "y": 6,  "w": 4,  "h": 5,
+         "config": {"hours": 168}},
+        {"id": "w6", "type": "lightning",  "x": 8, "y": 11, "w": 4,  "h": 3, "config": {}},
+        {"id": "w9", "type": "health",     "x": 8, "y": 14, "w": 4,  "h": 3, "config": {}},
     ],
 }
 

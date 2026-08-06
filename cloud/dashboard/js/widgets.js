@@ -337,7 +337,11 @@ const Widgets = (() => {
                  ranges: [[24,'24h'],[72,'3d'],[168,'7d']], defaultHours: 24 },
     summary:   { label: 'Weather',            render: summary,   w: 12, h: 2, fields: ['stationOrAll'] },
     health:    { label: 'Mesh health',        render: health,    w: 4, h: 2, fields: [] },
-    localpanel:{ label: 'Local conditions',   render: localpanel, w: 8, h: 11, fields: [] },
+    /* sizeToContent: the sub-cards are content-sized, and the total differs a
+       lot between one column and two — a fixed gs-h clipped one or padded the
+       other, so the panel grows to whatever it needs (board.js) */
+    localpanel:{ label: 'Local conditions',   render: localpanel, w: 8, h: 11, fields: [],
+                 sizeToContent: true },
   };
 
   return { REGISTRY, stations, invalidate, destroyInstance };

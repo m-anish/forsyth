@@ -373,7 +373,9 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 /* ---------- homepage local-conditions panel (widgets.js localpanel) ---------- */
 /* the panel supplies its own header (the location picker), so hide the generic one */
 .gs-type-localpanel .wg-head { display: none; }
-.gs-type-localpanel .wg-body { padding: 14px 16px 16px; overflow: auto; }
+/* overflow visible, not auto: the widget grows to fit its content (see
+   sizeToContent), so an inner scrollbar would only hide what it should show */
+.gs-type-localpanel .wg-body { padding: 14px 16px 16px; overflow: visible; }
 
 .lp-head {
   display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap;
@@ -396,12 +398,13 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 }
 .lp-here:disabled { opacity: 0.5; cursor: default; }
 
-/* fixed rows (not content-sized) so every cell fills its share — otherwise the
-   tall forecast leaves the neighbours floating in dead space */
+/* Rows are content-sized, not fixed: the panel itself grows to fit (the widget
+   is sizeToContent), so a card never clips its own text or spills into its
+   neighbour. min-height on each cell keeps the charts and the rose usable. */
 .lp-grid {
   display: grid; gap: 14px; align-items: stretch;
   grid-template-columns: 1.7fr 1fr;
-  grid-template-rows: 260px 260px 220px;
+  grid-template-rows: auto auto auto;
   grid-template-areas: "forecast now" "forecast wind" "chart chart";
 }
 /* each sub-widget is its own card inside the panel */
@@ -419,29 +422,36 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 }
 .lp-body { flex: 1 1 auto; min-height: 0; position: relative; }
 
-.lp-c-forecast { grid-area: forecast; }
+.lp-c-forecast { grid-area: forecast; min-height: 470px; }
 .lp-c-now      { grid-area: now; }
+.lp-c-chart    { grid-area: chart; min-height: 210px; }
+/* the rose is square: give the cell a definite height to scale into */
 .lp-c-wind     { grid-area: wind; }
-.lp-c-chart    { grid-area: chart; }
+.lp-c-wind .lp-body {
+  display: flex; align-items: center; justify-content: center;
+  aspect-ratio: 1 / 1; max-height: 300px;
+}
 
-/* the "right now" block is dense — tighten it to fit its card */
+/* the "right now" block is dense — tighten it so it fits without clipping */
 .lp-c-now .wg-big { font-size: 34px; }
 .lp-c-now .wg-sub { margin-bottom: 8px; }
+.lp-c-now .kv { grid-template-columns: 1fr; gap: 0; }
 .lp-c-now .kv div { padding: 3px 0; }
 .lp-c-now .kv .k, .lp-c-now .kv .v { font-size: 12px; }
-/* narrow columns wrap the kv rows — let it scroll rather than clip */
-.lp-c-now .lp-body { overflow: auto; }
-/* rose fills its card, square, centred */
-.lp-c-wind .lp-body { display: flex; align-items: center; justify-content: center; }
+/* long values ("charging", "18.4 m/s NNW") must wrap inside their own row
+   rather than run past the card edge */
+.lp-c-now .kv .v { text-align: right; overflow-wrap: anywhere; }
 
 .lp-empty { display: flex; align-items: center; justify-content: center; min-height: 120px; }
 
 @media (max-width: 720px) {
   .lp-grid {
     grid-template-columns: 1fr;
-    grid-template-rows: 260px 240px 260px 210px;
+    grid-template-rows: auto auto auto auto;
     grid-template-areas: "forecast" "now" "wind" "chart";
   }
+  /* one column is wide enough for two kv columns again */
+  .lp-c-now .kv { grid-template-columns: 1fr 1fr; gap: 0 18px; }
 }
 
 /* uPlot tweaks */

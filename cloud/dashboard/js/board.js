@@ -20,6 +20,11 @@ function widgetEl(w) {
   el.className = 'grid-stack-item gs-type-' + w.type;
   el.setAttribute('gs-x', w.x); el.setAttribute('gs-y', w.y);
   el.setAttribute('gs-w', w.w); el.setAttribute('gs-h', w.h);
+  /* widgets whose height is dictated by their content (the local-conditions
+     panel) grow to fit instead of clipping or scrolling inside a fixed box —
+     gs-h is then only the starting guess. */
+  const reg0 = Widgets.REGISTRY[w.type];
+  if (reg0 && reg0.sizeToContent) el.setAttribute('gs-size-to-content', 'true');
   const id = w.id || `w${Date.now()}_${widSeq++}`;
   el.dataset.wid = id;
   B.meta.set(id, { type: w.type, config: w.config || {} });
@@ -67,6 +72,12 @@ async function renderWidget(el) {
   const body = el.querySelector('.wg-body');
   try { await Widgets.REGISTRY[meta.type].render(body, meta.config); }
   catch (e) { body.innerHTML = `<p class="wg-empty">widget unhappy: ${e.message}</p>`; }
+  /* content just landed — remeasure so a grow-to-fit widget takes the height it
+     actually needs (the sub-cards inside it are content-sized, and that total
+     differs between phone and desktop) */
+  if (Widgets.REGISTRY[meta.type].sizeToContent && B.grid) {
+    requestAnimationFrame(() => { try { B.grid.resizeToContent(el); } catch {} });
+  }
 }
 
 function renderAll() {
