@@ -102,7 +102,11 @@ def series(
         raise HTTPException(400, f"unknown metrics: {bad}")
 
     since = datetime.now(timezone.utc) - timedelta(hours=hours)
-    if hours <= 48:
+    if hours <= 12:
+        # short windows (the 1 h/6 h/12 h pills) would be a dozen points at a
+        # 5-minute bucket — go as fine as the stations actually report
+        bucket, source = "1 minute", "readings"
+    elif hours <= 48:
         bucket, source = "5 minutes", "readings"
     elif hours <= 24 * 14:
         bucket, source = "1 hour", "readings_hourly"

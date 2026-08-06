@@ -318,9 +318,10 @@ h1.headline {
 .sec-divider .range { margin-left: auto; }
 .sec-divider .export { margin-left: 0; }
 
-/* wind rose as a shared widget body: give the SVG room to size itself */
-.wg-rose { display: flex; flex-direction: column; align-items: center;
-  justify-content: center; min-height: 220px; }
+/* wind rose as a shared widget body: a square box so the rose scales up to
+   the full width of its card (the panel title already names station + window) */
+.wg-rose { display: flex; align-items: center; justify-content: center;
+  width: 100%; aspect-ratio: 1 / 1; max-height: 420px; }
 
 /* lightning feed */
 .feed { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
@@ -340,7 +341,12 @@ h1.headline {
 video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 
 /* wind rose */
-.rose { display: block; margin: 0 auto; }
+/* the SVG carries only a viewBox, so it scales to its container; keep it
+   square and bounded by whichever of the two axes runs out first */
+.rose {
+  display: block; margin: 0 auto; aspect-ratio: 1 / 1;
+  height: 100%; width: auto; max-width: 100%; max-height: 100%;
+}
 .rose .spoke { fill: color-mix(in srgb, var(--accent) 50%, transparent); stroke: var(--accent); stroke-width: 0.5; }
 .rose .ring { fill: none; stroke: var(--border); }
 .rose text { fill: var(--text-mute); font-family: var(--mono); font-size: 9px; }
@@ -387,19 +393,48 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 }
 .lp-here:disabled { opacity: 0.5; cursor: default; }
 
+/* fixed rows (not content-sized) so every cell fills its share — otherwise the
+   tall forecast leaves the neighbours floating in dead space */
 .lp-grid {
-  display: grid; gap: 16px 18px; align-items: start;
-  grid-template-columns: 1.6fr 1fr;
+  display: grid; gap: 14px; align-items: stretch;
+  grid-template-columns: 1.7fr 1fr;
+  grid-template-rows: 250px 210px 210px;
   grid-template-areas: "forecast now" "forecast wind" "chart chart";
 }
-.lp-c-forecast { grid-area: forecast; min-height: 280px; }
+/* each sub-widget is its own card inside the panel */
+.lp-cell {
+  display: flex; flex-direction: column; min-width: 0; min-height: 0;
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px 14px;
+}
+.lp-cell > h4 {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--text-mute);
+  margin: 0 0 10px; font-weight: 500; flex: none;
+}
+.lp-body { flex: 1 1 auto; min-height: 0; position: relative; }
+
+.lp-c-forecast { grid-area: forecast; }
 .lp-c-now      { grid-area: now; }
-.lp-c-wind     { grid-area: wind; min-height: 180px; }
-.lp-c-chart    { grid-area: chart; min-height: 200px; }
+.lp-c-wind     { grid-area: wind; }
+.lp-c-chart    { grid-area: chart; }
+
+/* the "right now" block is dense — tighten it to fit its card */
+.lp-c-now .wg-big { font-size: 34px; }
+.lp-c-now .wg-sub { margin-bottom: 8px; }
+.lp-c-now .kv div { padding: 3px 0; }
+.lp-c-now .kv .k, .lp-c-now .kv .v { font-size: 12px; }
+/* rose fills its card, square, centred */
+.lp-c-wind .lp-body { display: flex; align-items: center; justify-content: center; }
+
 .lp-empty { display: flex; align-items: center; justify-content: center; min-height: 120px; }
 
 @media (max-width: 720px) {
-  .lp-grid { grid-template-columns: 1fr; grid-template-areas: "forecast" "now" "wind" "chart"; }
+  .lp-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: 250px 230px 210px 200px;
+    grid-template-areas: "forecast" "now" "wind" "chart";
+  }
 }
 
 /* uPlot tweaks */

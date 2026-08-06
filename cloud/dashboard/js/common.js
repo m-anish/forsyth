@@ -5,7 +5,7 @@ const API = '/api/v1';
 
 /* App version — shown in the footer (esp. useful for the PWA, where a stale
    cached build is otherwise invisible). Bump alongside the asset ?v= query. */
-const APP_VERSION = '0.52';
+const APP_VERSION = '0.53';
 addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.app-ver').forEach(el => { el.textContent = 'v' + APP_VERSION; });
 });
@@ -18,6 +18,19 @@ if ('serviceWorker' in navigator) {
 async function getJSON(path) {
   const r = await fetch(API + path);
   if (!r.ok) throw new Error(`${path} → ${r.status}`);
+  return r.json();
+}
+
+/* the signed-in flavour: sends the session cookie and surfaces the API's
+   `detail` on failure. Lives here (not board.js) because js/auth.js wires the
+   sign-in chrome on every page. */
+async function apiJSON(path, opts = {}) {
+  const r = await fetch(API + path, {
+    credentials: 'same-origin',
+    headers: opts.body ? { 'Content-Type': 'application/json' } : {},
+    ...opts,
+  });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `HTTP ${r.status}`);
   return r.json();
 }
 

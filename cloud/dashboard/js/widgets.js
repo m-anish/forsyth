@@ -92,7 +92,6 @@ const Widgets = (() => {
     const s = await pick(config, el);
     if (!s) return;
     const { bins, total } = await getJSON(`/stations/${s.slug}/windrose?hours=${config.hours || 24}`);
-    const size = Math.max(140, Math.min(el.clientWidth, el.clientHeight) - 10);
     const cx = 110, cy = 110, rMax = 88;
     const maxN = Math.max(1, ...bins.map(b => b.n));
     let out = '';
@@ -109,8 +108,13 @@ const Widgets = (() => {
       out += `<text x="${cx + (rMax+12)*Math.cos(a)}" y="${cy + (rMax+12)*Math.sin(a)+3}" text-anchor="middle">${t}</text>`;
     }
     if (!total) out += `<text x="${cx}" y="${cy}" text-anchor="middle">no wind data</text>`;
-    el.innerHTML = `<svg class="rose" viewBox="0 0 220 220" width="${size}" height="${size}">${out}</svg>
-      <div class="wg-sub" style="text-align:center">${s.name} · ${config.hours || 24} h</div>`;
+    /* no width/height: the SVG scales to its container via the viewBox (CSS
+       keeps it square), so the rose fills whatever card it is dropped into.
+       `label: false` drops the caption where the station is already named by
+       an enclosing title (station page panel, homepage local panel). */
+    el.innerHTML = `<svg class="rose" viewBox="0 0 220 220" preserveAspectRatio="xMidYMid meet">${out}</svg>`
+      + (config.label === false ? ''
+         : `<div class="wg-sub" style="text-align:center">${s.name} · ${config.hours || 24} h</div>`);
   }
 
   async function aqiW(el, config) {
@@ -271,6 +275,15 @@ const Widgets = (() => {
     };
   }
 
+  /* each sub-widget gets its own titled card, so the panel reads as four
+     separated things under one location header rather than one long column */
+  const LP_CELLS = [
+    ['forecast', 'The next 48 hours'],
+    ['now',      'Right now'],
+    ['wind',     'Wind rose'],
+    ['chart',    'Temperature &amp; humidity'],
+  ];
+
   async function localpanel(el, config) {
     if (!window.ForsythLoc) { el.innerHTML = '<p class="wg-empty">—</p>'; return; }
     const active = ForsythLoc.active();
@@ -280,10 +293,11 @@ const Widgets = (() => {
       el.innerHTML = active
         ? `<div class="lp-head">${locNavHTML()}</div>
            <div class="lp-grid">
-             <div class="lp-cell lp-c-forecast"></div>
-             <div class="lp-cell lp-c-now"></div>
-             <div class="lp-cell lp-c-wind"></div>
-             <div class="lp-cell lp-c-chart"></div>
+             ${LP_CELLS.map(([k, title]) => `
+               <section class="lp-cell lp-c-${k}">
+                 <h4>${title}</h4>
+                 <div class="lp-body"></div>
+               </section>`).join('')}
            </div>`
         : `<div class="lp-head">${locNavHTML()}</div>
            <div class="lp-empty"><p class="wg-empty">Pick a location above to see local conditions &amp; forecast.</p></div>`;
@@ -291,11 +305,14 @@ const Widgets = (() => {
     }
     if (!active) return;
     const cfg = { station: active };
+    const body = k => el.querySelector(`.lp-c-${k} .lp-body`);
+    /* the card titles already name the window and the header names the station,
+       so the sub-widgets render without their own captions */
     await Promise.allSettled([
-      forecast(el.querySelector('.lp-c-forecast'), { ...cfg, hours: 48 }),
-      now(el.querySelector('.lp-c-now'), cfg),
-      windrose(el.querySelector('.lp-c-wind'), { ...cfg, hours: 24 }),
-      chart(el.querySelector('.lp-c-chart'), { ...cfg, metrics: 'temp_c,rh', hours: 24 }),
+      forecast(body('forecast'), { ...cfg, hours: 48 }),
+      now(body('now'), cfg),
+      windrose(body('wind'), { ...cfg, hours: 24, label: false }),
+      chart(body('chart'), { ...cfg, metrics: 'temp_c,rh', hours: 24 }),
     ]);
   }
 

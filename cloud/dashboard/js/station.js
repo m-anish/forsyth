@@ -201,7 +201,8 @@ document.getElementById('dl-custom-btn').onclick = () => {
 
 /* range picker */
 const rangeEl = document.querySelector('.range');
-for (const [label, hours] of [['1 d', 24], ['2 d', 48], ['7 d', 168], ['30 d', 720]]) {
+for (const [label, hours] of [['1 h', 1], ['6 h', 6], ['12 h', 12],
+                              ['1 d', 24], ['2 d', 48], ['7 d', 168], ['30 d', 720]]) {
   const b = document.createElement('button');
   b.textContent = label;
   if (hours === S.hours) b.classList.add('on');
@@ -222,7 +223,8 @@ for (const [label, hours] of [['1 d', 24], ['2 d', 48], ['7 d', 168], ['30 d', 7
 function renderWidgets() {
   const cfg = {
     aqi:       { station: slug },
-    windrose:  { station: slug, hours: 24 },
+    /* label:false — the panel title already says which station, and 24 h */
+    windrose:  { station: slug, hours: 24, label: false },
     lightning: { station: slug, hours: 48 },
   };
   document.querySelectorAll('[data-widget]').forEach(el => {
@@ -261,6 +263,8 @@ async function boot() {
                      refreshCamera(), refreshBanner(slug), refreshForecast()]);
 }
 boot();
+/* same navbar chrome as the board page: sign in / sign out, admin link */
+ForsythAuth.boot();
 Report.mount({ fallback: () => S.station && S.station.lat != null
   ? { lat: S.station.lat, lon: S.station.lon, name: S.station.name } : null });
 setInterval(() => { refreshNow(); refreshPressureTrend(); renderWidgets(); refreshBanner(slug); }, 60_000);
