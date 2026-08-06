@@ -308,8 +308,8 @@ h1.headline {
 
 /* "recent history" section divider — carries the one time-scale for the charts */
 .sec-divider {
-  grid-column: span 12; display: flex; align-items: center; gap: 14px;
-  margin: 6px 0 -4px; padding-top: 6px;
+  grid-column: span 12; display: flex; align-items: center; flex-wrap: wrap;
+  gap: 8px 14px; margin: 6px 0 -4px; padding-top: 6px;
 }
 .sec-divider h2 {
   font-family: var(--serif); font-weight: 500; letter-spacing: -0.01em;
