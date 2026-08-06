@@ -5,7 +5,7 @@ const API = '/api/v1';
 
 /* App version — shown in the footer (esp. useful for the PWA, where a stale
    cached build is otherwise invisible). Bump alongside the asset ?v= query. */
-const APP_VERSION = '0.61';
+const APP_VERSION = '0.62';
 addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.app-ver').forEach(el => { el.textContent = 'v' + APP_VERSION; });
 });
@@ -268,7 +268,12 @@ async function refreshBanner(slug) {
     const qs = new URLSearchParams();
     if (slug) qs.set('slug', slug);
     if (bannerLang() !== 'en') qs.set('lang', bannerLang());
-    const d = await getJSON('/summary' + (qs.size ? `?${qs}` : ''));
+    /* toString(), not .size: URLSearchParams.size only arrived in Safari 17,
+       and `undefined` is falsy — so every WebKit browser older than that (all
+       of them on an older iPhone, Brave included) silently dropped the query
+       and read the mesh-wide summary onto a station's page. */
+    const query = qs.toString();
+    const d = await getJSON('/summary' + (query ? `?${query}` : ''));
     if (d.summary) {
       el.querySelector('p').textContent = d.summary;
       el.dataset.genAt = d.generated_at || '';
