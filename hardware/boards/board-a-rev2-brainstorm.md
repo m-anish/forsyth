@@ -183,7 +183,10 @@ Two further consequences that must not be skipped:
 **Adopt as an explicit build variant, not as the only option** — and pair it with a cadence
 policy, because the pack size alone does not carry it. See §6: one PCB, two populations.
 
-**The better cell for this variant is probably not Li-ion at all** — see §4.
+**The better cell for this variant is probably not Li-ion at all** — see §4b and the costed
+chemistry table in **§4d**, which also raises the cheapest counter-proposal on this whole
+sheet: if the goal is really "survive a year without a visit", **2 × LFP 32700 (12 Ah, same
+chemistry, same charger, ~₹1200–1800)** may get there with a holder change and no rev 2.
 
 ---
 
@@ -275,6 +278,85 @@ this variant — not merely undocumented.
   temperature falls. The winter problems are **snow cover, low sun angle and short days**, none
   of which a different battery chemistry fixes. If solar is kept for cold sites, argue about
   **panel tilt (steep, to shed snow) and oversizing**, not about the cells.
+
+### 4d. The chemistry field — cost and Indian availability
+
+Serves §3 as much as §4: once "delete the charger" is on the table, the cell stops being a
+given. **Every price below is indicative, in ₹, from general market knowledge — treat as an
+order of magnitude for comparison and [verify against live Robu / Evelta / Quartz / KTRON /
+Element14-India listings before ordering].** Cost-per-Wh is on the *cell*, ignoring holder,
+protection and freight.
+
+Two Forsyth-specific filters do most of the elimination before price is even reached:
+
+1. **The 2.5–3.65 V window.** The "no LDO, runs straight off the cell" rule
+   ([board-a-core §1](board-a-core.md)) plus the **BME280's 3.6 V operating ceiling** admits
+   only chemistries that live in that band. This one constraint disqualifies standard Li-ion
+   (4.2 V), LTO (2.4 V, too low), 3S NiMH (4.05 V charging) and anything lead-acid.
+2. **Pulse capability** for the T30D's 620 mA burst — or an explicit buffer capacitor.
+
+| Chemistry | Nominal / max | Typical cell | ₹/cell | ₹/Wh | Discharge temp | Self-disch. | India | Fits the window? |
+|---|---|---|---|---|---|---|---|---|
+| **LFP 18650** *(rev 0)* | 3.2 / 3.65 V | 1.5 Ah, 4.8 Wh | 150–300 | 31–62 | −20 °C | ~3 %/mo | **excellent** | ✅ |
+| **LFP 26650** | 3.2 / 3.65 V | 3.2 Ah, 10 Wh | 350–600 | 35–60 | −20 °C | ~3 %/mo | **excellent** | ✅ |
+| **LFP 32700** | 3.2 / 3.65 V | 6 Ah, 19 Wh | 500–900 | **26–47** | −20 °C | ~3 %/mo | **excellent** | ✅ |
+| **LiSOCl₂ D (ER34615)** | 3.6 / ~3.67 V | 19 Ah, 68 Wh | 500–1200 | **7–18** | **−55 °C** | **<1 %/yr** | fair, see below | ⚠ at the ceiling |
+| **Li-MnO₂ (CR123A)** | 3.0 / 3.2 V | 1.5 Ah, 4.5 Wh | 150–350 | 33–78 | −40 °C | ~1 %/yr | good | ✅ |
+| **Na-ion 18650** | 3.0–3.1 / 3.9 V | ~1.5 Ah, 4.5 Wh | 400–900 | 89–200 | **−30 °C, charges cold** | ~3 %/mo | **thin** | ⚠ 3.9 V charge |
+| **Li-ion 21700 (NMC)** | 3.6 / **4.2 V** | 5 Ah, 18 Wh | 400–800 | 22–44 | −20 °C | ~2 %/mo | **excellent** | ❌ needs an LDO |
+| **LTO 18650** | 2.4 / 2.8 V | 1.3 Ah, 3 Wh | 400–800 | 133–266 | **−30 °C, charges cold** | ~3 %/mo | poor | ❌ too low |
+| **SLA 12 V** | 12 V | 1.3 Ah, 15.6 Wh | 400–700 | 26–45 | −15 °C, derates hard | ~3 %/mo | **excellent** | ❌ wrong voltage |
+
+**Reading the table:**
+
+- **LFP 32700 is the quiet winner for the solar variant.** Six amp-hours in one cell at the
+  best ₹/Wh of any chemistry that fits the voltage window, and India has an unusually deep
+  supply chain for it because solar street lights and e-rickshaws run on exactly this cell.
+  Two in parallel is 12 Ah — enough for profile B for a **year with no sun at all**, at maybe
+  ₹1200–1800. It changes nothing about the architecture: same chemistry, same CN3801, same
+  3.65 V CV point, just a bigger can and a different holder. **If §3's real goal is "survive a
+  long grey monsoon without a service visit", this is the cheapest possible answer and it
+  needs no rev 2 at all** — only a holder change.
+- **LiSOCl₂ is the cheapest energy on the table by a factor of two or three**, which is not
+  the usual reputation of primary cells and is worth sitting with. 68 Wh in one D cell at
+  ₹7–18/Wh beats every rechargeable here on *stored* energy. What you buy with the premium
+  elsewhere is the ability to refill it.
+- **Li-MnO₂ is the sane fallback if thionyl sourcing turns painful** — better pulse behaviour
+  (no passivation problem), −40 °C, genuinely available because it is the camera/CR123A
+  supply chain. The cost is energy density: matching one ER34615 takes ~13 CR123A cells at
+  ₹2000–4500, which erases the price advantage entirely. Viable at profile A, silly at B.
+- **Sodium-ion is the one to watch, not to buy.** It is the only chemistry here that both
+  *charges below freezing* and sits near our voltage window — precisely what a cold solar site
+  wants, and the thing LTO fails on. Indian retail availability in 2026 is still thin
+  (mostly imported cells); the domestic angle worth tracking is **Faradion, which Reliance
+  owns**. Revisit at rev 3. **[verify current availability — this is the fastest-moving row
+  in the table]**
+- **Li-ion NMC is excluded on 4.2 V, not on merit.** It is the cheapest, most available cell
+  in India and it loses purely because of the BME280 ceiling and the no-LDO rule. If a rev 2
+  ever adds a regulated 3.3 V sensor rail for other reasons, this row comes straight back into
+  contention — worth remembering before adding an LDO "for tidiness" and not noticing it
+  unlocked a chemistry.
+
+**Sourcing cautions that matter more than the prices:**
+
+- **Lithium primaries are Class 9 dangerous goods.** Air shipment is restricted and Indian
+  domestic couriers frequently refuse them, so LiSOCl₂ realistically means an industrial
+  distributor with ground logistics and a lead time — not a next-day Robu order. This is the
+  practical reason §4b may lose to LFP 32700 despite winning on paper. **[verify with an
+  actual quote before designing the variant around it]**
+- **The Indian 18650 market is full of reclaimed and relabelled cells.** A "3000 mAh" cell
+  from an unnamed seller is routinely 1200 mAh of laptop-pull. Buy from named distributors and
+  **capacity-test every cell on arrival** — for a station meant to run unattended for a year,
+  an untested cell is an untested assumption.
+- **Counterfeit thionyl cells exist too**, branded as Saft/Tadiran at EVE prices. If the
+  variant depends on <1 %/yr self-discharge, that spec is the whole point of the purchase.
+
+**The framing that actually decides it:** cells are cheap and site visits are not. Over five
+years, LFP 32700 + panel costs roughly ₹1500–2500 in hardware and zero visits; LiSOCl₂ costs
+₹2500–6000 in cells **plus five trips up the hill**. Solar wins on total cost wherever a visit
+is expensive — and primary cells win wherever a visit is *cheap but the sun is unreliable*,
+which is a narrower set of sites than it first appears. **Decide the service model first; the
+chemistry follows from it.**
 
 ---
 
@@ -368,8 +450,12 @@ area on every unit built.]**
 
 1. **Change the default AQI cadence** (firmware, zero hardware) — the single biggest lever on
    every number in this document.
-2. **Adaptive AS3935 listening** (§5a) — halves the sleep floor for one FET.
-3. **Variant P: primary cell + pulse buffer** (§4b) — solves cold and yearly-swap together.
+2. **Try 2 × LFP 32700 first** (§4d) — a holder change, no schematic change, ~₹1200–1800 for
+   12 Ah. If that clears the autonomy target, items 3 and 5 below stop being urgent. Cheapest
+   experiment on the sheet; run it before designing anything.
+3. **Adaptive AS3935 listening** (§5a) — halves the sleep floor for one FET.
+4. **Variant P: primary cell + pulse buffer** (§4b, §4d) — solves cold and yearly-swap
+   together, *if* Class 9 logistics to site turn out to be tolerable.
 4. **Fix the battery/solar keying** (§5c) — the one live safety defect from rev 0.
 5. Single boost + load switches (§2), switched sense divider (§5b), connector shrink,
    bring-up ergonomics (§5d) — all worth doing *in* a rev 2, none worth a rev 2 on its own.
@@ -380,9 +466,10 @@ area on every unit built.]**
 |---|---|---|
 | 1 | **Bench-measure the actual sleep and active currents.** Every number here is computed from datasheets. | Everything. Architecture §9 has had this open since the start; it is now the critical path. |
 | 2 | What AQI cadence is actually *useful* to a reader? | §3, §5e, and the whole battery-sizing question |
-| 3 | LiSOCl₂ domestic availability, price, and pulse behaviour cold-soaked | §4b |
+| 3 | LiSOCl₂ domestic availability, price, and pulse behaviour cold-soaked — **including whether a courier will actually carry Class 9 cells to site** | §4b, §4d |
 | 4 | Real supercap/HLC leakage at the sizes considered | §4a, §4b |
-| 5 | Is the annual visit a promise we can actually keep at every site? | §3 — a battery-only station that misses its visit is simply dead |
+| 5 | Is the annual visit a promise we can actually keep at every site? | §3, §4d — a battery-only station that misses its visit is simply dead, and the service model decides the chemistry |
+| 6 | **Price a 2 × LFP 32700 holder change against the whole rev 2.** If it clears the autonomy goal on its own, most of this sheet becomes optional. | §3, §4d |
 
 ---
 
