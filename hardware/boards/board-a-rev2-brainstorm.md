@@ -229,27 +229,60 @@ great deal for the next idea.
 This is the standard industrial-sensor answer and it deserves to be the headline candidate,
 because it solves debate 2 and debate 3 *simultaneously*:
 
-- **Lithium thionyl chloride** (e.g. D-size ER34615: ~19 Ah at 3.6 V nominal) —
-  **[verify capacity, current limits and stock domestically]**
+**Grounded on a real, in-stock part (2026-08-06):** Robu SKU 1158210, *Forte ER34615 D*,
+**₹839 incl. GST — 20 Ah at 3.6 V = 72 Wh, ₹11.65/Wh**, 34.2 × 61.5 mm, **−55 to +85 °C**,
+**max continuous 150 mA, max pulse 300 mA**. Every number below now uses that datasheet rather
+than a generic estimate.
+
 - **Self-discharge under ~1 %/year** (against Li-ion's ~2 %/month) — the single biggest win
   for a one-year-unattended box. Over 12 months a Li-ion pack loses ~1.2 Ah to nothing at all;
-  this loses ~0.2 Ah.
+  this loses ~0.2 Ah. **[the listing does not quote a self-discharge figure — this is the
+  chemistry's general property, and it is the entire value proposition of the purchase, so
+  verify it on the actual cell's datasheet]**
 - **Rated to −55 °C.** No plating risk, because **nothing ever charges it** — which deletes
   `CHG_INHIBIT` (§3.5a), its temperature policy, its hysteresis, its survival override and the
   2N7002 with it.
 - **3.6 V nominal, and remarkably flat** — it fits the "runs directly off the cell" rule
-  better than Li-ion does, and sits at the LiFePO4 float voltage the board is already designed
-  around. **[verify the fresh-cell open-circuit voltage against the BME280 3.6 V ceiling — it
-  may sit slightly above, same discussion as rev 0 §1]**
-- **19 Ah covers profile B (12.6 Ah/yr) for a year with margin**, and profile A for years.
+  better than Li-ion does, and sits within a few tens of mV of the LiFePO4 float the board is
+  already designed around. **[verify fresh-cell OCV against the BME280 3.6 V ceiling — LiSOCl₂
+  typically rests ~3.65–3.67 V, i.e. the same marginal overshoot rev 0 §1 already accepted at
+  LiFePO4 float, and far inside the 4.25 V absolute max]**
+- **Autonomy on one ₹839 cell:** profile A **≈ 5.7 years**, profile B **≈ 1.6 years**,
+  profile C ≈ 8 months. Bobbin cells deliver close to rated capacity at our ~1.4 mA average
+  draw, so these are not optimistic. **Three cells in parallel — ₹2517, 60 Ah — is ≈ 4.8 years
+  at profile B**, which turns "annual swap" into "one visit per five years". That is a
+  materially better proposition than debate 2 started with.
 
-**The catch, and it is the reason the supercap idea belongs here:** bobbin-construction
-LiSOCl₂ cells have **poor pulse capability** — continuous current in the low hundreds of mA,
-and high internal impedance that sags badly under a 620 mA surge. They are therefore *always*
-paired with a **hybrid-layer capacitor (HLC) or a modest supercap** to serve the pulses while
-the cell supplies the average. So the user's two ideas combine into one correct architecture:
+**The catch, now with numbers, and it is the reason the supercap idea belongs here.** Convert
+the loads to cell-referred current at VBAT 3.6 V, η 0.87 (**×1.60**):
+
+| Load | 5 V-side | Cell-side | Against the cell's limits |
+|---|---|---|---|
+| **E220 T30D TX** | 620 mA | **990 mA** | **3.3× over the 300 mA pulse rating** ❌ |
+| **E220 T22D TX** | 110 mA | **176 mA** | inside pulse, but over 150 mA continuous for ~0.5 s ⚠ |
+| **PMS7003 warm-up** | 80 mA | **128 mA** | **85 % of max continuous, sustained for 30 s** ⚠ |
+
+So the buffer capacitor is **not a refinement, it is load-bearing** — without it this cell
+cannot run a T30D node at all, and runs an AQI node at the edge of its rating. Sizing it:
+
+```
+T30D deficit   = 990 mA − 150 mA (cell)  = 840 mA for ~0.52 s = 0.44 C
+allowed droop  = 3.6 V → 3.0 V           = 0.6 V
+C ≥ Q/ΔV       = 0.44 / 0.6              ≈ 0.73 F   → specify 1 F minimum
+```
+
+Relieving the PMS7003's 30 s draw as well (say 60 mA of the 128 mA from the cap) wants
+60 mA × 30 s = 1.8 C ⇒ ~3 F at the same droop, so **≈ 5 F on VBAT is the sensible starting
+point** — a coin-sized part, ₹50–150, not the soda can of §4a. Note the pleasing inversion:
+**§4a's 500 F supercap fails as storage and §4b's cell fails as a power source, and each is
+exactly the other's fix.**
 
 > **primary cell for energy + capacitor for power.**
+
+And the leakage objection that sank §4a does not apply at this size: a 5 F cell leaking
+~20 µA costs **175 mAh/year against a 20 000 mAh budget — under 1 %**. It is 23 % of the
+*sleep floor*, which sounds alarming and does not matter, because the sleep floor is no longer
+the binding constraint once the tank is this large. **[verify leakage on the actual part]**
 
 Second catch: **passivation.** LiSOCl₂ cells grow a resistive film in long low-current
 storage; the first heavy pulse after a quiet spell may sag. Mitigation is the same buffer cap,
@@ -258,6 +291,13 @@ soak before committing]**
 
 Third: they are **not rechargeable**, so a panel must be made physically impossible to fit on
 this variant — not merely undocumented.
+
+Fourth, if cells are paralleled for the five-year build: **primaries need blocking diodes
+between cells**, or a weak cell gets charged by its neighbours — which is exactly the abuse
+this chemistry punishes. A Schottky costs ~0.3 V off a 3.6 V cell, which the boost can absorb
+but the direct-off-cell sensor rail may not. The alternatives are matched cells from one batch
+(common practice, mildly frowned upon) or a single larger format. **[decide before committing
+to a multi-cell layout — it may be the argument for one cell and a shorter interval]**
 
 ### 4c. Other cold strategies, briefly
 
@@ -282,10 +322,13 @@ this variant — not merely undocumented.
 ### 4d. The chemistry field — cost and Indian availability
 
 Serves §3 as much as §4: once "delete the charger" is on the table, the cell stops being a
-given. **Every price below is indicative, in ₹, from general market knowledge — treat as an
-order of magnitude for comparison and [verify against live Robu / Evelta / Quartz / KTRON /
-Element14-India listings before ordering].** Cost-per-Wh is on the *cell*, ignoring holder,
-protection and freight.
+given. **Prices are indicative, in ₹, from general market knowledge except where marked ✓ —
+treat the unmarked ones as an order of magnitude and [verify against live Robu / Evelta /
+Quartz / KTRON / Element14-India listings before ordering].** Cost-per-Wh is on the *cell*,
+ignoring holder, protection and freight.
+
+**Rows marked ✓ are confirmed against a live listing** (Robu SKU 1158210, Forte ER34615,
+checked 2026-08-06).
 
 Two Forsyth-specific filters do most of the elimination before price is even reached:
 
@@ -300,7 +343,7 @@ Two Forsyth-specific filters do most of the elimination before price is even rea
 | **LFP 18650** *(rev 0)* | 3.2 / 3.65 V | 1.5 Ah, 4.8 Wh | 150–300 | 31–62 | −20 °C | ~3 %/mo | **excellent** | ✅ |
 | **LFP 26650** | 3.2 / 3.65 V | 3.2 Ah, 10 Wh | 350–600 | 35–60 | −20 °C | ~3 %/mo | **excellent** | ✅ |
 | **LFP 32700** | 3.2 / 3.65 V | 6 Ah, 19 Wh | 500–900 | **26–47** | −20 °C | ~3 %/mo | **excellent** | ✅ |
-| **LiSOCl₂ D (ER34615)** | 3.6 / ~3.67 V | 19 Ah, 68 Wh | 500–1200 | **7–18** | **−55 °C** | **<1 %/yr** | fair, see below | ⚠ at the ceiling |
+| **LiSOCl₂ D (ER34615)** | 3.6 / ~3.67 V | **20 Ah, 72 Wh** | **839 ✓** | **11.65 ✓** | **−55 °C ✓** | **<1 %/yr** | **good — Robu, in stock ✓** | ⚠ at the ceiling |
 | **Li-MnO₂ (CR123A)** | 3.0 / 3.2 V | 1.5 Ah, 4.5 Wh | 150–350 | 33–78 | −40 °C | ~1 %/yr | good | ✅ |
 | **Na-ion 18650** | 3.0–3.1 / 3.9 V | ~1.5 Ah, 4.5 Wh | 400–900 | 89–200 | **−30 °C, charges cold** | ~3 %/mo | **thin** | ⚠ 3.9 V charge |
 | **Li-ion 21700 (NMC)** | 3.6 / **4.2 V** | 5 Ah, 18 Wh | 400–800 | 22–44 | −20 °C | ~2 %/mo | **excellent** | ❌ needs an LDO |
@@ -317,10 +360,12 @@ Two Forsyth-specific filters do most of the elimination before price is even rea
   3.65 V CV point, just a bigger can and a different holder. **If §3's real goal is "survive a
   long grey monsoon without a service visit", this is the cheapest possible answer and it
   needs no rev 2 at all** — only a holder change.
-- **LiSOCl₂ is the cheapest energy on the table by a factor of two or three**, which is not
-  the usual reputation of primary cells and is worth sitting with. 68 Wh in one D cell at
-  ₹7–18/Wh beats every rechargeable here on *stored* energy. What you buy with the premium
-  elsewhere is the ability to refill it.
+- **LiSOCl₂ is the cheapest energy on the table by a factor of three, and it is confirmed
+  in stock at a mainstream Indian distributor.** 72 Wh in one D cell at **₹11.65/Wh** against
+  LFP 32700's ~₹37/Wh. That is not the usual reputation of primary cells and is worth sitting
+  with. What you buy with the premium elsewhere is the ability to refill it.
+  **The availability objection below is now largely spent** — Robu listing it for normal
+  domestic delivery answers the Class 9 worry in the only way that counts.
 - **Li-MnO₂ is the sane fallback if thionyl sourcing turns painful** — better pulse behaviour
   (no passivation problem), −40 °C, genuinely available because it is the camera/CR123A
   supply chain. The cost is energy density: matching one ER34615 takes ~13 CR123A cells at
@@ -339,11 +384,17 @@ Two Forsyth-specific filters do most of the elimination before price is even rea
 
 **Sourcing cautions that matter more than the prices:**
 
-- **Lithium primaries are Class 9 dangerous goods.** Air shipment is restricted and Indian
-  domestic couriers frequently refuse them, so LiSOCl₂ realistically means an industrial
-  distributor with ground logistics and a lead time — not a next-day Robu order. This is the
-  practical reason §4b may lose to LFP 32700 despite winning on paper. **[verify with an
-  actual quote before designing the variant around it]**
+- ~~**Lithium primaries are Class 9 dangerous goods**, so LiSOCl₂ means an industrial
+  distributor and a lead time, not a next-day Robu order.~~ **Withdrawn 2026-08-06 — Robu
+  stocks the ER34615 (SKU 1158210) for ordinary domestic delivery.** Class 9 still governs
+  *air* freight and may affect bulk quantities or carriage to a remote site, but the
+  "hard to buy in India" premise this sheet was written on is wrong.
+- **The listed cell is `Brand: Generic, MPN: N/A`, with no reviews.** Forte is a real
+  manufacturer, but an unattributed listing means the two specs the whole variant rests on —
+  **<1 %/yr self-discharge** and **20 Ah** — are vendor claims, not a datasheet you can hold
+  anyone to. 20 Ah is also at the optimistic end for a D bobbin cell (genuine EVE ER34615 is
+  typically 19 Ah). For a station meant to run unattended for years, **buy one, capacity-test
+  it, and cold-soak it before designing around it.**
 - **The Indian 18650 market is full of reclaimed and relabelled cells.** A "3000 mAh" cell
   from an unnamed seller is routinely 1200 mAh of laptop-pull. Buy from named distributors and
   **capacity-test every cell on arrival** — for a station meant to run unattended for a year,
@@ -351,12 +402,24 @@ Two Forsyth-specific filters do most of the elimination before price is even rea
 - **Counterfeit thionyl cells exist too**, branded as Saft/Tadiran at EVE prices. If the
   variant depends on <1 %/yr self-discharge, that spec is the whole point of the purchase.
 
-**The framing that actually decides it:** cells are cheap and site visits are not. Over five
-years, LFP 32700 + panel costs roughly ₹1500–2500 in hardware and zero visits; LiSOCl₂ costs
-₹2500–6000 in cells **plus five trips up the hill**. Solar wins on total cost wherever a visit
-is expensive — and primary cells win wherever a visit is *cheap but the sun is unreliable*,
-which is a narrower set of sites than it first appears. **Decide the service model first; the
-chemistry follows from it.**
+**The framing that actually decides it:** cells are cheap and site visits are not. Cost a
+five-year, profile-B life honestly:
+
+| | Hardware | Site visits in 5 yr |
+|---|---|---|
+| **LFP 32700 ×2 + panel + charger BOM** | ~₹1500–2500 | 0 scheduled (but a soiled or snowed panel is an *unscheduled* one) |
+| **LiSOCl₂ ×3 (60 Ah) + 5 F buffer** | ~₹2600 | **1** |
+| **LiSOCl₂ ×1 (20 Ah) + 5 F buffer** | ~₹900 | 3 |
+
+The three-cell build is the interesting column: **within ₹100 of the solar build, and it
+buys a five-year interval with no charging path, no MPPT, no cold-charge policy and no panel
+to be snowed under.** That is a genuinely different proposition from the yearly swap debate 2
+proposed, and it is the strongest argument on this sheet for Variant P.
+
+Solar still wins where visits are expensive *and* the sun is reliable. But the earlier
+conclusion — that primaries only suit sites that are cheap to visit — **was wrong, and it was
+wrong because it assumed one cell and a yearly swap.** Paralleling changes the answer.
+**Decide the service model first; the chemistry follows from it.**
 
 ---
 
@@ -455,7 +518,9 @@ area on every unit built.]**
    experiment on the sheet; run it before designing anything.
 3. **Adaptive AS3935 listening** (§5a) — halves the sleep floor for one FET.
 4. **Variant P: primary cell + pulse buffer** (§4b, §4d) — solves cold and yearly-swap
-   together, *if* Class 9 logistics to site turn out to be tolerable.
+   together. Sourcing is confirmed (Robu, ₹839); the open risk moved from *logistics* to
+   *whether the vendor's 20 Ah and self-discharge claims survive a bench test*. Note the
+   buffer cap is mandatory, not optional: a T30D needs **3.3× the cell's rated pulse current**.
 4. **Fix the battery/solar keying** (§5c) — the one live safety defect from rev 0.
 5. Single boost + load switches (§2), switched sense divider (§5b), connector shrink,
    bring-up ergonomics (§5d) — all worth doing *in* a rev 2, none worth a rev 2 on its own.
@@ -466,7 +531,9 @@ area on every unit built.]**
 |---|---|---|
 | 1 | **Bench-measure the actual sleep and active currents.** Every number here is computed from datasheets. | Everything. Architecture §9 has had this open since the start; it is now the critical path. |
 | 2 | What AQI cadence is actually *useful* to a reader? | §3, §5e, and the whole battery-sizing question |
-| 3 | LiSOCl₂ domestic availability, price, and pulse behaviour cold-soaked — **including whether a courier will actually carry Class 9 cells to site** | §4b, §4d |
+| 3 | ~~LiSOCl₂ availability and price~~ **answered 2026-08-06: Robu SKU 1158210, ₹839, 20 Ah, in stock.** Remaining: does a real cell hold 20 Ah and <1 %/yr, and how does it pulse after a cold soak? | §4b, §4d |
+| 3a | **Buffer capacitor: 5 F on VBAT.** Verify leakage, ESR, cold behaviour, and that ~1 F really carries a T30D burst within 0.6 V droop | §4b — the variant does not work without this |
+| 3b | Blocking diodes vs matched cells for a paralleled multi-year build | §4b |
 | 4 | Real supercap/HLC leakage at the sizes considered | §4a, §4b |
 | 5 | Is the annual visit a promise we can actually keep at every site? | §3, §4d — a battery-only station that misses its visit is simply dead, and the service model decides the chemistry |
 | 6 | **Price a 2 × LFP 32700 holder change against the whole rev 2.** If it clears the autonomy goal on its own, most of this sheet becomes optional. | §3, §4d |
