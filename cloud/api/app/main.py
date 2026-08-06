@@ -44,6 +44,28 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+@app.middleware("http")
+async def cache_headers(request: Request, call_next):
+    """Say out loud how long each thing may be reused.
+
+    Starlette's StaticFiles sends an ETag but no Cache-Control, which leaves
+    browsers free to *heuristically* cache — typically a tenth of the file's
+    age, without revalidating. That is fine for an asset whose URL carries a
+    ?v=, and wrong for the documents that reference them: a phone could sit on
+    yesterday's station.html, loading yesterday's scripts, while the desktop
+    beside it had moved on. So the pages (and the service worker, which decides
+    everything else) always revalidate — a cheap 304 when nothing changed —
+    while versioned assets are immutable, because a new build is a new URL.
+    """
+    resp = await call_next(request)
+    path = request.url.path
+    if path == "/" or path.endswith((".html", "/sw.js", ".webmanifest")):
+        resp.headers["Cache-Control"] = "no-cache"
+    elif request.url.query.startswith("v=") or "&v=" in request.url.query:
+        resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    return resp
+
+
 app.include_router(ingest_router)
 app.include_router(query_router)
 app.include_router(summary_router)
