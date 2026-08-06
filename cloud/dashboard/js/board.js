@@ -70,11 +70,30 @@ async function renderWidget(el) {
   if (Widgets.REGISTRY[meta.type].sizeToContent) fitToContent(el);
 }
 
+/* Collapsed to one column, GridStack keeps each widget's desktop y and resolves
+   the collisions however it likes — which dropped the local-conditions panel
+   below the entire right-hand column. The DOM order is the declared order, so
+   restack strictly in that sequence: map, local conditions, reports, lightning,
+   mesh health. No-op at full width, where x/y already say what we mean. */
+function applyOneColumnOrder() {
+  if (!B.grid || B.editing || B.grid.getColumn() !== 1) return;
+  const els = [...document.querySelectorAll('#grid > .grid-stack-item')];
+  B.grid.batchUpdate();
+  let y = 0;
+  for (const el of els) {
+    const n = el.gridstackNode;
+    if (!n) continue;
+    if (n.y !== y || n.x !== 0) B.grid.update(el, { x: 0, y });
+    y += n.h;
+  }
+  B.grid.commit();
+}
+
 /* Grow a widget's row span to whatever its content actually needs. The local
    panel's sub-cards are content-sized and the total differs a lot between one
    column and two, so a fixed gs-h either clipped it or left a gap. GridStack's
    own sizeToContent reshuffled the board, so measure and set gs-h ourselves —
-   rows are exactly cellHeight tall. Never shrinks below the widget's default. */
+   rows are exactly cellHeight tall. */
 function fitToContent(el) {
   if (!B.grid || B.editing) return;
   requestAnimationFrame(() => {
@@ -89,6 +108,7 @@ function fitToContent(el) {
     const rows = Math.max(1, Math.ceil(needed / cell));
     const node = el.gridstackNode;
     if (node && rows !== node.h) B.grid.update(el, { h: rows });
+    applyOneColumnOrder();   // the new height must not reshuffle the stack
   });
 }
 
@@ -379,6 +399,7 @@ async function boot() {
   const isHome = B.slug === 'default';
   if (isHome && window.ForsythLoc) await ForsythLoc.init();
   await Promise.all([loadBoard(), loadPicker()]);
+  applyOneColumnOrder();
   refreshBanner();
   /* changing the active location re-renders the board; the local-conditions
      panel (whose title carries the selector) picks up the new station */
@@ -390,10 +411,13 @@ async function boot() {
   let fitT;
   window.addEventListener('resize', () => {
     clearTimeout(fitT);
-    fitT = setTimeout(() => document.querySelectorAll('.grid-stack-item').forEach(el => {
-      const m = B.meta.get(el.dataset.wid);
-      if (m && Widgets.REGISTRY[m.type].sizeToContent) fitToContent(el);
-    }), 200);
+    fitT = setTimeout(() => {
+      applyOneColumnOrder();
+      document.querySelectorAll('.grid-stack-item').forEach(el => {
+        const m = B.meta.get(el.dataset.wid);
+        if (m && Widgets.REGISTRY[m.type].sizeToContent) fitToContent(el);
+      });
+    }, 200);
   });
   setInterval(() => {
     Widgets.invalidate();
