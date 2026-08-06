@@ -359,8 +359,11 @@ function wireChrome() {
 async function boot() {
   B.grid = GridStack.init({
     column: 12, cellHeight: 80, margin: 8, staticGrid: true, float: false,
-    /* phones get a single column instead of twelve slivers */
-    columnOpts: { breakpointForWindow: true, breakpoints: [{ w: 640, c: 1 }] },
+    /* Phones get a single column instead of twelve slivers. layout:'list' keeps
+       the widgets in the order they are declared — the default repacks by
+       position, which buried the local-conditions panel under the right-hand
+       column. So the layout array's order IS the phone reading order. */
+    columnOpts: { breakpointForWindow: true, breakpoints: [{ w: 640, c: 1, layout: 'list' }] },
   }, '#grid');
 
   wireChrome();
