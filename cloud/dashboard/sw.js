@@ -7,7 +7,9 @@
    stale-while-revalidate is safe for them: a new version is a new URL.      */
 'use strict';
 
-const CACHE = 'forsyth-v2';   /* v2: "/" now serves the board, not the old index */
+/* v3 drops caches built by v2, whose navigation fallback could answer any page
+   with the homepage — see the fetch handler below. */
+const CACHE = 'forsyth-v3';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -49,7 +51,13 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
   if (url.pathname.startsWith('/media/')) return;        /* big, streamy — no cache */
   if (e.request.mode === 'navigate') {
-    e.respondWith(networkFirst(e.request, '/'));
+    /* Only the board may fall back to the cached shell. Falling back to '/' for
+       ANY navigation meant a flaky connection could answer station.html?slug=x
+       with the homepage — the board would then render under a station URL,
+       showing the mesh and other stations' conditions. A page we have no copy
+       of is better reported as unreachable than impersonated by another. */
+    const isShell = url.pathname === '/' || url.pathname === '/board.html';
+    e.respondWith(networkFirst(e.request, isShell ? '/' : null));
   } else if (url.pathname.startsWith('/api/')) {
     e.respondWith(networkFirst(e.request));              /* offline = last-known */
   } else {

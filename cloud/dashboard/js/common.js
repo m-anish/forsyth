@@ -5,7 +5,7 @@ const API = '/api/v1';
 
 /* App version — shown in the footer (esp. useful for the PWA, where a stale
    cached build is otherwise invisible). Bump alongside the asset ?v= query. */
-const APP_VERSION = '0.60';
+const APP_VERSION = '0.61';
 addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.app-ver').forEach(el => { el.textContent = 'v' + APP_VERSION; });
 });
@@ -242,8 +242,8 @@ function bannerFreshness(el) {
   const k = el.querySelector('.k');
   if (!k || !el.dataset.genAt) return;
   const ageMin = (Date.now() - new Date(el.dataset.genAt).getTime()) / 60000;
-  k.textContent = `${el.dataset.kBase} · ${agoLabel(el.dataset.genAt)}`
-    + (ageMin > 15 ? ' — may be stale' : '');
+  /* just the freshness — the banner's voice speaks for itself */
+  k.textContent = agoLabel(el.dataset.genAt) + (ageMin > 15 ? ' — may be stale' : '');
   k.classList.toggle('stale', ageMin > 15);
   el.classList.toggle('dim', ageMin > 60);
 }
@@ -271,8 +271,6 @@ async function refreshBanner(slug) {
     const d = await getJSON('/summary' + (qs.size ? `?${qs}` : ''));
     if (d.summary) {
       el.querySelector('p').textContent = d.summary;
-      el.dataset.kBase =
-        'Weather · ' + (d.generated_by === 'llm' ? 'as told by forsyth' : 'noted by forsyth');
       el.dataset.genAt = d.generated_at || '';
       bannerFreshness(el);
       el.classList.add('on');
