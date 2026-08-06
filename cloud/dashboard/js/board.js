@@ -363,7 +363,7 @@ async function boot() {
        the widgets in the order they are declared — the default repacks by
        position, which buried the local-conditions panel under the right-hand
        column. So the layout array's order IS the phone reading order. */
-    columnOpts: { breakpointForWindow: true, breakpoints: [{ w: 640, c: 1, layout: 'list' }] },
+    columnOpts: { breakpointForWindow: true, layout: 'list', breakpoints: [{ w: 640, c: 1 }] },
   }, '#grid');
 
   wireChrome();
