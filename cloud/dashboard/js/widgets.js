@@ -128,7 +128,8 @@ const Widgets = (() => {
   }
 
   async function lightning(el, config) {
-    const q = config.station ? `&slug=${config.station}` : '';
+    const scoped = !!config.station;   // one station → the slug is redundant on every row
+    const q = scoped ? `&slug=${config.station}` : '';
     const { events } = await getJSON(`/lightning?hours=${config.hours || 48}${q}`);
     if (!events.length) {
       el.innerHTML = '<p class="wg-empty">The sky has kept its opinions to itself.</p>';
@@ -136,7 +137,7 @@ const Widgets = (() => {
     }
     el.innerHTML = '<ul class="feed">' + events.slice(0, 30).map(e => `
       <li><span class="t">${new Date(e.ts).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'})}</span>
-          <span class="bolt">⚡</span><span>${fmt(e.distance_km,0)} km · ${e.slug}</span>
+          <span class="bolt">⚡</span><span>${fmt(e.distance_km,0)} km out${scoped ? '' : ' · ' + e.slug}</span>
           <span class="d">×${e.count}</span></li>`).join('') + '</ul>';
   }
 

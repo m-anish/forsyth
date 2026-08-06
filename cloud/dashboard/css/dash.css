@@ -302,6 +302,26 @@ h1.headline {
 .export { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
   text-transform: uppercase; margin-left: 12px; }
 
+/* forecast, given the top slot */
+.fc-hero { grid-column: span 12; }
+.fc-hero .headrow h3 { font-size: 13px; }
+
+/* "recent history" section divider — carries the one time-scale for the charts */
+.sec-divider {
+  grid-column: span 12; display: flex; align-items: center; gap: 14px;
+  margin: 6px 0 -4px; padding-top: 6px;
+}
+.sec-divider h2 {
+  font-family: var(--serif); font-weight: 500; letter-spacing: -0.01em;
+  font-size: 21px; margin: 0; color: var(--text);
+}
+.sec-divider .range { margin-left: auto; }
+.sec-divider .export { margin-left: 0; }
+
+/* wind rose as a shared widget body: give the SVG room to size itself */
+.wg-rose { display: flex; flex-direction: column; align-items: center;
+  justify-content: center; min-height: 220px; }
+
 /* lightning feed */
 .feed { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
 .feed li { display: flex; gap: 12px; align-items: baseline; padding: 9px 0;

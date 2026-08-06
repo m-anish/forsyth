@@ -82,15 +82,7 @@ async function refreshNow() {
 
   document.getElementById('pres-now').textContent = st.pressure_pa ? (st.pressure_pa / 100).toFixed(1) : '—';
 
-  const a = aqi(st.pm25, st.pm10);
-  document.getElementById('aqi-num').textContent = a ?? '—';
-  document.getElementById('aqi-label').textContent = aqiLabel(a);
-  if (a !== null) document.getElementById('aqi-pin').style.left = `${Math.min(100, a / 5)}%`;
-  document.getElementById('pm25').textContent = fmt(st.pm25, 1, ' µg/m³');
-  document.getElementById('pm10').textContent = fmt(st.pm10, 1, ' µg/m³');
-
-  document.getElementById('wind-now').textContent = `${fmt(st.wind_avg_ms, 1)} m/s ${dirName(st.wind_dir_deg)}`;
-  document.getElementById('gust-now').textContent = `${fmt(st.wind_gust_ms, 1)} m/s`;
+  /* air quality + wind rose are shared board widgets now (renderWidgets) */
 
   document.getElementById('hk-batt').textContent = fmt(st.batt_v, 2, ' V');
   document.getElementById('hk-solar').textContent = st.solar_state ?? '—';
@@ -179,7 +171,7 @@ async function refreshForecast() {
   const el = document.getElementById('forecast-box');
   if (!el) return;
   if (el._uplot) { el._uplot.destroy(); el._uplot = null; }
-  el._uplot = await renderForecast(el, slug, { height: 200 });
+  el._uplot = await renderForecast(el, slug, { height: 240 });
   const sk = el.querySelector('.fc-skill');
   if (sk) renderSkillLine(sk, slug);
 }
@@ -209,7 +201,7 @@ document.getElementById('dl-custom-btn').onclick = () => {
 
 /* range picker */
 const rangeEl = document.querySelector('.range');
-for (const [label, hours] of [['24 h', 24], ['7 d', 168], ['30 d', 720]]) {
+for (const [label, hours] of [['1 d', 24], ['2 d', 48], ['7 d', 168], ['30 d', 720]]) {
   const b = document.createElement('button');
   b.textContent = label;
   if (hours === S.hours) b.classList.add('on');
@@ -222,47 +214,21 @@ for (const [label, hours] of [['24 h', 24], ['7 d', 168], ['30 d', 720]]) {
   rangeEl.appendChild(b);
 }
 
-/* ---------- wind rose ---------- */
+/* ---------- shared board widgets (reused from the common pool, js/widgets.js)
+   so the station page and the boards render the same components, same styling.
+   Air quality, the wind rose, and the lightning feed are scoped to this
+   station via config.station. ---------- */
 
-async function drawRose() {
-  const { bins, total } = await getJSON(`/stations/${slug}/windrose?hours=24`);
-  const svg = document.getElementById('rose');
-  const cx = 110, cy = 110, rMax = 88;
-  const maxN = Math.max(1, ...bins.map(b => b.n));
-  let out = '';
-  for (const rr of [0.33, 0.66, 1.0])
-    out += `<circle class="ring" cx="${cx}" cy="${cy}" r="${rMax * rr}"/>`;
-  bins.forEach((b, i) => {
-    if (!b.n) return;
-    const r = rMax * (b.n / maxN);
-    const a0 = ((i * 22.5 - 90 - 10) * Math.PI) / 180;
-    const a1 = ((i * 22.5 - 90 + 10) * Math.PI) / 180;
-    out += `<path class="spoke" d="M${cx},${cy} L${cx + r * Math.cos(a0)},${cy + r * Math.sin(a0)}
-            A${r},${r} 0 0 1 ${cx + r * Math.cos(a1)},${cy + r * Math.sin(a1)} Z"/>`;
+function renderWidgets() {
+  const cfg = {
+    aqi:       { station: slug },
+    windrose:  { station: slug, hours: 24 },
+    lightning: { station: slug, hours: 48 },
+  };
+  document.querySelectorAll('[data-widget]').forEach(el => {
+    const w = Widgets.REGISTRY[el.dataset.widget];
+    if (w) w.render(el, cfg[el.dataset.widget] || { station: slug });
   });
-  for (const [t, i] of [['N', 0], ['E', 4], ['S', 8], ['W', 12]]) {
-    const a = ((i * 22.5 - 90) * Math.PI) / 180;
-    out += `<text x="${cx + (rMax + 12) * Math.cos(a)}" y="${cy + (rMax + 12) * Math.sin(a) + 3}"
-            text-anchor="middle">${t}</text>`;
-  }
-  svg.innerHTML = out;
-  if (!total) svg.innerHTML += `<text x="${cx}" y="${cy}" text-anchor="middle">no wind data</text>`;
-}
-
-/* ---------- lightning ---------- */
-
-async function refreshLightning() {
-  const { events } = await getJSON(`/lightning?hours=48&slug=${slug}`);
-  const ul = document.getElementById('lightning');
-  if (!events.length) {
-    ul.innerHTML = '<li class="empty">The sky has kept its opinions to itself. 48 quiet hours.</li>';
-    return;
-  }
-  ul.innerHTML = events.slice(0, 40).map(e => `
-    <li><span class="t">${new Date(e.ts).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
-        <span class="bolt">⚡</span>
-        <span>${fmt(e.distance_km, 0)} km out</span>
-        <span class="d">×${e.count}</span></li>`).join('');
 }
 
 /* ---------- camera ---------- */
@@ -291,12 +257,11 @@ async function refreshCamera() {
 
 async function boot() {
   await refreshNow();
-  await Promise.all([drawCharts(), drawRose(), refreshPressureTrend(),
-                     refreshLightning(), refreshCamera(), refreshBanner(slug),
-                     refreshForecast()]);
+  await Promise.all([drawCharts(), renderWidgets(), refreshPressureTrend(),
+                     refreshCamera(), refreshBanner(slug), refreshForecast()]);
 }
 boot();
 Report.mount({ fallback: () => S.station && S.station.lat != null
   ? { lat: S.station.lat, lon: S.station.lon, name: S.station.name } : null });
-setInterval(() => { refreshNow(); refreshPressureTrend(); refreshLightning(); refreshBanner(slug); }, 60_000);
-setInterval(() => { drawCharts(); drawRose(); refreshCamera(); refreshForecast(); }, 5 * 60_000);
+setInterval(() => { refreshNow(); refreshPressureTrend(); renderWidgets(); refreshBanner(slug); }, 60_000);
+setInterval(() => { drawCharts(); refreshCamera(); refreshForecast(); }, 5 * 60_000);
