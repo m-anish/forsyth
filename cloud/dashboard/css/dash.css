@@ -424,6 +424,8 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 .lp-c-now .wg-sub { margin-bottom: 8px; }
 .lp-c-now .kv div { padding: 3px 0; }
 .lp-c-now .kv .k, .lp-c-now .kv .v { font-size: 12px; }
+/* narrow columns wrap the kv rows — let it scroll rather than clip */
+.lp-c-now .lp-body { overflow: auto; }
 /* rose fills its card, square, centred */
 .lp-c-wind .lp-body { display: flex; align-items: center; justify-content: center; }
 
