@@ -117,6 +117,35 @@ typedef struct { uint16_t adc; uint16_t deg_x10; } vane_entry_t;
                                         BMS parachute cuts at ~2.40 V.)       */
 #define BATT_HIBERNATE_RECHECK_S 600 /* [C]                                   */
 
+/* --- battery taper -------------------------------------------------------
+ * Without this the leaf reports at full cadence right up to BATT_CRIT_MV and
+ * then stops dead: the two thresholds above are a cliff, not a ramp, and by
+ * 2.90 V a LiFePO4 cell is holding single-digit percent. The taper multiplies
+ * the report interval as the cell empties, trading resolution for the days
+ * that might reach the next sunny spell.
+ *
+ * On LiFePO4 the voltage is a poor fuel gauge — the 3.30–3.20 V plateau spans
+ * most of the usable charge — so these thresholds sit deliberately LATE, in
+ * the region where the curve finally has a slope worth reading. Rough SoC at
+ * a low discharge rate: 3.15 V ≈ 20–25 %, 3.05 V ≈ 8–12 %, 2.95 V ≈ 3–5 %.
+ * [B] Re-cut them against a real discharge curve for the cell in service —
+ * an 18500 sold as 1500 mAh is typically ~1100, and a tired one less.
+ *
+ * The multiplier applies to REPORT_INTERVAL_S, so AQI (every Nth report) and
+ * the ACK downlink window slow down with it — one knob moves the whole duty
+ * cycle. Safe mode ignores the taper: a human at the box wants answers now.
+ * Reported implicitly — the cloud has batt_mv in every reading and can derive
+ * the step; no protocol change, no spare flag bit needed (all 8 are taken).  */
+#define BATT_TAPER_ENABLE   1        /* [C] 0 = old cliff behaviour           */
+#define BATT_TAPER_HYST_MV  40       /* [C] must clear a threshold by this
+                                        much to step back up — stops a cell
+                                        sagging under TX from oscillating     */
+#define BATT_TAPER_TABLE { \
+    { 3150, 2 },   /* ≈20–25 % left: half cadence                            */ \
+    { 3050, 4 },   /* ≈8–12 %                                                */ \
+    { 2950, 8 },   /* ≈3–5 %: 5 min → 40 min, just above BATT_LOW_MV         */ \
+}
+
 /* Charge-inhibit policy (PA3 → 2N7002 → CN3801 MPPT). LiFePO4 must not be
  * charged below 0 °C. Fail-safe is charge-ON (100 k pulldown), so on any
  * doubt — sensor fault, mode auto with no reading — we DEASSERT.            */

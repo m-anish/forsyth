@@ -61,6 +61,18 @@ Hardware context you must not violate (from `hardware/boards/board-a-core.md`):
 - **Rain**: the leaf ships raw cumulative tips; mm-per-tip lives in the
   coordinator's per-station config (see PROTOCOL.md for why).
 - **Battery**: `VBAT_DIV_NUM` — measure your actual 1 M/330 k parts.
+- **Battery taper** (`BATT_TAPER_*`): the interval multiplies as the cell
+  empties — ×2 below 3.15 V, ×4 below 3.05 V, ×8 below 2.95 V — instead of
+  running at full cadence up to `BATT_CRIT_MV` and stopping dead. Because the
+  multiplier scales `REPORT_INTERVAL_S`, AQI (every Nth report) slows with it.
+  The step tightens the moment a threshold is crossed and only relaxes once the
+  reading clears it by `BATT_TAPER_HYST_MV`, so the sag under a TX burst cannot
+  oscillate it. Sampled from the **resting** voltage: radio off, before the PMS
+  load. Set `BATT_TAPER_ENABLE 0` for the old cliff behaviour.
+  **[B] The thresholds are guesses against LiFePO4's flat plateau — re-cut them
+  from a real discharge curve for the cell in service.** Nothing is added to the
+  payload: the cloud has `batt_mv` in every reading and can derive the step
+  (all 8 flag bits are already spoken for).
 
 ## Build & flash
 

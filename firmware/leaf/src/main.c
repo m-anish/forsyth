@@ -237,6 +237,44 @@ static uint8_t base_flags(uint16_t batt_mv)
     return f;
 }
 
+/* ---------------- battery taper (config.h §battery) ----------------------- */
+
+/* Multiplier the table alone asks for at this voltage. Table is in descending
+ * voltage order, so the last threshold crossed wins. */
+static uint8_t taper_table_mult(uint16_t mv)
+{
+    static const struct { uint16_t mv; uint8_t mult; } tbl[] = BATT_TAPER_TABLE;
+    uint8_t m = 1;
+    for (uint8_t i = 0; i < sizeof(tbl) / sizeof(tbl[0]); i++)
+        if (mv < tbl[i].mv) m = tbl[i].mult;
+    return m;
+}
+
+static uint8_t taper_mult = 1;
+
+/* Called once per report with the RESTING voltage (radio off, before the PMS
+ * load). Tightens immediately on the way down — a cell that just fell past a
+ * threshold has no margin to spend waiting — and relaxes only once the reading
+ * clears the band by BATT_TAPER_HYST_MV, so the sag under a TX burst cannot
+ * rattle the step back and forth. */
+static uint8_t taper_update(uint16_t mv)
+{
+#if BATT_TAPER_ENABLE
+    uint8_t want = taper_table_mult(mv);
+    if (want > taper_mult) {
+        taper_mult = want;
+    } else if (want < taper_mult) {
+        uint16_t probe = (mv > BATT_TAPER_HYST_MV)
+                       ? (uint16_t)(mv - BATT_TAPER_HYST_MV) : 0;
+        if (taper_table_mult(probe) <= want) taper_mult = want;
+    }
+    return taper_mult;
+#else
+    (void)mv;
+    return 1;
+#endif
+}
+
 /* ---------------- vane ---------------------------------------------------- */
 
 static const vane_entry_t vane_lut[VANE_LUT_SIZE] = VANE_LUT_DEFAULT;
@@ -572,11 +610,13 @@ int main(void)
                 charge_policy_update();
                 next_report = g_uptime_s + BATT_HIBERNATE_RECHECK_S;
             } else {
+                /* resting voltage: radio is off and the PMS has not run yet */
+                uint8_t mult = taper_update(batt);
                 do_report();
                 if (!LIGHTNING_IMMEDIATE_TX) tx_lightning_queue();
                 next_report = g_uptime_s +
-                    (safe_mode ? SAFE_MODE_INTERVAL_S
-                               : g_cfg.report_interval_s);
+                    (safe_mode ? (uint32_t)SAFE_MODE_INTERVAL_S
+                               : (uint32_t)g_cfg.report_interval_s * mult);
             }
         }
 
