@@ -510,6 +510,118 @@ wrong because it assumed one cell and a yearly swap.** Paralleling changes the a
 
 ---
 
+## 4e. Most of the power argument needs no new board
+
+**Correction, 2026-08-06.** This sheet was opened as a *hardware* brainstorm and then quietly
+absorbed a lot of work that has nothing to do with the PCB. Rev 0 already has `VBAT_SENSE`, an
+ADC, a power-gated radio, a power-gated AQI rail, and — as it turns out — an over-the-air
+config channel. **Filing power policy under "rev 2" was a category error, and it would have
+delayed by a board spin things that can ship this week.**
+
+What is actually implementable on the hardware already sitting on the bench:
+
+| Change | Needs | Where |
+|---|---|---|
+| **Battery-tapered cadence** (below) | `config.h` + a few lines in `main.c` | firmware only |
+| **AQI cadence default** | one constant, or one ACK TLV | firmware **or cloud** |
+| **Adaptive AS3935 listening** | the chip's own `PWD` bit — **no FET, no GPIO** | firmware only |
+| **The two-cadence slope test** (§1a) | changing a number, twice | firmware only |
+| **Re-tuning any of the above per station, over the air** | already built (§4f) | **cloud only** |
+
+Only these genuinely need silicon moved: the single-boost topology (§2), the connector shrink
+and battery/solar keying (§5c), the switched sense divider (§5b), the bring-up ergonomics
+(§5d), and Variant P's cell holder + buffer capacitor (§4b).
+
+### The AS3935 item was mis-filed
+
+§5a says adaptive listening "costs one FET and one GPIO". **It costs neither.** The AS3935's
+register `0x00` bit 0 is `PWD` (power-down) — the driver's own header comment documents it
+(`firmware/leaf/src/as3935.c`: *"0x00 [5:1] AFE_GB gain [0] PWD"*) and the code never touches
+it: `rmw(0x00, 0x3E, ...)` masks bits 5–1 only. So the 60–80 µA listener can be put to sleep
+**in software, today**, on rev 0 hardware. The one real cost is that waking it requires an
+RCO calibration (`0x3D = 0x96`) and a settle, which is a small firmware chore, not a board
+change. **[verify the wake sequence against the AS3935 datasheet before relying on it]**
+
+### Battery-tapered cadence — what the firmware does now, and the gap
+
+Current policy ([`firmware/leaf/src/config.h`](../../firmware/leaf/src/config.h),
+[`main.c`](../../firmware/leaf/src/main.c)):
+
+| State | Behaviour |
+|---|---|
+| **≥ 2.90 V** | full rate — `REPORT_INTERVAL_S` 300 s, AQI every Nth |
+| **< 2.90 V** (`BATT_LOW_MV`) | PMS7003 runs skipped; `FLP_F_LOW_BATT` set. **Interval unchanged.** |
+| **< 2.80 V** (`BATT_CRIT_MV`) | hibernate — no TX at all, wake every 600 s to re-check |
+| ~2.40 V | hardware BMS parachute |
+
+**The report interval is never reduced as a conservation measure.** It is binary: full rate
+until 2.80 V, then silence.
+
+On LiFePO4 that leaves almost no runway. The plateau runs ~3.30 → 3.20 V, the knee is ~3.10 V,
+and by 2.90 V the cell holds maybe 2–5 %. The policy does nothing while there is capacity worth
+saving and everything at once when there is none. The obvious answer is a taper — 15 min at
+3.15 V, 30 min at 3.05 V, hourly at 2.95 V — with two honest caveats:
+
+1. **It fights the same flat curve as §1a.** Voltage barely resolves state of charge across
+   the plateau, which is exactly where a taper would want to act. A voltage-tapered policy on
+   LFP is a blunt instrument; the sharper signals are *charge state* (is the panel delivering?)
+   and, ultimately, a coulomb count.
+2. **Thresholds must be evaluated on a resting reading, with hysteresis.** The T30D burst sags
+   the rail hard, and `main.c` already re-reads after the PMS load for the same reason —
+   sampling mid-burst would oscillate the policy.
+
+## 4f. The leaf already waits for an ACK, and the coordinator can already retune it
+
+Recorded because it changes what "implement the taper" means, and because it revises §1a's
+energy arithmetic. `radio_session()` in `main.c`:
+
+```
+radio_on() → radio_ensure_nvram()
+  → repeat up to TX_RETRIES+1 times, until acknowledged:
+      radio_tx(frame)
+      radio_rx(rx, ACK_WAIT_MS)            ← 1500 ms downlink window
+      accept if CRC valid ∧ type == FLP_T_ACK ∧ station matches ∧ seq echoes
+      → apply_tlvs(...)                    ← the ACK carries configuration
+→ radio_off()
+```
+
+`ACK_WAIT_MS = 1500` (*"the only downlink opportunity per cycle"*), `TX_RETRIES = 1`, so up to
+two attempts. **The ACK is not just a receipt — it is the downlink**, carrying TLVs the leaf
+applies immediately:
+
+| TLV | Effect |
+|---|---|
+| `0x01 FLP_TLV_INTERVAL` | **the report interval** |
+| `0x02 FLP_TLV_AQI_N` | AQI every Nth report |
+| `0x03 FLP_TLV_AS3935` | lightning-detector config |
+| `0x05 FLP_TLV_CHG_POLICY` | charge-inhibit thresholds |
+| `0x7E / 0x7F` | reboot / factory reset |
+
+**So the coordinator can already retune cadence per station over the air, today, with no
+firmware change at all** — the cloud sees `batt_v` in every reading and could push a longer
+interval as a cell declines. That makes a **cloud-side taper** a genuine alternative to a
+firmware one. The trade is stark and worth stating: a cloud taper is trivial to change and
+needs no reflash, but **it only works while the link works** — a leaf that cannot hear the
+coordinator cannot be told to slow down, which is precisely the situation a dying battery
+tends to produce. The defensible design is a **leaf-side floor** (autonomous, conservative)
+with **cloud-side policy** on top.
+
+**Energy consequence — this partly closes §1a's gap.** The radio is not on for the 0.52 s
+burst; it is on for the whole session, which the code comments put at *"well under ~4 s"*.
+At ~3 s of idle/RX (16.8 mA @ 5 V ⇒ ~29.6 mA cell-side) plus the burst:
+
+```
+session ≈ 3.0 s × 29.6 mA + 0.52 s × 1093 mA ≈ 0.025 + 0.158 = 0.183 mAh
+× 288 cycles/day ≈ 53 mAh/day      (vs 45.5 mAh/day counting the burst alone)
+```
+
+That lifts the model to **≈ 53–55 mAh/day, which meets the bottom of §1a's observed
+57–233 band.** The gap is smaller than §1a claims — though not closed, and a failed first
+attempt doubles the session, so a marginal link is quietly expensive. **`ACK_WAIT_MS` and
+`TX_RETRIES` therefore belong on the tuning list beside cadence.**
+
+---
+
 ## 5. Other rev-2 candidates
 
 ### 5a. The AS3935 is the whole sleep budget — make it adaptive
@@ -519,12 +631,16 @@ profile A it is **~21 % of everything**. Architecture §5 calls it "cannot be du
 which is true of a lightning detector that must never miss a strike — but Forsyth already
 measures the one signal that predicts whether strikes are even possible.
 
-**Proposal: barometric- and season-gated listening.** Put the AS3935 on a switched rail and
-let firmware decide: listen continuously when pressure is falling or convective conditions
-are plausible, sleep it through settled high-pressure spells and the dry season. The
-thresholds are LoRa-configurable, exactly like the charge-inhibit policy. Worst case it misses
-a freak dry-season strike; best case it halves the sleep floor. **This is the highest-value
-change on the list after the AQI cadence**, and it costs one FET and one GPIO.
+**Proposal: barometric- and season-gated listening.** Let firmware decide: listen continuously
+when pressure is falling or convective conditions are plausible, sleep it through settled
+high-pressure spells and the dry season. The thresholds are already LoRa-configurable
+(`FLP_TLV_AS3935`, §4f). Worst case it misses a freak dry-season strike; best case it halves
+the sleep floor.
+
+**Correction (§4e): this needs no hardware.** An earlier draft of this section said it "costs
+one FET and one GPIO" — wrong. The AS3935 has its own `PWD` bit (register `0x00` bit 0) which
+the driver currently never writes, so the listener can be slept **in software on rev 0**. It
+belongs on the firmware list, not this one.
 
 ### 5b. Switch the battery-sense divider
 
@@ -598,6 +714,9 @@ area on every unit built.]**
 
 ### Ordered by value, not by how interesting they are
 
+**Items 0–3 need no new board** (§4e) — they run on the hardware already on the bench, and
+nothing below should wait on a rev 2.
+
 0. **Explain the 1.2–4× gap in §1a before anything else.** Check `UART_TX`/`PB3` state while
    both rails are gated off (the documented back-powering hazard, and a ~2–3 mA leak would
    close the gap by itself), then run the two-cadence slope test to separate per-report cost
@@ -608,7 +727,9 @@ area on every unit built.]**
 2. **Try 2 × LFP 32700 first** (§4d) — a holder change, no schematic change, ~₹1200–1800 for
    12 Ah. If that clears the autonomy target, items 3 and 5 below stop being urgent. Cheapest
    experiment on the sheet; run it before designing anything.
-3. **Adaptive AS3935 listening** (§5a) — halves the sleep floor for one FET.
+3. **Adaptive AS3935 listening** (§5a) and **battery-tapered cadence** (§4e) — both pure
+   firmware on rev 0. The taper can alternatively live in the cloud via the existing ACK
+   downlink (§4f), with a conservative leaf-side floor underneath it for when the link is gone.
 4. **Variant P: primary cell + pulse buffer** (§4b, §4d) — solves cold and yearly-swap
    together. Sourcing is confirmed (Robu, ₹839); the open risk moved from *logistics* to
    *whether the vendor's 20 Ah and self-discharge claims survive a bench test*. Note the
