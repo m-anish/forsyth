@@ -67,38 +67,59 @@ a clean monotonic slope of **≈ 0.026 V/day** with no steps or anomalies.
 
 **Read the caution before the number.** LiFePO4's discharge curve is famously flat: between
 roughly 90 % and 20 % state of charge it sits in a ~100 mV band, which is *exactly* the band
-observed. Voltage is therefore a **poor proxy for charge consumed** here — the same 70 mV can
-represent anywhere from ~15 % to ~40 % of the pack depending where on the plateau you started,
-and a cell resting at 3.30 V was already off the top (a full LFP settles ~3.35–3.40 V once
-surface charge dissipates). Bounding it honestly:
+observed. Voltage is a **poor proxy for charge consumed** here. Worse, 3.30 → 3.23 V crosses
+the *flattest part of the whole curve* — the region where the most capacity hides behind the
+least voltage — so the honest bound is wide and its centre of mass sits high:
 
 | | % of pack in ~2.7 d | at 1500 mAh nameplate | at ~1100 mAh (realistic 18500) |
 |---|---|---|---|
 | shallow read of the plateau | ~14 % | 78 mAh/day | 57 mAh/day |
-| steep read of the plateau | ~42 % | 233 mAh/day | 171 mAh/day |
+| steep read of the plateau (**more likely here**) | ~42 % | 233 mAh/day | 171 mAh/day |
 
-**A factor-of-three band is not a measurement.** But it is enough to reconcile against the
-model, and the reconciliation is good news. At T30D, cell-referred cost per report is
-620 mA × 1.76 × 0.52 s ≈ **0.158 mAh**:
+**Measurement cadence is 5 minutes** (confirmed 2026-08-06). At T30D the cell-referred cost
+per report is 620 mA × 1.76 × 0.52 s ≈ **0.158 mAh**:
 
 | Report cadence | Reports/day | LoRa mAh/day | + sleep |
 |---|---|---|---|
-| 1 min | 1440 | 227 | ~229 |
-| **2 min** *(matches "last heard 2 min ago")* | 720 | 114 | **~116** |
-| 5 min | 288 | 46 | ~48 |
+| **5 min — actual** | 288 | 45.5 | **≈ 46–48** |
 | 10 min | 144 | 23 | ~25 |
 | 15 min | 96 | 15 | ~17 |
 
-**A 1–2 minute T30D cadence predicts 116–229 mAh/day, and the observed drain bounds to
-57–233 mAh/day. They overlap squarely.** This is the first empirical support the §1 table has
-ever had, and nothing in it needs revising.
+### The model under-predicts, and the gap is the interesting part
 
-**What it does invert, for this firmware:** on the bench node the **radio is the dominant
-load, not the PMS7003** — because the cadence is 5–10× field rate, it is a 30 dBm part, and
-the AQI sensor almost certainly is not wired yet. That is a statement about the bench, not
-about the design: at a field cadence of 10–15 min the LoRa term collapses to 15–23 mAh/day and
-the §1 finding (PMS dominates) reasserts itself. **Do not read the bench discharge as a
-verdict on the AQI argument.**
+**Predicted ≈ 48 mAh/day. Observed bounds to 57–233 mAh/day, most plausibly toward the upper
+half.** So the real node is drawing somewhere between **1.2× and 4× the modelled figure**, and
+the discrepancy is not explained by cadence. Candidates, most suspicious first:
+
+1. **UART back-powering through a gated-off rail — a hazard this project has already written
+   down twice.** board-a-core §6 issue #6 and carry-forward note 4 both warn: *"drive UART_TX
+   low before de-asserting either EN"* and *"enable PB3 (UART_RX) internal pull-up while both
+   peripherals are gated off (the 10 k leaves it floating otherwise)."* If `UART_TX` sits high
+   while `5V_RADIO` is off, current flows through the E220's input protection into its
+   unpowered VCC — through the 1 k series that is roughly **2–3 mA continuous, i.e. 50–70
+   mAh/day**, which closes the gap almost exactly on its own. It would be invisible except as
+   unexplained battery drain. **Check this first.**
+2. **The radio rail is on for much longer than the TX burst.** `radio_ensure_nvram` runs a
+   config read/write each cycle (per the bring-up notes), plus AUX waits and guards. If the
+   rail is live for 3–5 s per cycle with the module at RX-level 16.8 mA, that is ~10 mAh/day
+   before the burst is counted.
+3. **The 0.52 s TX assumption is mine, not measured.** At 2400 bps air rate, preamble + header
+   + payload + CRC could plausibly run 2–3× that, scaling the LoRa term straight up.
+4. **The cell is under nameplate** — an 18500 LFP sold as 1500 mAh is typically ~1100, and a
+   tired one less. This inflates the *apparent* drain without anything being wrong.
+5. Sleep floor higher than the §1 table assumes for some other reason.
+
+**The two-cadence test separates these cleanly**, which is now its main job rather than a
+nicety: halve or double the report interval and see what happens to dV/dt. A per-report cost
+scales with cadence; **a constant term (back-powering, sleep leak) does not move at all.** One
+experiment, and candidates 1/5 split from 2/3 immediately.
+
+**What this does *not* say:** the bench node is radio-dominated because it runs 30 dBm at
+5-minute cadence with no AQI sensor wired. At a field cadence of 10–15 min the LoRa term falls
+to 15–23 mAh/day and the §1 finding (PMS dominates) reasserts. **Do not read the bench
+discharge as a verdict on the AQI argument** — and do not size a battery from it until the gap
+above is explained, because sizing against an unexplained 4× is how a one-year station becomes
+a three-month one.
 
 **How to actually close open item #1 without a lab instrument.** The absolute number needs a
 coulomb counter or a µA-capable meter, but the *ratios* — which is what every decision on this
@@ -577,9 +598,11 @@ area on every unit built.]**
 
 ### Ordered by value, not by how interesting they are
 
-0. **Run the two-cadence slope test** (§1a) — a few days of unattended logging on hardware
-   that is already running, and it retires the biggest uncertainty on this sheet. Everything
-   below is being decided on datasheet arithmetic until it happens.
+0. **Explain the 1.2–4× gap in §1a before anything else.** Check `UART_TX`/`PB3` state while
+   both rails are gated off (the documented back-powering hazard, and a ~2–3 mA leak would
+   close the gap by itself), then run the two-cadence slope test to separate per-report cost
+   from a constant leak. Everything below is datasheet arithmetic until this lands — and a
+   battery sized against an unexplained 4× turns a one-year station into a three-month one.
 1. **Change the default AQI cadence** (firmware, zero hardware) — the single biggest lever on
    every number in this document.
 2. **Try 2 × LFP 32700 first** (§4d) — a holder change, no schematic change, ~₹1200–1800 for
@@ -598,7 +621,7 @@ area on every unit built.]**
 
 | # | Question | Blocks |
 |---|---|---|
-| 1 | **Bench-measure the actual sleep and active currents.** Every number here is computed from datasheets. **Partially addressed 2026-08-06 (§1a): a real discharge slope bounds the bench node to 57–233 mAh/day and overlaps the model's prediction — but a factor-of-three band is not a measurement.** The cheap way to finish it is the two-cadence slope comparison in §1a, which cancels the unknown SoC curve. | Everything. Architecture §9 has had this open since the start; it is now the critical path. |
+| 1 | **Bench-measure the actual sleep and active currents.** Every number here is computed from datasheets. **2026-08-06 (§1a): the first real discharge bounds the bench node to 57–233 mAh/day against a modelled 48 — the model under-predicts by 1.2–4×, unexplained.** Run the two-cadence slope test to split a per-report cost from a constant leak, and check the UART back-powering hazard first. | Everything. Architecture §9 has had this open since the start; it is now the critical path — and the gap means **no battery may be sized from these numbers yet**. |
 | 2 | What AQI cadence is actually *useful* to a reader? | §3, §5e, and the whole battery-sizing question |
 | 3 | ~~LiSOCl₂ availability and price~~ **answered 2026-08-06: Robu SKU 1158210, ₹839, 20 Ah, in stock.** Remaining: does a real cell hold 20 Ah and <1 %/yr, and how does it pulse after a cold soak? | §4b, §4d |
 | 3a | **Buffer capacitor: 5 F on VBAT.** Verify leakage, ESR, cold behaviour, and that ~1 F really carries a T30D burst within 0.6 V droop | §4b — the variant does not work without this |
