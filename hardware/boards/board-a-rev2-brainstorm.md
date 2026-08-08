@@ -622,6 +622,100 @@ attempt doubles the session, so a marginal link is quietly expensive. **`ACK_WAI
 
 ---
 
+## 4g. SPI radio for higher spreading factors — reopening a logged decision
+
+The question: should rev 2 move to an SPI LoRa module to reach higher spreading factors and
+longer range? Two things need separating, because they are not the same change and only one of
+them is the actual blocker.
+
+### The blocker is the silicon, not the interface
+
+architecture.md §1 already logged this, on **2026-07-12**, moving *from* E22 (SX1262) *to*
+E220 (LLCC68):
+
+> What's traded away: **SF12** (LLCC68 tops out at SF11 — ~one SF step less extreme-range
+> headroom) […] What's gained: current-generation silicon, lower cost, a 200-byte packet cap
+> […] and, decisively, **lokki runs this exact family**.
+
+So the SF ceiling is a property of **LLCC68**, and no interface change lifts it. Worse than the
+note implies: LLCC68 restricts SF *by bandwidth*, and the long-range corner is exactly what it
+drops — **[verify against the LLCC68 datasheet's SF/BW table before acting; the general shape
+is SF5–SF9 at BW 125 kHz, SF5–SF10 at 250 kHz, SF5–SF11 at 500 kHz, with SF12 absent
+entirely]**. If that holds, then at the 125 kHz bandwidth that long-range links actually use,
+the practical ceiling is nearer **SF9 than SF11**, and the gap to SF12 is ~3 steps
+(≈ 7–8 dB), not one.
+
+**Therefore: the cheap fix is not SPI. It is going back to the E22 (SX1262) — still a UART
+module, still Ebyte, still M0/M1/AUX.** Ebyte's air-rate setting maps onto SF/BW internally,
+and the E22's **0.3 kbps rate is the SF12/125 kHz corner** the E220 cannot express (its range
+starts at 2.4 kbps). That is a module swap and a `LORA_AIR_RATE` change — **no SPI driver, no
+pin-map change, no new MCU**. `e220.c` already switches on `LORA_AIR_RATE`; the register map is
+near-identical across the two families. **[verify E22-900T30D footprint and pinout against the
+E220-900T30D actually in hand — Ebyte keeps these close but not always identical]**
+
+The cost of that decision is the one thing the 2026-07-12 note names as decisive: **lokki's
+debugged E220 register map stops being a direct reference.** It becomes an analogy again.
+
+### What SPI would actually buy — and what it costs
+
+Genuine gains, none of which are SF12 itself:
+
+- **Per-packet SF control**, which makes **adaptive data rate** possible: start fast, step down
+  on failure. §4f shows the ACK/retry machinery to drive it already exists.
+- **CAD** (channel activity detection) for cheap listening.
+- **No Ebyte firmware layer** — the coordinator already lost time to this exact class of
+  surprise (the module echoing `0xC2` where the spec says `0xC1`).
+- **A shorter session**, which §1a says is where the energy actually goes: SPI configuration is
+  microseconds against 9600-baud UART round-trips plus AUX polling.
+
+The cost is concrete and probably decisive:
+
+| | UART (now) | SPI |
+|---|---|---|
+| Radio pins | `TX·RX·M0·M1·AUX` = 5 (TX/RX shared with PMS) | `MOSI·MISO·SCK·NSS·BUSY·DIO1·RST` = 7 |
+| UART still needed? | — | **yes — the PMS7003 has no other interface** |
+| Net GPIO change | — | **+4** |
+
+Board A's pin map (board-a-core §2) spends **all 18 GPIO** of the SOIC-20 ATtiny3226, with
+`SPARE3` the only slack. **+4 does not fit.** An SPI radio therefore forces the MCU change
+architecture §2.1 has been holding in reserve:
+
+> megaAVR-0 (**ATmega4808**, 3 hard UARTs, SSOP-28) is the escape valve if shared-UART
+> multiplexing ever proves painful — known, not planned.
+
+That is a different board, a new driver (SX1262 bring-up is real work — TCXO, calibration,
+image calibration per band, IRQ plumbing), and it discards the leaf firmware's proven radio
+path. It is a rev-2-and-a-half, not a rev 2.
+
+### And SF12 is expensive in exactly the currency §1a is short of
+
+Airtime scales roughly 2× per SF step. A 40-byte payload is ~0.2 s at SF9 and **~1.8–2.3 s at
+SF12/125 kHz**. On a T30D that is ~0.6 mAh per report cell-referred against ~0.16 mAh today —
+**~4×**. At the current 5-minute cadence SF12 alone would cost **~170 mAh/day**, which is more
+than the entire profile-C budget and would flatten the 18500 cell in about a week. SF12 is
+therefore only coherent **paired with a much slower cadence** — or used adaptively, as a
+fallback the link falls back *to*, not one it lives at. **[also check Indian 865–867 duty-cycle
+/ dwell rules before running long airtimes]**
+
+### Verdict
+
+**Not yet, and probably not SPI when it comes.** In order:
+
+1. **Measure the real link first.** Every range number here is theory and the bench RSSI is
+   **−17 dBm** — the radios are touching. There is no field path-loss data at all, and §1a's
+   lesson was precisely that arithmetic without measurement misleads. **Site a leaf and log
+   RSSI/SNR before changing silicon.**
+2. **Try the free things.** Antenna gain and mast siting routinely beat 8 dB of SF at zero
+   energy cost, and **relaying is already designed** (PROTOCOL.md §4, designed-not-implemented)
+   — it is the better answer to distance than brute sensitivity, because it does not cost
+   airtime on every node.
+3. **If the link genuinely needs SF12: swap E220 → E22 and set air rate 0.3 k.** Module change,
+   one constant, no board spin.
+4. **Go SPI only for what SPI uniquely buys** — adaptive per-packet SF, CAD, or LoRaWAN
+   interop — and accept that it brings the ATmega4808 with it.
+
+---
+
 ## 5. Other rev-2 candidates
 
 ### 5a. The AS3935 is the whole sleep budget — make it adaptive
@@ -750,6 +844,8 @@ nothing below should wait on a rev 2.
 | 4 | Real supercap/HLC leakage at the sizes considered | §4a, §4b |
 | 5 | Is the annual visit a promise we can actually keep at every site? | §3, §4d — a battery-only station that misses its visit is simply dead, and the service model decides the chemistry |
 | 6 | **Price a 2 × LFP 32700 holder change against the whole rev 2.** If it clears the autonomy goal on its own, most of this sheet becomes optional. | §3, §4d |
+| 7 | **Field RSSI/SNR from a sited leaf.** No path-loss data exists — bench RSSI is −17 dBm, i.e. touching. Nothing about radio range should be decided without it. | §4g |
+| 8 | LLCC68's actual SF/BW table, and whether E22-900T30D drops into the E220-900T30D footprint | §4g |
 
 ---
 
