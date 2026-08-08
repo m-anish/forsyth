@@ -424,6 +424,15 @@ async function boot() {
     if (!B.editing) { renderAll(); refreshBanner(); }
   }, 60_000);
 
+  /* that timer does not run while the tab is backgrounded, so a board returned
+     to after a while would sit on frozen readings until the next tick — refresh
+     on the way back in instead (js/common.js). Not while arranging: a re-render
+     mid-drag would fight the reader. */
+  onVisible(() => {
+    Widgets.invalidate();
+    if (!B.editing) { renderAll(); refreshBanner(); }
+  });
+
   Report.mount();
   /* first sign-in (or ?tour=1) gets the walkthrough, once per browser */
   if (B.user || new URLSearchParams(location.search).get('tour') === '1') {

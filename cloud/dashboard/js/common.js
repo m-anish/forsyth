@@ -5,7 +5,7 @@ const API = '/api/v1';
 
 /* App version — shown in the footer (esp. useful for the PWA, where a stale
    cached build is otherwise invisible). Bump alongside the asset ?v= query. */
-const APP_VERSION = '0.62';
+const APP_VERSION = '0.63';
 addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.app-ver').forEach(el => { el.textContent = 'v' + APP_VERSION; });
 });
@@ -32,6 +32,27 @@ async function apiJSON(path, opts = {}) {
   });
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || `HTTP ${r.status}`);
   return r.json();
+}
+
+/* Refresh when the reader comes back to the page.
+
+   setInterval is not a promise the browser keeps: background tabs get their
+   timers throttled to a crawl, phones suspend them outright, and iOS restores a
+   page from bfcache with its DOM exactly as it was frozen. So a tab returned to
+   after an hour shows hour-old readings until the next tick happens to fire —
+   which is why the only reliable fix used to be pressing reload.
+
+   `minHiddenMs` keeps flicking between tabs from re-fetching for no reason;
+   anything longer than a few seconds away is worth a refresh. */
+function onVisible(fn, minHiddenMs = 5000) {
+  let hiddenAt = null;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+    if (hiddenAt === null || Date.now() - hiddenAt >= minHiddenMs) fn();
+    hiddenAt = null;
+  });
+  /* bfcache restore (Safari back/forward): the timers were frozen with it */
+  window.addEventListener('pageshow', (e) => { if (e.persisted) fn(); });
 }
 
 function fmt(v, digits = 1, unit = '') {

@@ -267,5 +267,19 @@ boot();
 ForsythAuth.boot();
 Report.mount({ fallback: () => S.station && S.station.lat != null
   ? { lat: S.station.lat, lon: S.station.lon, name: S.station.name } : null });
+/* Two cadences: the light reads follow the minute, the charts follow the data.
+   Charts are deliberately NOT on the 60 s tick — drawCharts() tears every plot
+   down and rebuilds it, which would throw away the reader's zoom once a minute
+   (the board's chart widget avoids this by feeding the existing plot; this page
+   does not, yet). The cost is that a fresh reading can reach the panels up to
+   ~4 min before it reaches the graphs. */
 setInterval(() => { refreshNow(); refreshPressureTrend(); renderWidgets(); refreshBanner(slug); }, 60_000);
 setInterval(() => { drawCharts(); refreshCamera(); refreshForecast(); }, 5 * 60_000);
+
+/* ...and neither timer runs while the tab is in the background, so refresh
+   everything on the way back in rather than showing frozen readings until the
+   next tick (js/common.js) */
+onVisible(() => {
+  refreshNow(); refreshPressureTrend(); renderWidgets(); refreshBanner(slug);
+  drawCharts(); refreshCamera(); refreshForecast();
+});
