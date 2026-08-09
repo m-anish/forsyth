@@ -58,6 +58,19 @@ Hardware context you must not violate (from `hardware/boards/board-a-core.md`):
 - **Temperature**: `SHTC3_TEMP_OFFSET_X100` (OTA, TLV 0x04) for the reported
   reading; `MCU_TEMP_OFFSET_X100` for the internal sensor that gates charging —
   bench-check the latter near 0 °C, it protects the battery.
+- **Charge inhibit** (`CHG_*`, OTA TLV 0x05): in `CHG_MODE_AUTO` the leaf
+  asserts `CHG_INHIBIT` **below `CHG_LOW_LIMIT_C` (0 °C)** and releases at
+  **limit + `CHG_HYSTERESIS_C` (+2 °C)**; `CHG_MODE_INHIBIT` forces it on and
+  `CHG_MODE_ALLOW` forces it off. That flag is what the dashboard shows as
+  `solar_state: inhibited` (coordinator `main.py` maps `F_CHG_INHIBIT`
+  → `"inhibited"` / `"charging-allowed"`), so **a leaf reporting "inhibited" at
+  room temperature is reporting a bad temperature, not a cold one.**
+  Readings outside `MCU_TEMP_SANE_*` are now treated as sensor doubt and
+  **allow** charging, matching the hardware pulldown — a guard, not a
+  calibration. **Diagnose with `mcu_temp_c`**, which verbose readings already
+  carry: watch the coordinator's `STATUS_LOG` line or the MQTT
+  `forsyth/<slug>/reading` topic, since the cloud currently drops the field
+  (it is not in `READING_FIELDS`, `cloud/api/app/ingest.py`).
 - **Rain**: the leaf ships raw cumulative tips; mm-per-tip lives in the
   coordinator's per-station config (see PROTOCOL.md for why).
 - **Battery**: `VBAT_DIV_NUM` — measure your actual 1 M/330 k parts.

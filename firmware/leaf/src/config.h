@@ -155,6 +155,15 @@ typedef struct { uint16_t adc; uint16_t deg_x10; } vane_entry_t;
 #define CHG_POLICY_MODE     CHG_MODE_AUTO  /* [E 0x05] */
 #define CHG_LOW_LIMIT_C     0        /* [E 0x05] inhibit below this °C        */
 #define CHG_HYSTERESIS_C    2        /* [E 0x05] release at limit + hyst      */
+/* Plausibility window for the internal sensor. Outside it the reading is not
+ * weather, it is a broken measurement — the policy then ALLOWS charging,
+ * which is the documented fail-safe direction and what the 100 k pulldown
+ * does anyway. Wider than the part's -40..+105 °C rating on purpose: this is
+ * a garbage detector, not a spec check. Symptom it exists to prevent: a
+ * mis-scaled sigrow calculation reading hundreds of degrees below zero and
+ * silently refusing to charge in full sun.                                 */
+#define MCU_TEMP_SANE_MIN_X100 (-5000)   /* [C] −50 °C */
+#define MCU_TEMP_SANE_MAX_X100 ( 12500)  /* [C] +125 °C */
 
 /* ================= AS3935 lightning ====================================== */
 #define AS3935_I2C_ADDR     0x03     /* [C] DFRobot SEN0290 selector: 1/2/3.

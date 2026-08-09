@@ -124,10 +124,21 @@ static void charge_policy_update(void)
         want = 1;
     } else if (g_cfg.chg_mode == CHG_MODE_AUTO) {
         int16_t t = adc_read_mcu_temp_x100();
-        if (chg_inhibited)
-            want = (t < (int16_t)(g_cfg.chg_low_c + g_cfg.chg_hyst_c) * 100);
-        else
-            want = (t < (int16_t)g_cfg.chg_low_c * 100);
+        /* The fail-safe direction was documented but never enforced: nothing
+         * asked whether the sensor was believable, so one bad calibration read
+         * could refuse charging forever in bright sun. A value outside the
+         * MCU's own operating range is not cold weather, it is a broken
+         * measurement — treat it as doubt and ALLOW, matching the hardware
+         * pulldown. This is a guard, not a calibration fix.                 */
+        if (t < MCU_TEMP_SANE_MIN_X100 || t > MCU_TEMP_SANE_MAX_X100) {
+            want = 0;      /* the raw value still ships in verbose readings,
+                              which is where you diagnose it (mcu_temp_c) */
+        } else {
+            if (chg_inhibited)
+                want = (t < (int16_t)(g_cfg.chg_low_c + g_cfg.chg_hyst_c) * 100);
+            else
+                want = (t < (int16_t)g_cfg.chg_low_c * 100);
+        }
     }
     chg_inhibited = want;
     hal_chg_inhibit(want);

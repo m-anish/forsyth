@@ -81,12 +81,28 @@ int16_t adc_read_mcu_temp_x100(void)
     uint16_t raw = adc_single(ADC_MUXPOS_TEMPSENSE_gc);
     adc_off();
 
-    uint16_t sigrow_offset = SIGROW.TEMPSENSE1;
-    uint16_t sigrow_slope  = SIGROW.TEMPSENSE0;
+    /* TEMPSENSE1 is the *signed* offset. The header declares both bytes
+     * register8_t (unsigned), so reading it into an unsigned type turns a
+     * negative factory offset into +128..+255 — an error of 256 counts that
+     * lands the result hundreds of kelvin low, i.e. a permanent hard freeze
+     * as far as the charge policy is concerned. Microchip's own example is
+     * `int8_t sigrow_offset = SIGROW.TEMPSENSE1;`.
+     * [verify against the ATtiny3226 datasheet "Temperature Measurement"
+     *  before trusting the absolute value: the shift below must match the
+     *  family's published formula and the ADC resolution it assumes — some
+     *  2-series variants use >>8. Whatever it is, print raw/slope/offset on
+     *  the bench and check against a reference thermometer.]               */
+    int8_t   sigrow_offset = (int8_t)SIGROW.TEMPSENSE1;
+    uint8_t  sigrow_slope  = SIGROW.TEMPSENSE0;
     int32_t t = (int32_t)raw - (int32_t)sigrow_offset;
     t *= (int32_t)sigrow_slope;          /* result in K, <<12               */
     t += 0x0800;                         /* round to nearest                */
     t >>= 12;                            /* Kelvin */
     int32_t c_x100 = (t - 273) * 100;
-    return (int16_t)(c_x100 + MCU_TEMP_OFFSET_X100);
+    c_x100 += MCU_TEMP_OFFSET_X100;
+    /* saturate rather than wrap: a wrapped int16 could land inside the sane
+     * window and read as a plausible temperature (see charge_policy_update) */
+    if (c_x100 >  32767) c_x100 =  32767;
+    if (c_x100 < -32768) c_x100 = -32768;
+    return (int16_t)c_x100;
 }
