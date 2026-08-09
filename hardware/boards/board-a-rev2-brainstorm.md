@@ -714,6 +714,91 @@ fallback the link falls back *to*, not one it lives at. **[also check Indian 865
 4. **Go SPI only for what SPI uniquely buys** — adaptive per-packet SF, CAD, or LoRaWAN
    interop — and accept that it brings the ATmega4808 with it.
 
+### 4g-bis. The same physics, pointed the other way
+
+PROTOCOL.md §1 justifies the 2400 bps air rate like this:
+
+> 2400 air rate buys sensitivity/range; our packets are ≤64 B and rare, **airtime doesn't
+> matter**.
+
+**§1a retires that assumption.** Airtime is the dominant load on this station, so the sentence
+should now read *airtime is most of the budget*. Time-on-air for a 40-byte payload at BW
+125 kHz, CR 4/5 — computed, **[verify which SF/BW Ebyte's air-rate labels actually map to; the
+manual gives bps, not SF]**:
+
+| | Symbol time | Time-on-air | TX energy (T30D, cell-ref.) | TX term @5 min |
+|---|---|---|---|---|
+| SF7-class (~9.6 k) | 1.02 ms | ~0.10 s | ~0.03 mAh | **~11 mAh/day** |
+| SF8-class (~4.8 k) | 2.05 ms | ~0.17 s | ~0.05 mAh | ~23 mAh/day |
+| **SF9-class (2.4 k — now)** | 4.10 ms | ~0.29 s | ~0.09 mAh | **~45 mAh/day** |
+| SF12 (0.3 k, E22 only) | 32.8 ms | ~1.97 s | ~0.60 mAh | ~170 mAh/day |
+
+Each SF step doubles airtime for ~2.5 dB of sensitivity — **the TX current never changes, only
+its duration.** On a station whose whole budget is ~50 mAh/day, moving a strong-link site from
+2.4 k to 9.6 k saves **~34 mAh/day for one constant**, which is larger than anything the
+hardware debates on this sheet can win.
+
+**So air rate is a per-site knob, not a fleet constant** — fast where the link is strong, slow
+where it isn't. With the caveat that the energy-optimal rate is *the fastest one that reliably
+closes the link*: retries cost a whole extra session plus a 1.5 s ACK wait, so a rate set one
+step too fast is worse than one step too slow.
+
+## 4h. Can the fleet run mixed air rates? (coordinator radio count)
+
+**Not with one radio.** A LoRa demodulator is configured for exactly one SF/BW pair; there is
+no scan-all-rates mode on LLCC68 or SX1262. Different SFs are quasi-orthogonal — a receiver at
+SF9 simply does not see SF12 traffic — which is what makes §4g-bis's per-site tuning *sound*
+impossible on a single-radio coordinator. It is, but only per radio.
+
+**Three things make multi-radio the natural answer here**, and two of them already exist:
+
+1. **It is already proven on this hardware.** Bring-up ran **two E220s on the coordinator's
+   UART1 and UART2 simultaneously** (5/5 bidirectional loopback both ways, 2026-08-05). The
+   pattern is tested; production `config.py` just describes one (`uart_id: 1`, tx 17/rx 18,
+   M0 8 / M1 9 / AUX 10).
+2. **The regulator hands you exactly two channels.** `config.py` and `config.h` both note
+   India NFAP allows **CH 15–16 only** (865.125 and 866.125 MHz). Two radios on two channels
+   is 1 MHz apart at 125 kHz bandwidth — generous separation, and it **solves most of the
+   coexistence problem for free**. A third radio would have to share a channel and rely on SF
+   orthogonality alone, which is a real but much weaker guarantee.
+3. **The asymmetry is the whole point.** The coordinator is mains/USB powered with an ESP32-S3
+   that has spare UARTs, spare GPIO and an idle SPI bus. The leaf has none of those (§4g:
+   SPI costs +4 GPIO it does not have). **Complexity belongs on the powered end.**
+
+### The hazard that needs designing around
+
+**The coordinator transmits too.** A 30 dBm ACK burst from one module, radiated a few
+centimetres from another module's LNA input, is the failure mode to respect — at worst
+front-end damage, routinely desense. Mitigations, in order of effectiveness: **different
+channels** (already available), **physical antenna separation** on the enclosure,
+**firmware interlock** so no radio receives while another transmits, and lower coordinator TX
+power (it has mains and a better antenna; it rarely needs 30 dBm).
+
+Second-order: a leaf heard by two radios needs dedupe. PROTOCOL.md §5 already designs
+**multi-coordinator dedupe** — multi-radio on one coordinator is the same problem one layer
+down, and should reuse it rather than invent a parallel mechanism.
+
+### And yes — the coordinator is the right place for an SX1262
+
+Everything that made SPI wrong on the leaf makes it right here: pins are free, power is free,
+driver weight is free, and MicroPython has usable SX1262 drivers. It buys:
+
+- **A test bench for SF12** without touching a single leaf.
+- **Forward compatibility** if the fleet ever moves to E22 for range (§4g) — the coordinator
+  already speaks it.
+- Direct SF/BW/CR control on one path, so adaptive data rate can be *measured* before it is
+  committed to firmware.
+
+**Suggested shape:** radio 1 = E220 on CH 15 at the fleet rate (today's proven path, untouched);
+radio 2 = E220 on CH 16 at a faster rate for strong-link sites; radio 3, *if* a slot is wanted
+for experiments, = SX1262 on SPI sharing CH 15/16 with a distinct SF. Build 1 and 2 first;
+treat 3 as the research port.
+
+**Caveat worth stating plainly:** none of this should be built before §4g's open question 7 —
+**field RSSI/SNR from a sited leaf.** Multi-radio is the answer to *"different sites need
+different rates"*, and there is currently no evidence that any site needs anything, because
+the only link ever measured was two modules on a bench at −17 dBm.
+
 ---
 
 ## 5. Other rev-2 candidates
