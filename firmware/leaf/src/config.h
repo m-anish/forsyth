@@ -86,20 +86,23 @@
 #define RAIN_DEBOUNCE_MS    150      /* [C] min gap between counted tips, in
                                         ~1 ms RTC ticks (the counter runs at
                                         1024 Hz, so 150 is really ~146 ms).
-                                        There is ENORMOUS headroom to raise
-                                        this: at 0.2794 mm/tip, even a violent
-                                        300 mm/h downpour is one tip every
-                                        3.4 s, so anything up to ~1 s still
-                                        cannot clip real rain. The risk runs
-                                        the other way — a tipping bucket ROCKS
-                                        after it tips, and if the magnet
-                                        crosses the reed twice you book two
-                                        tips for one. Measure before changing
-                                        it: build DIAG_PULSE=1 and hand-tip the
-                                        bucket; one physical tip must give
-                                        exactly one long blink. Two blinks =
-                                        raise this (300 is the usual answer).
-                                        See firmware/BRINGUP.md.             */
+                                        MEASURED 2026-10-31 with DIAG_PULSE:
+                                        one hand-tip of the real bucket gives
+                                        exactly one counted tip, so 146 ms
+                                        already outlasts this bucket's rock.
+                                        Caveat worth keeping: a hand-tip is
+                                        GENTLER than a water-driven one, which
+                                        snaps over harder and may rock more —
+                                        so this is validated for the bench, not
+                                        yet for rain. If field totals ever read
+                                        high, re-run DIAG_PULSE under a tap
+                                        before suspecting the gauge.
+                                        Raising it is nearly free: at
+                                        0.2794 mm/tip even a violent 300 mm/h
+                                        downpour is one tip every 3.4 s, so
+                                        anything up to ~1 s still cannot clip
+                                        real rain. 300 is the usual answer if
+                                        doubles ever appear.                 */
 /* mm-per-tip deliberately lives on the COORDINATOR (per-station config) —
  * the leaf ships raw cumulative tips. See PROTOCOL.md reading bit6.          */
 

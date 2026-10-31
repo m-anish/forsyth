@@ -87,6 +87,10 @@ you are watching the counter's truth rather than the switch's.
 | anemometer (PA4) | **short**, 40 ms |
 
 Hand-tip the bucket. One physical tip must give **exactly one long blink**.
+**Result on the real gauge, 2026-10-31: one tip, one blink** — the reed, the
+ISR and the ~146 ms debounce are all correct, and this bucket does not rock
+past the reed twice. Note a hand-tip is gentler than a water-driven one, so
+that validates the bench, not yet the rain.
 
 - **Two blinks per tip** → the bucket rocks after tipping and carries the magnet
   past the reed twice. Raise `RAIN_DEBOUNCE_MS` (300 is the usual answer); there
