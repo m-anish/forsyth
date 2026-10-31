@@ -31,7 +31,7 @@
   /* Night reads DARKER in both themes, which is the way round people expect.
      On dark the panel is not pure black, so translucent black still registers;
      tinting it lighter made night look like the brighter half of the day. */
-  --night-band: rgba(0,0,0,0.26);
+  --night-band: rgba(0,0,0,0.45);
   --ch-rain: #7fa2c4;  --ch-rain-fill: rgba(127,162,196,0.25);
   /* PM2.5 and PM10 were two warm browns a shade apart, and PM2.5 was the same
      amber as --ch-gust. Orange vs blue separates on hue AND lightness and
@@ -61,7 +61,7 @@
   --ch-temp: #b05555;  --ch-rh:   #3f6c96;  --ch-pres: #8a6f38;
   --ch-wind: #3f6c96;  --ch-gust: #96702c;  --ch-gust-fill: rgba(150,112,44,0.16);
   --rose-1: #c3d4de;   --rose-2: #8bafc6;   --rose-3: #4f7d9b;   --rose-4: #96702c;
-  --night-band: rgba(40,60,90,0.065);
+  --night-band: rgba(40,60,90,0.10);
   --ch-rain: #3f6c96;  --ch-rain-fill: rgba(63,108,150,0.18);
   --ch-pm25: #c2621a;  --ch-pm10: #1f6f9c;  --ch-batt: #3e7d4f;
   --ch-pm25-fill: rgba(194,98,26,0.16); --ch-pm10-fill: rgba(31,111,156,0.12);
