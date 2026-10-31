@@ -164,7 +164,7 @@ async function drawCharts() {
   const [tempD, windD, presD, rainD, pmD, battD] = await Promise.all([
     getJSON(`/stations/${slug}/series?metrics=temp_c,rh&hours=${h}`),
     getJSON(`/stations/${slug}/series?metrics=wind_avg_ms,wind_gust_ms,wind_dir_deg&hours=${h}`),
-    getJSON(`/stations/${slug}/series?metrics=pressure_pa&hours=${h}`),
+    getJSON(`/stations/${slug}/series?metrics=pressure_pa,temp_c&hours=${h}`),
     getJSON(`/stations/${slug}/series?metrics=rain_mm&hours=${h}`),
     getJSON(`/stations/${slug}/series?metrics=pm25,pm10&hours=${h}`),
     getJSON(`/stations/${slug}/series?metrics=batt_v&hours=${h}`),
@@ -202,12 +202,23 @@ async function drawCharts() {
     },
   });
 
+  /* Sea level, matching the panel above. The two disagreed by 177 hPa while
+     both were labelled "Pressure": the panel had been reduced to sea level and
+     the chart was still plotting what the sensor reads at 1676 m. Reduction
+     needs the temperature at each sample, which is why temp_c rides along in
+     the fetch.
+
+     The axis gutter grows with it. At 46px a six-figure label ("838.75", and
+     now "1015.75") ran off the left edge and rendered as "38.75" — the leading
+     digit silently cut, which is the worst way for a number to be wrong. */
+  const presHpa = presD.series.pressure_pa.map((v, i) => v === null ? null
+    : pressureSeaLevelHpa(v, S.station && S.station.elevation_m,
+                          (presD.series.temp_c || [])[i]));
   S.charts.pres = makeChart(document.getElementById('chart-pres'), [
-    { label: 'hPa', stroke: COL.pres, width: 1.5 },
-  ], breakGaps(presD.ts,
-               [presD.series.pressure_pa.map(v => v === null ? null : v / 100)],
-               gapThresholdS(presD.ts)),
-     { uplot: { plugins: nightPlugins() } });
+    { label: 'Pressure hPa', stroke: COL.pres, width: 1.5 },
+  ], breakGaps(presD.ts, [presHpa], gapThresholdS(presD.ts)),
+     { uplot: { plugins: nightPlugins(),
+                axes: [uplotAxis(), uplotAxis({ size: 62 })] } });
 
   /* Already bars, and right to be: rain is accumulation since the previous
      report, so there is no meaningful value between samples (§8 rule 2). */
