@@ -7,9 +7,11 @@
    stale-while-revalidate is safe for them: a new version is a new URL.      */
 'use strict';
 
-/* v3 drops caches built by v2, whose navigation fallback could answer any page
-   with the homepage — see the fetch handler below. */
-const CACHE = 'forsyth-v3';
+/* v4 drops v3's caches so the configurable-basemap scripts take effect on the
+   next visit rather than whenever a year-long immutable cache expires; v3
+   itself dropped v2, whose navigation fallback could answer any page with the
+   homepage — see the fetch handler below. */
+const CACHE = 'forsyth-v4';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
