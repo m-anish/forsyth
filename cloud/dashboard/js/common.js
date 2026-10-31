@@ -273,6 +273,13 @@ function breakGaps(ts, arrays, maxGapS, { dropNulls = false } = {}) {
     if (dropNulls && arrays.every(a => a[i] === null || a[i] === undefined)) continue;
     keep.push(i);
   }
+  /* Measure the threshold on the samples that will actually be drawn, not on
+     the raw timestamps. PM rides every 6th report, so its real spacing is
+     ~30 min while the series ticks every 5 — deriving the threshold from the
+     raw ticks broke the line at EVERY PM sample and left bare dots. */
+  if (maxGapS === undefined || maxGapS === null) {
+    maxGapS = gapThresholdS(keep.map(i => ts[i]));
+  }
   const outTs = [], outs = arrays.map(() => []);
   for (let j = 0; j < keep.length; j++) {
     const i = keep[j];

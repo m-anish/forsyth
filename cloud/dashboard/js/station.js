@@ -119,7 +119,7 @@ function ts2data(d, keys) {
    across. The taper moves the leaf between 5- and 40-minute reporting, so the
    threshold is derived from the data (docs/v2-design.md §8 rule 6). */
 function gapped(d, keys, opts) {
-  return breakGaps(d.ts, keys.map(k => d.series[k] || []), gapThresholdS(d.ts), opts);
+  return breakGaps(d.ts, keys.map(k => d.series[k] || []), undefined, opts);
 }
 
 async function drawCharts() {

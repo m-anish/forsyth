@@ -82,7 +82,7 @@ const Widgets = (() => {
       const meta = metricMeta(m), arr = d.series[m] || [];
       return meta.conv ? arr.map(v => (v === null || v === undefined) ? null : meta.conv(v)) : arr;
     });
-    const data = breakGaps(d.ts, cols, gapThresholdS(d.ts),
+    const data = breakGaps(d.ts, cols, undefined,
                            { dropNulls: metrics.every(m => metricMeta(m).sparse) });
     /* theme in the key: a light/dark switch rebuilds so the line colours (not
        just the live-read axis colours) come from the new palette */

@@ -160,13 +160,25 @@ def windrose(slug: str, hours: float = Query(24, gt=0, le=24 * 366)):
     sql = text("""
         SELECT (floor((((wind_dir_deg + 11.25)::numeric % 360) / 22.5))::int) AS bin,
                width_bucket(wind_avg_ms, :edges) AS band,
-               count(*) AS n, avg(wind_avg_ms) AS speed,
-               max(wind_gust_ms) AS gust
+               count(*) AS n, avg(wind_avg_ms) AS speed
         FROM readings
         WHERE station_id = :sid AND ts >= :since
           AND wind_dir_deg IS NOT NULL AND wind_avg_ms IS NOT NULL
           AND wind_avg_ms >= :calm
         GROUP BY bin, band ORDER BY bin
+    """)
+    # Gusts get their own pass. Folding them into the query above would hide
+    # them exactly when they matter most: that one filters on the MEAN being
+    # above calm, so a sharp gust during an otherwise still interval — which is
+    # precisely what a gust is — contributed nothing. Gated on the gust itself.
+    gust_sql = text("""
+        SELECT (floor((((wind_dir_deg + 11.25)::numeric % 360) / 22.5))::int) AS bin,
+               max(wind_gust_ms) AS gust
+        FROM readings
+        WHERE station_id = :sid AND ts >= :since
+          AND wind_dir_deg IS NOT NULL AND wind_gust_ms IS NOT NULL
+          AND wind_gust_ms >= :calm
+        GROUP BY bin
     """)
     totals_sql = text("""
         SELECT count(*) FILTER (WHERE wind_avg_ms < :calm) AS calm,
@@ -179,18 +191,21 @@ def windrose(slug: str, hours: float = Query(24, gt=0, le=24 * 366)):
         rows = conn.execute(sql, {"sid": sid, "since": since,
                                   "calm": ROSE_CALM_MS,
                                   "edges": ROSE_BAND_EDGES}).all()
+        gust_rows = conn.execute(gust_sql, {"sid": sid, "since": since,
+                                            "calm": ROSE_CALM_MS}).all()
         calm, samples = conn.execute(
             totals_sql, {"sid": sid, "since": since, "calm": ROSE_CALM_MS}).one()
 
     nb = len(ROSE_BAND_EDGES) + 1
     bins = [{"n": 0, "speed": 0.0, "gust": 0.0, "bands": [0] * nb} for _ in range(16)]
     weighted = [0.0] * 16
-    for b, band, n, speed, gust in rows:
+    for b, band, n, speed in rows:
         i = int(b)
         bins[i]["bands"][min(int(band), nb - 1)] += n
         bins[i]["n"] += n
         weighted[i] += float(speed or 0) * n
-        bins[i]["gust"] = max(bins[i]["gust"], round(float(gust or 0), 2))
+    for b, gust in gust_rows:
+        bins[int(b)]["gust"] = round(float(gust or 0), 2)
     for i, b in enumerate(bins):
         b["speed"] = round(weighted[i] / b["n"], 2) if b["n"] else 0.0
 
