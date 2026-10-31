@@ -301,10 +301,11 @@ const Widgets = (() => {
       <div class="aqi-band"><span class="pin" style="left:${a !== null ? Math.min(100, a/5) : 0}%"></span></div>
       ${a !== null ? `<p class="aqi-advice">${aqiGuidance(a)}</p>` : ''}
       <div class="kv">
-        <div><span class="k">PM2.5</span><span class="v">${fmt(s.pm25,1)} µg/m³${
-          who !== null ? ` · ${who.toFixed(1)}× WHO` : ''}</span></div>
+        <div><span class="k">PM2.5</span><span class="v">${fmt(s.pm25,1)} µg/m³</span></div>
         <div><span class="k">PM10</span><span class="v">${fmt(s.pm10,1)} µg/m³</span></div>
-      </div>`;
+      </div>
+      ${who !== null ? `<p class="aqi-who">PM2.5 is <b>${who.toFixed(1)}×</b> the WHO
+         24-hour guideline of 15 µg/m³</p>` : ''}`;
   }
 
   async function lightning(el, config) {

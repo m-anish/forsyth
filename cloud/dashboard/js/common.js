@@ -375,6 +375,54 @@ function windDirArrows(ts, dirDeg, speedMs, opts = {}) {
   } } };
 }
 
+/* Sunrise and sunset for a date and place (the standard NOAA/SunCalc
+   approximation — good to about a minute at these latitudes). Returns epoch
+   seconds, or null where the sun never crosses the horizon. */
+function sunTimes(dateMs, lat, lon) {
+  const rad = Math.PI / 180, J1970 = 2440588, J2000 = 2451545;
+  const d = dateMs / 86400000 - 0.5 + J1970 - J2000;
+  const n = Math.round(d - 0.0009 - (-lon / 360));
+  const Jnoon = J2000 + 0.0009 + (-lon / 360) + n;
+  const M = rad * (357.5291 + 0.98560028 * (Jnoon - J2000));
+  const C = rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
+  const L = M + C + rad * 102.9372 + Math.PI;
+  const Jtransit = Jnoon + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+  const dec = Math.asin(Math.sin(L) * Math.sin(rad * 23.4397));
+  const cosW = (Math.sin(rad * -0.833) - Math.sin(rad * lat) * Math.sin(dec)) /
+               (Math.cos(rad * lat) * Math.cos(dec));
+  if (cosW > 1 || cosW < -1) return null;
+  const w = Math.acos(cosW) / (2 * Math.PI);
+  const toEpoch = j => (j + 0.5 - J1970) * 86400;
+  return { sunrise: toEpoch(Jtransit - w), sunset: toEpoch(Jtransit + w) };
+}
+
+/* Night shaded behind the series. The diurnal cycle is the dominant pattern in
+   nearly every metric here, so marking it turns a chart into something you can
+   read without consulting the time axis (docs/v2-design.md §8.3). Drawn on the
+   `drawClear` hook, which fires after the canvas is cleared but before the
+   series, so it sits behind the data rather than over it. */
+function nightBands(lat, lon) {
+  if (lat === null || lat === undefined || lon === null || lon === undefined) return null;
+  return { hooks: { drawClear: u => {
+    const bb = u.bbox, ctx = u.ctx;
+    const t0 = u.scales.x.min, t1 = u.scales.x.max;
+    if (t0 === undefined || t1 === undefined || t0 === null || t1 === null) return;
+    ctx.save();
+    ctx.fillStyle = cssVar('--night-band') || 'rgba(0,0,0,0.10)';
+    /* step a day at a time across the window, shading sunset → next sunrise */
+    for (let day = Math.floor(t0 / 86400) * 86400 - 86400; day <= t1 + 86400; day += 86400) {
+      const a = sunTimes(day * 1000, lat, lon);
+      const b = sunTimes((day + 86400) * 1000, lat, lon);
+      if (!a || !b) continue;
+      const from = Math.max(a.sunset, t0), to = Math.min(b.sunrise, t1);
+      if (to <= from) continue;
+      const xa = u.valToPos(from, 'x', true), xb = u.valToPos(to, 'x', true);
+      ctx.fillRect(xa, bb.top, xb - xa, bb.height);
+    }
+    ctx.restore();
+  } } };
+}
+
 /* A labelled reference line. A concentration means little without the number
    it is meant to stay under, so the chart carries that number itself. */
 function hLine(value, label, opts = {}) {

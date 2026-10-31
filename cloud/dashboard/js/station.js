@@ -131,6 +131,19 @@ function ts2data(d, keys) {
 /* ts2data, but a reporting outage breaks the line rather than being drawn
    across. The taper moves the leaf between 5- and 40-minute reporting, so the
    threshold is derived from the data (docs/v2-design.md §8 rule 6). */
+/* Night shaded behind every history chart. The diurnal cycle is the dominant
+   pattern in nearly all of these metrics, so marking it lets the shape be read
+   without consulting the time axis (docs/v2-design.md §8.3). Needs the
+   station's coordinates; without them the charts simply go unshaded. */
+function nightPlugins(...extra) {
+  const st = S.station, out = [];
+  if (st && st.lat !== null && st.lat !== undefined) {
+    const nb = nightBands(st.lat, st.lon);
+    if (nb) out.push(nb);
+  }
+  return out.concat(extra.filter(Boolean));
+}
+
 function gapped(d, keys, opts) {
   return breakGaps(d.ts, keys.map(k => d.series[k] || []), undefined, opts);
 }
@@ -154,7 +167,8 @@ async function drawCharts() {
     { label: 'Humidity %', stroke: COL.rh, width: 1, scale: 'rh' },
   ], gapped(tempD, ['temp_c', 'rh']), {
     height: 230,
-    uplot: { scales: { rh: { range: [0, 100] } },
+    uplot: { plugins: nightPlugins(),
+             scales: { rh: { range: [0, 100] } },
              axes: [uplotAxis(), uplotAxis({ size: 46 }),
                     uplotAxis({ size: 46, scale: 'rh', side: 1, grid: { show: false } })] },
   });
@@ -172,8 +186,8 @@ async function drawCharts() {
          as noise (§8). Direction rides on top as arrows — a circular quantity
          cannot go on a linear axis without 350°→10° looking like a crash. */
       bands: [{ series: [2, 1], fill: cssVar('--ch-gust-fill') }],
-      plugins: [windDirArrows(windD.ts, windD.series.wind_dir_deg || [],
-                              windD.series.wind_gust_ms || [])],
+      plugins: nightPlugins(windDirArrows(windD.ts, windD.series.wind_dir_deg || [],
+                                          windD.series.wind_gust_ms || [])),
     },
   });
 
@@ -181,7 +195,8 @@ async function drawCharts() {
     { label: 'hPa', stroke: COL.pres, width: 1.5 },
   ], breakGaps(presD.ts,
                [presD.series.pressure_pa.map(v => v === null ? null : v / 100)],
-               gapThresholdS(presD.ts)));
+               gapThresholdS(presD.ts)),
+     { uplot: { plugins: nightPlugins() } });
 
   /* Already bars, and right to be: rain is accumulation since the previous
      report, so there is no meaningful value between samples (§8 rule 2). */
@@ -194,7 +209,8 @@ async function drawCharts() {
        (§8 rule 5) and gets a floor on the top so a dry spell reads as a quiet
        chart rather than a suspiciously calm deluge. One bucket tip is
        0.2794 mm, so a 2 mm ceiling still shows a single tip clearly. */
-    uplot: { scales: { y: { range: (u, _min, max) => [0, Math.max(2, (max || 0) * 1.25)] } } },
+    uplot: { plugins: nightPlugins(),
+             scales: { y: { range: (u, _min, max) => [0, Math.max(2, (max || 0) * 1.25)] } } },
   });
 
   /* PM rides only every Nth reading. spanGaps used to connect across every
@@ -217,13 +233,14 @@ async function drawCharts() {
     uplot: {
       bands: [{ series: [1, 2], fill: COL.pm10Fill }],
       /* a concentration means little without the number it should stay under */
-      plugins: [hLine(15, 'WHO 24 h guideline')],
+      plugins: nightPlugins(hLine(15, 'WHO 24 h guideline')),
     },
   });
 
   S.charts.batt = makeChart(document.getElementById('chart-batt'), [
     { label: 'Battery V', stroke: COL.batt, width: 1.5 },
-  ], gapped(battD, ['batt_v']), { height: 120 });
+  ], gapped(battD, ['batt_v']),
+     { height: 120, uplot: { plugins: nightPlugins() } });
 }
 
 /* ---------- forecast panel ---------- */

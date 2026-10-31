@@ -28,6 +28,7 @@
   --ch-temp: #c47f7f;  --ch-rh:   #7fa2c4;  --ch-pres: #b8a06a;
   --ch-wind: #7fa2c4;  --ch-gust: #c9a15a;  --ch-gust-fill: rgba(201,161,90,0.20);
   --rose-1: #3f5f73;   --rose-2: #5f8aa6;   --rose-3: #8fb6c9;   --rose-4: #d9b06a;
+  --night-band: rgba(120,150,190,0.075);
   --ch-rain: #7fa2c4;  --ch-rain-fill: rgba(127,162,196,0.25);
   /* PM2.5 and PM10 were two warm browns a shade apart, and PM2.5 was the same
      amber as --ch-gust. Orange vs blue separates on hue AND lightness and
@@ -57,6 +58,7 @@
   --ch-temp: #b05555;  --ch-rh:   #3f6c96;  --ch-pres: #8a6f38;
   --ch-wind: #3f6c96;  --ch-gust: #96702c;  --ch-gust-fill: rgba(150,112,44,0.16);
   --rose-1: #c3d4de;   --rose-2: #8bafc6;   --rose-3: #4f7d9b;   --rose-4: #96702c;
+  --night-band: rgba(40,60,90,0.065);
   --ch-rain: #3f6c96;  --ch-rain-fill: rgba(63,108,150,0.18);
   --ch-pm25: #c2621a;  --ch-pm10: #1f6f9c;  --ch-batt: #3e7d4f;
   --ch-pm25-fill: rgba(194,98,26,0.16); --ch-pm10-fill: rgba(31,111,156,0.12);
@@ -280,19 +282,22 @@ h1.headline {
 .now .big { font-family: var(--mono); font-size: 52px; letter-spacing: -0.03em; line-height: 1; }
 .now .big .u { font-size: 0.4em; color: var(--text-mute); }
 .now .desc { color: var(--text-dim); margin: 8px 0 16px; font-size: 15px; }
-.kv { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; }
-.kv div { display: flex; justify-content: space-between; gap: 10px;
-  border-bottom: 1px dashed var(--border-2); padding: 5px 0;
-  /* without min-width:0 a long value ("93 satisfactory") refuses to shrink and
-     is clipped by the card instead of wrapping */
-  min-width: 0; flex-wrap: wrap; }
-.kv .k { color: var(--text-mute); font-size: 13px; }
+/* auto-fit, not a fixed 1fr 1fr: inside a span4 panel two columns came out
+   ~150px each, too narrow for "Rain (last report)" and its value — so
+   flex-wrap dropped SOME values onto a second line and left others beside
+   their label, and one grid read two different ways down a single card. The
+   track now collapses to one column wherever two will not fit honestly. */
+.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0 18px; }
+/* label left, value hard right, always the same row: the label column takes
+   all the slack and wraps if it must, so a value can never drop below it. */
+.kv div { display: grid; grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline; gap: 4px 10px;
+  border-bottom: 1px dashed var(--border-2); padding: 6px 0; }
+.kv .k { color: var(--text-mute); font-size: 13px; min-width: 0;
+  overflow-wrap: anywhere; }
 .kv .v { font-family: var(--mono); font-size: 14px; text-align: right;
-  min-width: 0; overflow-wrap: anywhere; }
-/* Two columns of label+value need ~200px each. On a phone the card is ~310px
-   wide, so the pair collide and wrap mid-value; one column reads far better
-   than two cramped ones. */
-@media (max-width: 560px) { .kv { grid-template-columns: 1fr; gap: 2px; } }
+  white-space: nowrap; }
 
 /* gauge-ish bits */
 .trend { font-family: var(--mono); font-size: 14px; }
@@ -875,6 +880,10 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
    per-element by windArrow() in common.js; keeping the transform there means
    the glyph and its bearing can never drift apart. */
 .wind-arrow { display: inline-block; vertical-align: -1px; margin-right: 2px; opacity: .85; }
+
+/* Scoped explicitly to PM2.5. Tucked onto the end of the PM2.5 value it read
+   as though it might cover both pollutants, or neither. */
+.aqi-who { margin: 8px 0 0; font-size: .8rem; color: var(--text-mute); line-height: 1.35; }
 
 /* one line of what the air quality number means for a person's day */
 .aqi-advice { margin: 6px 0 2px; font-size: .82rem; color: var(--fg-2); line-height: 1.35; }

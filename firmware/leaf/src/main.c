@@ -373,7 +373,17 @@ static void do_report(void)
     mask |= FLP_R_RAIN;
     po = flp_put16(payload, po, tips);
 
+    /* Rested cell voltage, sampled before the PMS7003's ~100 mA load — and
+     * this is the one that gets REPORTED. A time series has to measure the
+     * same thing at every point; the old code re-read after the load on AQI
+     * cycles only, so one reading in six was a loaded voltage. Measured on
+     * this cell that put a repeating ~39 mV notch in the battery chart
+     * (3.332-3.340 V rested against 3.296-3.300 V loaded, no overlap) which
+     * read as the pack cycling when it was only the dust sensor drawing.
+     * The loaded figure is kept for the low-battery flag, where a pessimistic
+     * bias is the right one: a cell that sags under load really is weak. */
     uint16_t batt_mv = adc_read_batt_mv();
+    uint16_t batt_loaded_mv = batt_mv;
 
     /* PMS7003 — the expensive one. Only on schedule, only on a healthy cell,
      * and finished BEFORE the radio session (shared UART).                  */
@@ -387,7 +397,7 @@ static void do_report(void)
             po = flp_put16(payload, po, pm25);
             po = flp_put16(payload, po, pm10);
         } else sensor_fault_flags |= FLP_F_PMS_FAULT;
-        batt_mv = adc_read_batt_mv();   /* re-read after the 100 mA load     */
+        batt_loaded_mv = adc_read_batt_mv();   /* sag under the 100 mA load  */
     }
 
     mask |= FLP_R_BATT;
@@ -421,7 +431,7 @@ static void do_report(void)
     }
 
     size_t o = flp_begin(frame, FLP_T_READING, STATION_ID, ++g_seq,
-                         base_flags(batt_mv) | sensor_fault_flags);
+                         base_flags(batt_loaded_mv) | sensor_fault_flags);
     o = flp_put16(frame, o, mask);
     memcpy(frame + o, payload, po);
     o = flp_seal(frame, o + po);
