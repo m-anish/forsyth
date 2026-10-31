@@ -997,6 +997,7 @@ async function renderForecast(el, slug, opts = {}) {
     };
     let raf = 0;
     strip.addEventListener('scroll', () => {
+      if (fromX !== null) return;   /* a drag already panned it, in frame */
       if (raf) return;
       raf = requestAnimationFrame(() => { raf = 0; syncFromStrip(); });
     }, { passive: true });
@@ -1012,6 +1013,13 @@ async function renderForecast(el, slug, opts = {}) {
     chartEl.addEventListener('pointerdown', e => {
       fromX = e.clientX; fromScroll = strip.scrollLeft; wantScroll = fromScroll;
       chartEl.style.cursor = 'grabbing';
+      /* Snap OFF for the duration. Measured, the redraw and the scroll write
+         are 0.1 ms each — the cost was never the work. With scroll-snap live,
+         every programmatic scrollLeft starts the browser settling toward a
+         snap point, which we then overwrite on the next frame: the gesture
+         and the snapping fight each other. The strip feels smooth because a
+         real finger-scroll snaps WITH the browser, not against it. */
+      strip.style.scrollSnapType = 'none';
       try { chartEl.setPointerCapture(e.pointerId); } catch {}
     });
     /* A pointermove can fire several times per frame, and each write of
@@ -1025,12 +1033,18 @@ async function renderForecast(el, slug, opts = {}) {
       if (dragRaf) return;
       dragRaf = requestAnimationFrame(() => {
         dragRaf = 0;
-        if (fromX !== null) strip.scrollLeft = wantScroll;
+        if (fromX === null) return;
+        strip.scrollLeft = wantScroll;
+        /* Pan in the SAME frame. Waiting for the strip's scroll event to
+           schedule its own rAF put the chart a whole frame behind the finger,
+           which reads as roughness even when nothing is dropped. */
+        syncFromStrip();
       });
     }, { passive: true });
     const endDrag = e => {
       fromX = null; chartEl.style.cursor = 'grab';
       if (dragRaf) { cancelAnimationFrame(dragRaf); dragRaf = 0; }
+      strip.style.scrollSnapType = '';     /* snap back on for finger-scrolls */
       try { chartEl.releasePointerCapture(e.pointerId); } catch {}
     };
     chartEl.addEventListener('pointerup', endDrag);
