@@ -660,6 +660,24 @@ const forsythMap = (() => {
     fit(); renderMarkers(); renderLegend(); drawAlerts();
     window.addEventListener('themechange', renderMarkers);
 
+    /* Leaflet measures its container exactly once, at construction. The board
+       grid (and the station page's cards) settle AFTER that, so the map went on
+       believing it was smaller than its card and fetched too few tiles: 59 % of
+       a phone-width card covered, the rest blank, and map.html in a narrow pane
+       nearly empty. Until now the only re-measure was the fullscreen toggle.
+       Re-measure whenever the element really changes size, and re-fit once on
+       the first settle because the initial fitBounds ran against the wrong
+       dimensions. Guarded on non-zero size: a 0x0 element (hidden tab, widget
+       still laying out) would otherwise fit to a degenerate box.
+       Same `_ro` convention the uPlot charts use in common.js. */
+    let firstSettle = true;
+    el._ro = new ResizeObserver(() => {
+      if (!el.clientWidth || !el.clientHeight) return;
+      map.invalidateSize({ pan: false });
+      if (firstSettle) { firstSettle = false; fit(); }
+    });
+    el._ro.observe(el);
+
     return {
       map,
       update(next) {
@@ -673,6 +691,7 @@ const forsythMap = (() => {
         clearInterval(state.reportsTimer);
         clearInterval(state.playTimer);
         window.removeEventListener('themechange', renderMarkers);
+        if (el._ro) { el._ro.disconnect(); el._ro = null; }
         map.remove();
       },
     };
