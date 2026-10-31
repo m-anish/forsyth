@@ -2,11 +2,12 @@
 #
 # Profiles:
 #   (none)  core: db + api + worker + mosquitto — always on
-#   sim     simulator + skycam — dummy data until real hardware exists
+#   sim     simulator + skycam — LOCAL DEV ONLY; production retired it once
+#           the real leaf came online (2026-10-31)
 #   prod    caddy (TLS termination) — only on the VPS, where DNS points here
 #
 # Local dev:   docker compose --profile sim up --build     → http://localhost:8080
-# VPS:         docker compose --profile sim --profile prod up -d
+# VPS:         docker compose --profile prod up -d          (sim retired 2026-10-31)
 
 name: forsyth
 
@@ -52,6 +53,10 @@ services:
       SATELLITE_TILE_URL: ${SATELLITE_TILE_URL:-}
       SATELLITE_ATTRIBUTION: ${SATELLITE_ATTRIBUTION:-}
       SATELLITE_MAX_ZOOM: ${SATELLITE_MAX_ZOOM:-20}
+      BASEMAP_TILE_URL: ${BASEMAP_TILE_URL:-}
+      BASEMAP_TILE_URL_DARK: ${BASEMAP_TILE_URL_DARK:-}
+      BASEMAP_ATTRIBUTION: ${BASEMAP_ATTRIBUTION:-}
+      BASEMAP_MAX_ZOOM: ${BASEMAP_MAX_ZOOM:-20}
     volumes:
       - media:/data/media
     ports:

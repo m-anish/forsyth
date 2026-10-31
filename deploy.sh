@@ -62,7 +62,7 @@ EOF
         echo '  … github unreachable (transient POP flake); retry in 20s'; sleep 20; \
       done && cd cloud && \
       for i in 1 2 3; do \
-        docker compose --profile sim --profile prod up -d --build && break; \
+        docker compose --profile prod up -d --build && break; \
         [ \$i -eq 3 ] && { echo 'build failed' >&2; exit 1; }; \
         echo '  build hiccup; retry in 15s'; sleep 15; \
       done"
