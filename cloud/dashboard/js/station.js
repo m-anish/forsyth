@@ -173,7 +173,14 @@ async function drawCharts() {
   S.charts.rain = makeChart(document.getElementById('chart-rain'), [
     { label: 'Rain mm', stroke: COL.rain, fill: COL.rainFill,
       paths: uPlot.paths.bars ? uPlot.paths.bars({ size: [0.8, 100] }) : undefined },
-  ], gapped(rainD, ['rain_mm']));
+  ], gapped(rainD, ['rain_mm']), {
+    /* With no rain in the window uPlot's auto-range fell back to 0–100 mm:
+       a catastrophic flood, drawn as a flat line at zero. Rain is zero-based
+       (§8 rule 5) and gets a floor on the top so a dry spell reads as a quiet
+       chart rather than a suspiciously calm deluge. One bucket tip is
+       0.2794 mm, so a 2 mm ceiling still shows a single tip clearly. */
+    uplot: { scales: { y: { range: (u, _min, max) => [0, Math.max(2, (max || 0) * 1.25)] } } },
+  });
 
   /* PM rides only every Nth reading. spanGaps used to connect across every
      null, which also papered over genuine outages — the line looked identical
