@@ -81,23 +81,35 @@ int16_t adc_read_mcu_temp_x100(void)
     uint16_t raw = adc_single(ADC_MUXPOS_TEMPSENSE_gc);
     adc_off();
 
-    /* TEMPSENSE1 is the *signed* offset. The header declares both bytes
-     * register8_t (unsigned), so reading it into an unsigned type turns a
-     * negative factory offset into +128..+255 — an error of 256 counts that
-     * lands the result hundreds of kelvin low, i.e. a permanent hard freeze
-     * as far as the charge policy is concerned. Microchip's own example is
-     * `int8_t sigrow_offset = SIGROW.TEMPSENSE1;`.
-     * [verify against the ATtiny3226 datasheet "Temperature Measurement"
-     *  before trusting the absolute value: the shift below must match the
-     *  family's published formula and the ADC resolution it assumes — some
-     *  2-series variants use >>8. Whatever it is, print raw/slope/offset on
-     *  the bench and check against a reference thermometer.]               */
+    /* Two separate traps here, both of which have bitten this code.
+     *
+     * 1. TEMPSENSE1 is the *signed* offset. The header declares both bytes
+     *    register8_t (unsigned), so reading it into an unsigned type turns a
+     *    negative factory offset into +128..+255 — an error of 256 counts.
+     *    This part reads 0xE3 = -29, so getting it wrong is not academic.
+     *
+     * 2. The factory calibration is defined against a TEN-BIT reading, and
+     *    this ADC is twelve. Feeding the raw 12-bit result in and scaling by
+     *    4096 (as the AVR Dx formula does) compresses the whole scale by 4x:
+     *    a real ~30 °C came out as -200 °C, comfortably outside
+     *    MCU_TEMP_SANE_* and therefore invisible as anything but "broken".
+     *    Shift to 10 bits FIRST, then (adc - offset) * slope, +0x80, >>8.
+     *    Verified 2026-10-31 against this chip's own SIGROW (slope 135,
+     *    offset -29): the raw reading that produced -200 °C yields ~30 °C
+     *    through the corrected form.
+     *
+     * Reference must be 1.024 V, which adc_on() selects — the calibration is
+     * tied to it, so changing the reference silently invalidates the result.
+     * [B] The factory cal is ±3 °C and MCU_TEMP_OFFSET_X100 is the bench trim.
+     * This value gates LiFePO4 charging: bench-verify it near 0 °C against a
+     * reference thermometer before trusting the absolute number.           */
+    uint16_t adc10 = raw >> 2;           /* calibration is a 10-bit quantity */
     int8_t   sigrow_offset = (int8_t)SIGROW.TEMPSENSE1;
     uint8_t  sigrow_slope  = SIGROW.TEMPSENSE0;
-    int32_t t = (int32_t)raw - (int32_t)sigrow_offset;
-    t *= (int32_t)sigrow_slope;          /* result in K, <<12               */
-    t += 0x0800;                         /* round to nearest                */
-    t >>= 12;                            /* Kelvin */
+    int32_t t = (int32_t)adc10 - (int32_t)sigrow_offset;
+    t *= (int32_t)sigrow_slope;
+    t += 0x80;                           /* round to nearest                 */
+    t >>= 8;                             /* Kelvin                           */
     int32_t c_x100 = (t - 273) * 100;
     c_x100 += MCU_TEMP_OFFSET_X100;
     /* saturate rather than wrap: a wrapped int16 could land inside the sane

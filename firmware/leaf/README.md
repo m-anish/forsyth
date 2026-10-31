@@ -70,7 +70,13 @@ Hardware context you must not violate (from `hardware/boards/board-a-core.md`):
   is bench-only: antenna resonance must hit 500 kHz ±3.5 %.
 - **Temperature**: `SHTC3_TEMP_OFFSET_X100` (OTA, TLV 0x04) for the reported
   reading; `MCU_TEMP_OFFSET_X100` for the internal sensor that gates charging —
-  bench-check the latter near 0 °C, it protects the battery.
+  bench-check the latter near 0 °C, it protects the battery. **The conversion
+  itself was wrong until 2026-10-31**: the factory calibration is defined
+  against a *10-bit* reading and the code fed it the raw 12-bit result scaled
+  by 4096, compressing the whole scale 4x (a real ~30 °C reported as −200 °C).
+  Shift to 10 bits first, then `(adc - offset) * slope`, `+0x80`, `>>8`, with
+  the 1.024 V reference the calibration is tied to. If `mcu_temp_c` ever looks
+  like a round, absurd number again, suspect the scaling before the sensor.
 - **Charge inhibit** (`CHG_*`, OTA TLV 0x05): in `CHG_MODE_AUTO` the leaf
   asserts `CHG_INHIBIT` **below `CHG_LOW_LIMIT_C` (0 °C)** and releases at
   **limit + `CHG_HYSTERESIS_C` (+2 °C)**; `CHG_MODE_INHIBIT` forces it on and
