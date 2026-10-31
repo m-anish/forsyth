@@ -97,7 +97,20 @@ const Widgets = (() => {
     const says = [cap(describe(s)) + '.'];
     if (showFeels) says.push(`Feels like ${Math.round(fl)}°.`);
 
+    /* Wind and gust were two blocks saying one thing. Together they read as a
+       single fact — "calm, gusting 4 km/h" — and four stats fit two rows on a
+       phone where five needed three, which is what pushed the hero past its
+       card. */
+    const windCell = (() => {
+      const k = windKmh(s.wind_avg_ms), g = windKmh(s.wind_gust_ms);
+      if (k === null) return '—';
+      const base = k < 1 ? 'calm' : `${windArrow(s.wind_dir_deg)} ${Math.round(k)} km/h ${dirName(s.wind_dir_deg)}`;
+      return (g !== null && g >= 1 && Math.round(g) > Math.round(k))
+        ? `${base}<span class="hero-sub2"> · gusting ${Math.round(g)}</span>` : base;
+    })();
+
     el.innerHTML = `
+      <div class="hero">
       <div class="hero-top">
         ${glyph ? `<span class="hero-glyph">${glyph}</span>` : ''}
         <span class="hero-temp">${fmt(s.temp_c, 1)}<span class="u">°C</span></span>
@@ -108,10 +121,10 @@ const Widgets = (() => {
       <div class="hero-meta">${hiLo ? hiLo + ' · ' : ''}measured at ${s.name}, ${agoLabel(s.last_seen)}</div>
       <div class="hero-stats">
         <div><span class="k">Humidity</span><span class="v">${fmt(s.rh, 0, '%')}</span></div>
-        <div><span class="k">Wind</span><span class="v">${windText(s)}</span></div>
-        <div><span class="k">Gust</span><span class="v">${gustText(s)}</span></div>
+        <div><span class="k">Wind</span><span class="v">${windCell}</span></div>
         <div><span class="k">Pressure</span><span class="v">${fmt(slp, 0, ' hPa')}</span></div>
         <div><span class="k">Air (${AQI_SCALE})</span><span class="v">${a ?? '—'} ${aqiLabel(a)}</span></div>
+      </div>
       </div>`;
   }
 
