@@ -198,6 +198,28 @@ function feelsLike(temp_c, rh, wind_ms) {
    travels alone: the scale is named wherever it appears, and PM2.5 is shown
    against the WHO 24-hour guideline (15 µg/m³, 2021). See §6.2.              */
 const AQI_SCALE = 'CPCB';
+
+/* The charge policy's own vocabulary, in words. "charging-allowed" is the
+   policy state — the MCU is not inhibiting charge — not a claim that current
+   is flowing, so "ready to charge" is the honest rendering. */
+function solarWord(state) {
+  switch (state) {
+    case 'charging':         return 'charging';
+    case 'charging-allowed': return 'ready to charge';
+    case 'float':            return 'topped up';
+    case 'discharging':      return 'running on battery';
+    default:                 return state || '—';
+  }
+}
+
+/* dBm means nothing to most people; the word beside it does. */
+function rssiWord(dbm) {
+  if (dbm === null || dbm === undefined) return '';
+  if (dbm >= -70)  return 'strong';
+  if (dbm >= -85)  return 'good';
+  if (dbm >= -100) return 'weak';
+  return 'marginal';
+}
 function aqiGuidance(v) {
   if (v === null || v === undefined) return '';
   if (v <= 50)  return 'Air is clean. Go outside.';

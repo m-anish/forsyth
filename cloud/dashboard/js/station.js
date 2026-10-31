@@ -61,8 +61,11 @@ async function refreshNow() {
   if (!st) { document.getElementById('head-name').textContent = 'Unknown station.'; return; }
   S.station = st;   /* the report dialog falls back to these coords */
 
+  /* "Station · leaf-01" told a visitor nothing: the slug is a database key.
+     The name is already the headline below (docs/v2-design.md §3.4). */
   document.getElementById('head-kicker').innerHTML =
-    `Station · ${slug}` + (st.is_simulated ? ' &nbsp;<span class="badge sim">rehearsal data</span>' : '');
+    'Weather station' + (st.is_simulated ? ' &nbsp;<span class="badge sim">rehearsal data</span>' : '');
+  document.getElementById('crumb-slug').textContent = st.name;
   document.getElementById('head-name').textContent = st.name;
   document.getElementById('head-sub').textContent =
     (st.lat ? `${st.lat.toFixed(3)}°N ${st.lon.toFixed(3)}°E · ${Math.round(st.elevation_m)} m` : '') +
@@ -75,19 +78,29 @@ async function refreshNow() {
   const cbLabel = cb === null ? '—' : cb < 100 ? 'on the deck' : `~${cb} m up`;
   document.getElementById('now-kv').innerHTML = `
     <div><span class="k">Humidity</span><span class="v">${fmt(st.rh, 0, '%')}</span></div>
-    <div><span class="k">Wind</span><span class="v">${fmt(st.wind_avg_ms, 1)} m/s ${dirName(st.wind_dir_deg)}</span></div>
-    <div><span class="k">Gust</span><span class="v">${fmt(st.wind_gust_ms, 1)} m/s</span></div>
+    <div><span class="k">Wind</span><span class="v">${windText(st)}</span></div>
+    <div><span class="k">Gust</span><span class="v">${gustText(st)}</span></div>
     <div><span class="k">Rain (last report)</span><span class="v">${fmt(st.rain_mm, 1)} mm</span></div>
     <div><span class="k">Dew point</span><span class="v">${fmt(dewPoint(st.temp_c, st.rh), 1)} °C</span></div>
     <div><span class="k">Cloud base (est.)</span><span class="v">${cbLabel}</span></div>`;
 
-  document.getElementById('pres-now').textContent = st.pressure_pa ? (st.pressure_pa / 100).toFixed(1) : '—';
+  /* Sea-level, not station: 838 hPa at 1676 m is correct and reads as broken
+     to anyone who knows sea level is ~1013 (§3.4). The station figure stays,
+     on hover, because it is the one actually measured. */
+  const slpEl = document.getElementById('pres-now');
+  const slpV = pressureSeaLevelHpa(st.pressure_pa, st.elevation_m, st.temp_c);
+  slpEl.textContent = slpV === null ? '—' : slpV.toFixed(1);
+  slpEl.title = st.pressure_pa
+    ? `${(st.pressure_pa / 100).toFixed(1)} hPa measured at the station, ${Math.round(st.elevation_m)} m up`
+    : '';
 
   /* air quality + wind rose are shared board widgets now (renderWidgets) */
 
   document.getElementById('hk-batt').textContent = fmt(st.batt_v, 2, ' V');
-  document.getElementById('hk-solar').textContent = st.solar_state ?? '—';
-  document.getElementById('hk-rssi').textContent = fmt(st.rssi_dbm, 0, ' dBm');
+  document.getElementById('hk-solar').textContent = solarWord(st.solar_state);
+  const rw = rssiWord(st.rssi_dbm);
+  document.getElementById('hk-rssi').textContent =
+    fmt(st.rssi_dbm, 0, ' dBm') + (rw ? ` · ${rw}` : '');
   document.getElementById('hk-seen').textContent = agoLabel(st.last_seen);
 }
 
@@ -137,8 +150,8 @@ async function drawCharts() {
   const COL = COLs();
 
   S.charts.temp = makeChart(document.getElementById('chart-temp'), [
-    { label: '°C', stroke: COL.temp, width: 1.5 },
-    { label: '%RH', stroke: COL.rh, width: 1, scale: 'rh' },
+    { label: 'Temperature °C', stroke: COL.temp, width: 1.5 },
+    { label: 'Humidity %', stroke: COL.rh, width: 1, scale: 'rh' },
   ], gapped(tempD, ['temp_c', 'rh']), {
     height: 230,
     uplot: { scales: { rh: { range: [0, 100] } },
