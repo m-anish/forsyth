@@ -143,7 +143,7 @@ coordinator already prints them (`rx leaf-01 STATUS fw=… reset=XX boots=N`).
 | bits | meaning | what it tells you |
 |---|---|---|
 | `0x01` | power-on reset | **the rail collapsed** — supply, not firmware |
-| `0x02` | brown-out | only if BOD is enabled; it is OFF by default here |
+| `0x02` | brown-out | **the rail sagged** — BOD caught it (enabled 2026-10-31) |
 | `0x08` | watchdog | something blocked >8 s |
 | `0x10` | software | the deliberate 5 s button-hold hard reset |
 | `0x20` | UPDI | the programmer |
@@ -158,11 +158,20 @@ you get safe mode (5 blinks), hold past 5 s and you get a deliberate hard reset
 — which also zeroes the rain counter. A heavy-handed press is easy to mistake
 for a fault.
 
-**BOD is disabled** (`BODCFG` fuse reads `0x00`), which is why a sagging rail
-produces an unresponsive hang rather than a clean reset. Enabling it would
-convert this exact failure from invisible into a reported `0x02` — a deliberate
-trade (the Makefile notes the soft-UVLO and BMS parachute cover undervoltage),
-but worth revisiting if the hangs persist.
+**BOD is now ENABLED** at 2.6 V, active mode only (`BODCFG` = `0x44`, set
+2026-10-31; it is not the factory default). That is what makes the `0x02` row
+above reachable: with BOD off, a rail sagging under the TX surge gave an
+undefined hang that left no trace anywhere, which is precisely why the button
+symptom was invisible. 2.6 V sits between the 2.8 V soft-UVLO and the ~2.4 V
+BMS cut, so normal operation never reaches it, and BOD draws current only in
+active mode — the leaf sleeps ~99 % of its cycle, so the sleep floor is
+unchanged.
+
+**Consequence worth expecting:** if the supply genuinely cannot hold 2.6 V
+through a transmit, the leaf will now reset-loop (2 boot blinks, repeating)
+instead of hanging. That is the diagnosis succeeding, not a new fault — and it
+is the same signature as the dongle-3V3 incident. Revert with
+`pymcuprog write -m fuses -o 1 -l 0x00` if you need the old behaviour.
 
 ## The production radio config (both ends must match)
 

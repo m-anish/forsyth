@@ -132,6 +132,15 @@ part prints `0x7E`, *not* `0x02`; mask before you judge it (`0x7E & 0x03 ==
 (16 MHz), either write the fuse or rebuild with `F_CPU=4000000UL` — otherwise
 every UART baud rate is 20 % off and nothing will speak.
 
+**BODCFG (fuse 1) must read `0x44`** on a brought-up board — brown-out
+detection at 2.6 V, active mode only. It is *not* the factory default (`0x00`,
+no BOD); set it once per chip with
+`pymcuprog write -t uart -u <port> -d attiny3226 -m fuses -o 1 -l 0x44`.
+Without it a rail that sags under the TX surge produces an undefined hang with
+no trace; with it you get a clean reset reported as `0x02` in the STATUS
+packet's `reset_cause`. A full healthy fuse row reads
+`00 44 7E FF FF F6 FF 00 00`.
+
 Reflash caveat: `--erase` clears **EEPROM too** — OTA-applied config reverts
 to the compiled defaults and the leaf re-burns its radio NVRAM on the next
 boot (by design, self-healing; just re-send any OTA tweaks).

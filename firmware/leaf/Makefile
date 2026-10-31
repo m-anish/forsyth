@@ -95,10 +95,36 @@ size: $(BUILD)/$(TARGET).elf
 flash: $(BUILD)/$(TARGET).hex
 	pymcuprog write -t uart -u $(PORT) -d $(MCU) -f $< --erase --verify
 
-# Fuses: factory defaults are correct for this design (20 MHz osc, UPDI kept,
-# BOD off — the firmware's soft-UVLO + the BMS parachute cover undervoltage).
-# To verify what's on the part:
-#   pymcuprog read -t uart -u $(PORT) -d $(MCU) -m fuses
+# Fuses: factory defaults are right except BODCFG, which we now set.
+#
+#   BODCFG = 0x44  (was 0x00, BOD fully off)
+#       LVL      bits 7:5 = 0b010 -> 2.6 V  (only 1.8 / 2.6 / 4.2 exist; 4.2 is
+#                                            above the cell, 1.8 is the MCU's
+#                                            own floor and so catches nothing
+#                                            until the part is already lost)
+#       ACTIVE   bits 3:2 = 0b01  -> enabled, continuous
+#       SLEEP    bits 1:0 = 0b00  -> disabled
+#
+#   Why: BOD off was a deliberate call — the firmware's soft-UVLO
+#   (BATT_CRIT_MV) plus the BMS parachute cover *slow* undervoltage. They do
+#   not cover a FAST sag under the E220's TX surge, and with BOD off the
+#   datasheet gives no behaviour at all below the operating envelope: the part
+#   simply hangs, leaving no trace, until the rail recovers. That is the
+#   unexplained "button stops responding" symptom. BOD turns it into a clean
+#   reset that reports itself as BORF (0x02) in the STATUS packet's
+#   reset_cause. 2.6 V sits between the 2.8 V soft-UVLO and the ~2.4 V BMS cut,
+#   so normal operation never reaches it.
+#
+#   Cost: BOD draws current only in ACTIVE mode, and the leaf is asleep for
+#   ~99 % of its duty cycle, so the sleep floor is untouched. SLEEP=disabled
+#   makes that explicit rather than relying on it.
+#
+#   Set it (once per chip):
+#     pymcuprog write -t uart -u $(PORT) -d $(MCU) -m fuses -o 1 -l 0x44
+#   Revert to no BOD:
+#     pymcuprog write -t uart -u $(PORT) -d $(MCU) -m fuses -o 1 -l 0x00
+#   Verify what's on the part:
+#     pymcuprog read -t uart -u $(PORT) -d $(MCU) -m fuses
 
 clean:
 	rm -rf $(BUILD)
