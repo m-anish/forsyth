@@ -212,6 +212,118 @@ function whoPm25Multiple(pm25) {
   return Number(pm25) / 15;
 }
 
+/* ---- what each metric IS, and therefore how it must be drawn -------------
+   docs/v2-design.md §8. The question is not "does a line look nice" but what
+   kind of quantity this is: an instantaneous reading (line) or an accumulation
+   over the interval since the last report (bars). Rain is the latter — the
+   schema says "accumulation since previous report" — so a line through it
+   draws rainfall rates that never existed.                                  */
+const METRIC_META = {
+  temp_c:       { label: 'Temperature', unit: '°C',    kind: 'line' },
+  rh:           { label: 'Humidity',    unit: '%',     kind: 'line' },
+  pressure_pa:  { label: 'Pressure',    unit: 'hPa',   kind: 'line', conv: v => v / 100 },
+  wind_avg_ms:  { label: 'Wind',        unit: 'km/h',  kind: 'line', conv: v => v * 3.6 },
+  wind_gust_ms: { label: 'Gust',        unit: 'km/h',  kind: 'line', conv: v => v * 3.6 },
+  wind_dir_deg: { label: 'Direction',   unit: '°',     kind: 'dir'  },
+  rain_mm:      { label: 'Rain',        unit: 'mm',    kind: 'bars' },
+  pm25:         { label: 'PM2.5',       unit: 'µg/m³', kind: 'line', sparse: true },
+  pm10:         { label: 'PM10',        unit: 'µg/m³', kind: 'line', sparse: true },
+  batt_v:       { label: 'Battery',     unit: 'V',     kind: 'line' },
+  rssi_dbm:     { label: 'Signal',      unit: 'dBm',   kind: 'line' },
+};
+function metricMeta(m) {
+  return METRIC_META[m] || { label: String(m).replace(/_/g, ' '), unit: '', kind: 'line' };
+}
+/* "Wind km/h" — never the raw column name. The generic chart widget used to
+   label its series `wind avg ms` straight out of the database. */
+function metricLabel(m) {
+  const d = metricMeta(m);
+  return d.unit ? `${d.label} ${d.unit}` : d.label;
+}
+
+/* A reporting gap must read as a gap. The leaf's battery taper stretches its
+   cadence from 5 to 40 minutes and hibernate stops it altogether, so a line
+   drawn straight across a four-hour hole asserts data nobody collected
+   (§8 rule 6). Two different things look alike in the raw series and must not:
+     - nulls BETWEEN samples of a sparse metric (PM rides every Nth report) —
+       "not measured this cycle", so the line should simply join its real
+       samples;
+     - a genuine outage — which must break the line.
+   So: drop the sparse nulls, then insert one explicit null wherever the time
+   between real samples exceeds maxGapS. */
+/* The leaf's cadence is not a constant — the taper moves it between 5 and 40
+   minutes — so the "too long" threshold is derived from the data rather than
+   hard-coded: three times the median spacing, floored so a dense series does
+   not break on one slow report. */
+function medianGapS(ts) {
+  if (!ts || ts.length < 3) return Infinity;
+  const d = [];
+  for (let i = 1; i < ts.length; i++) d.push(ts[i] - ts[i - 1]);
+  d.sort((a, b) => a - b);
+  return d[Math.floor(d.length / 2)] || Infinity;
+}
+function gapThresholdS(ts) {
+  const m = medianGapS(ts);
+  return m === Infinity ? Infinity : Math.max(900, m * 3);
+}
+
+function breakGaps(ts, arrays, maxGapS, { dropNulls = false } = {}) {
+  const keep = [];
+  for (let i = 0; i < ts.length; i++) {
+    if (dropNulls && arrays.every(a => a[i] === null || a[i] === undefined)) continue;
+    keep.push(i);
+  }
+  const outTs = [], outs = arrays.map(() => []);
+  for (let j = 0; j < keep.length; j++) {
+    const i = keep[j];
+    outTs.push(ts[i]); arrays.forEach((a, k) => outs[k].push(a[i]));
+    const nx = keep[j + 1];
+    if (nx !== undefined && (ts[nx] - ts[i]) > maxGapS) {
+      outTs.push(ts[i] + Math.floor(maxGapS / 2));
+      outs.forEach(a => a.push(null));
+    }
+  }
+  return [outTs, ...outs];
+}
+
+/* Wind direction as arrows along the top of the wind chart, never as a line.
+   Direction is circular: 350° → 10° is a 20° shift that a linear axis renders
+   as a full-height vertical crash (§8 rule 4). Drawn in a uPlot `draw` hook so
+   the arrows stay aligned through zoom and resize for free, and pointing
+   downwind to match windArrow() in the stat cells. */
+function windDirArrows(ts, dirDeg, opts = {}) {
+  const everyPx = opts.every || 52;
+  return { hooks: { draw: u => {
+    const ctx = u.ctx, bb = u.bbox, dpr = window.devicePixelRatio || 1;
+    const y = bb.top + 10 * dpr, len = 6 * dpr;
+    ctx.save();
+    ctx.strokeStyle = opts.color || cssVar('--text-dim') || '#888';
+    ctx.lineWidth = 1.4 * dpr;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    let lastX = -Infinity;
+    for (let i = 0; i < ts.length; i++) {
+      const d = dirDeg[i];
+      if (d === null || d === undefined) continue;
+      const x = u.valToPos(ts[i], 'x', true);
+      if (x < bb.left || x > bb.left + bb.width) continue;
+      if (x - lastX < everyPx * dpr) continue;
+      lastX = x;
+      const a = ((Number(d) + 180) % 360) * Math.PI / 180;   /* flies downwind */
+      const dx = Math.sin(a) * len, dy = -Math.cos(a) * len;
+      const hx = x + dx, hy = y + dy;
+      ctx.beginPath();
+      ctx.moveTo(x - dx, y - dy); ctx.lineTo(hx, hy);
+      for (const s of [0.75, -0.75]) {
+        const b = a + Math.PI * s;
+        ctx.moveTo(hx, hy);
+        ctx.lineTo(hx + Math.sin(b) * len * 0.62, hy - Math.cos(b) * len * 0.62);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  } } };
+}
+
 /* dew point (Magnus formula) and estimated cloud base — the lifting
    condensation level: ~125 m of climb per °C of temp/dew-point spread.
    An estimate for cumulus bases, not gospel; RH near 100 % → base ~0 (fog). */

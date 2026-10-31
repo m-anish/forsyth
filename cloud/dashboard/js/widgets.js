@@ -75,7 +75,15 @@ const Widgets = (() => {
     const metrics = (config.metrics || 'temp_c').split(',').map(m => m.trim()).filter(Boolean);
     const hours = Number(config.hours || 24);
     const d = await getJSON(`/stations/${s.slug}/series?metrics=${metrics.join(',')}&hours=${hours}`);
-    const data = [d.ts, ...metrics.map(m => d.series[m])];
+    /* Convert to the unit the label promises, then let a reporting gap read as
+       a gap. A series that is sparse by design (PM) has its between-sample
+       nulls dropped first, so only real outages break it (docs/v2-design.md §8). */
+    const cols = metrics.map(m => {
+      const meta = metricMeta(m), arr = d.series[m] || [];
+      return meta.conv ? arr.map(v => (v === null || v === undefined) ? null : meta.conv(v)) : arr;
+    });
+    const data = breakGaps(d.ts, cols, gapThresholdS(d.ts),
+                           { dropNulls: metrics.every(m => metricMeta(m).sparse) });
     /* theme in the key: a light/dark switch rebuilds so the line colours (not
        just the live-read axis colours) come from the new palette */
     const key = `${s.slug}|${metrics.join(',')}|${hours}|${document.documentElement.dataset.theme}`;
@@ -93,7 +101,19 @@ const Widgets = (() => {
     el.innerHTML = '';
     const palette = [cssVar('--ch-temp'), cssVar('--ch-rh'), cssVar('--ch-pres'),
                      cssVar('--ch-gust'), cssVar('--ch-batt'), cssVar('--ch-pm10')];
-    const series = metrics.map((m, i) => ({ label: m.replace(/_/g, ' '), stroke: palette[i % palette.length], width: 1.5 }));
+    /* Labels used to come straight from the database — the legend read
+       `wind avg ms`. And every metric was a line, including rain, which is an
+       accumulation per interval and so belongs in bars (§8). */
+    const series = metrics.map((m, i) => {
+      const meta = metricMeta(m), col = palette[i % palette.length];
+      const sr = { label: metricLabel(m), stroke: col, width: 1.5 };
+      if (meta.kind === 'bars' && uPlot.paths.bars) {
+        sr.paths = uPlot.paths.bars({ size: [0.8, 100] });
+        sr.fill = col;
+      }
+      if (meta.sparse) sr.points = { show: true, size: 3 };
+      return sr;
+    });
     el._uplot = makeChart(el, series, data,
                           { height: Math.max(120, el.clientHeight - 40) });
     el._chartKey = key;

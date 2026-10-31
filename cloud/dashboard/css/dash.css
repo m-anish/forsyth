@@ -26,7 +26,7 @@
 
   --ch-axis: #63676e;  --ch-grid: #1c1f26;
   --ch-temp: #c47f7f;  --ch-rh:   #7fa2c4;  --ch-pres: #b8a06a;
-  --ch-wind: #7fa2c4;  --ch-gust: #c9a15a;
+  --ch-wind: #7fa2c4;  --ch-gust: #c9a15a;  --ch-gust-fill: rgba(201,161,90,0.20);
   --ch-rain: #7fa2c4;  --ch-rain-fill: rgba(127,162,196,0.25);
   --ch-pm25: #c9a15a;  --ch-pm10: #8a6a4a;  --ch-batt: #7fb98a;
 }
@@ -50,7 +50,7 @@
 
   --ch-axis: #80858c;  --ch-grid: #e3e1d8;
   --ch-temp: #b05555;  --ch-rh:   #3f6c96;  --ch-pres: #8a6f38;
-  --ch-wind: #3f6c96;  --ch-gust: #96702c;
+  --ch-wind: #3f6c96;  --ch-gust: #96702c;  --ch-gust-fill: rgba(150,112,44,0.16);
   --ch-rain: #3f6c96;  --ch-rain-fill: rgba(63,108,150,0.18);
   --ch-pm25: #96702c;  --ch-pm10: #6b4f33;  --ch-batt: #3e7d4f;
 }

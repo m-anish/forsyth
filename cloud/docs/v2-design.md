@@ -417,10 +417,15 @@ should not exist; `@here` should fall back to nearest, then to the only station.
 
 ## 8. Chart types — what each quantity actually is
 
-The generic `chart` widget draws **every** metric as an unmarked line. That is
-right for some of them and wrong for others, and `renderForecast` already knows
-better: it draws forecast rain as **bars** and ensemble spread as a **band**.
-Those patterns exist in the codebase and simply are not applied to history.
+The generic `chart` widget draws **every** metric as an unmarked line, labelled
+with the raw database column. That is right for some metrics and wrong for
+others — and the codebase already knew better in two places: `renderForecast`
+draws forecast rain as **bars** under an ensemble **band**, and the station
+page's rain chart was bars from the start. The patterns existed; they were just
+not applied consistently.
+
+*Corrected 2026-10-31: an earlier draft of this section said the station page
+drew rain as a line. It did not — only the generic widget did.*
 
 The question to ask of each metric is not "does a line look nice" but **what
 kind of quantity is this** — and the answer dictates the encoding.
@@ -461,7 +466,7 @@ kind of quantity is this** — and the answer dictates the encoding.
 | pressure | line | **line, tightly auto-ranged** | the signal is ±2 hPa on an 838 base; the *trend* is the story, so annotate the 3 h delta |
 | wind avg + gust | two lines | **band between avg and gust, line on avg** | the gap between sustained and gust *is* the information; two spiky lines read as noise |
 | **wind direction** | line | **arrow glyphs along the time axis** | **a line here is actively wrong**: 350°→10° is a 20° shift that draws as a full-height vertical crash. Circular data cannot go on a linear axis |
-| **rain** | line | **bars, hourly buckets** + cumulative line | interval quantity; a line interpolates rain that did not fall. The forecast already does this correctly |
+| **rain** | bars on the station page, line in the widget | **bars everywhere** | interval quantity; a line interpolates rain that did not fall |
 | PM2.5 / PM10 | line | **line + visible points, AQI bands behind** | sparse sampling; the category thresholds are the context that makes the number mean anything |
 | battery | line | **line, tight range, taper thresholds as reference lines** | LiFePO4's plateau is flat; the thresholds are what make it readable |
 | **lightning** | feed only | **bar histogram of strikes per bucket** + **scatter of distance vs time** | discrete events — a line between strikes implies continuity that does not exist |

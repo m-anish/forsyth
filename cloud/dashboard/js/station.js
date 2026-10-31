@@ -114,11 +114,18 @@ function ts2data(d, keys) {
   return [d.ts, ...keys.map(k => d.series[k])];
 }
 
+/* ts2data, but a reporting outage breaks the line rather than being drawn
+   across. The taper moves the leaf between 5- and 40-minute reporting, so the
+   threshold is derived from the data (docs/v2-design.md §8 rule 6). */
+function gapped(d, keys, opts) {
+  return breakGaps(d.ts, keys.map(k => d.series[k] || []), gapThresholdS(d.ts), opts);
+}
+
 async function drawCharts() {
   const h = S.hours;
   const [tempD, windD, presD, rainD, pmD, battD] = await Promise.all([
     getJSON(`/stations/${slug}/series?metrics=temp_c,rh&hours=${h}`),
-    getJSON(`/stations/${slug}/series?metrics=wind_avg_ms,wind_gust_ms&hours=${h}`),
+    getJSON(`/stations/${slug}/series?metrics=wind_avg_ms,wind_gust_ms,wind_dir_deg&hours=${h}`),
     getJSON(`/stations/${slug}/series?metrics=pressure_pa&hours=${h}`),
     getJSON(`/stations/${slug}/series?metrics=rain_mm&hours=${h}`),
     getJSON(`/stations/${slug}/series?metrics=pm25,pm10&hours=${h}`),
@@ -131,38 +138,56 @@ async function drawCharts() {
   S.charts.temp = makeChart(document.getElementById('chart-temp'), [
     { label: '°C', stroke: COL.temp, width: 1.5 },
     { label: '%RH', stroke: COL.rh, width: 1, scale: 'rh' },
-  ], ts2data(tempD, ['temp_c', 'rh']), {
+  ], gapped(tempD, ['temp_c', 'rh']), {
     height: 230,
     uplot: { scales: { rh: { range: [0, 100] } },
              axes: [uplotAxis(), uplotAxis({ size: 46 }),
                     uplotAxis({ size: 46, scale: 'rh', side: 1, grid: { show: false } })] },
   });
 
+  /* km/h, not m/s — nobody thinks in m/s (§7 units table). */
+  const windKmh = ['wind_avg_ms', 'wind_gust_ms'].map(k =>
+    (windD.series[k] || []).map(v => (v === null || v === undefined) ? null : v * 3.6));
   S.charts.wind = makeChart(document.getElementById('chart-wind'), [
-    { label: 'avg m/s', stroke: COL.wind, width: 1.5 },
-    { label: 'gust m/s', stroke: COL.gust, width: 1, dash: [4, 4] },
-  ], ts2data(windD, ['wind_avg_ms', 'wind_gust_ms']));
+    { label: 'Wind km/h', stroke: COL.wind, width: 1.5 },
+    { label: 'Gust km/h', stroke: COL.gust, width: 1 },
+  ], breakGaps(windD.ts, windKmh, gapThresholdS(windD.ts)), {
+    uplot: {
+      /* The gap between sustained and gust IS the information. Filling it
+         says "this is the range the wind moved in"; two spiky lines just read
+         as noise (§8). Direction rides on top as arrows — a circular quantity
+         cannot go on a linear axis without 350°→10° looking like a crash. */
+      bands: [{ series: [2, 1], fill: cssVar('--ch-gust-fill') }],
+      plugins: [windDirArrows(windD.ts, windD.series.wind_dir_deg || [])],
+    },
+  });
 
   S.charts.pres = makeChart(document.getElementById('chart-pres'), [
     { label: 'hPa', stroke: COL.pres, width: 1.5 },
-  ], [presD.ts, presD.series.pressure_pa.map(v => v === null ? null : v / 100)]);
+  ], breakGaps(presD.ts,
+               [presD.series.pressure_pa.map(v => v === null ? null : v / 100)],
+               gapThresholdS(presD.ts)));
 
+  /* Already bars, and right to be: rain is accumulation since the previous
+     report, so there is no meaningful value between samples (§8 rule 2). */
   S.charts.rain = makeChart(document.getElementById('chart-rain'), [
-    { label: 'mm', stroke: COL.rain, fill: COL.rainFill,
+    { label: 'Rain mm', stroke: COL.rain, fill: COL.rainFill,
       paths: uPlot.paths.bars ? uPlot.paths.bars({ size: [0.8, 100] }) : undefined },
-  ], ts2data(rainD, ['rain_mm']));
+  ], gapped(rainD, ['rain_mm']));
 
-  /* PM is sparse (rides only every Nth reading), so spanGaps connects across
-     the null gaps into a continuous line — no point markers (line-only, like
-     the other charts; makeChart defaults points off). */
+  /* PM rides only every Nth reading. spanGaps used to connect across every
+     null, which also papered over genuine outages — the line looked identical
+     whether the sensor skipped a cycle or the station was down for four hours.
+     Dropping the between-sample nulls and then breaking on real gaps separates
+     the two, and the points show how sparse the sampling actually is (§8). */
   S.charts.pm = makeChart(document.getElementById('chart-pm'), [
-    { label: 'PM2.5', stroke: COL.pm25, width: 1.5, spanGaps: true },
-    { label: 'PM10', stroke: COL.pm10, width: 1, spanGaps: true },
-  ], ts2data(pmD, ['pm25', 'pm10']));
+    { label: 'PM2.5 µg/m³', stroke: COL.pm25, width: 1.5, points: { show: true, size: 3 } },
+    { label: 'PM10 µg/m³', stroke: COL.pm10, width: 1, points: { show: true, size: 3 } },
+  ], gapped(pmD, ['pm25', 'pm10'], { dropNulls: true }));
 
   S.charts.batt = makeChart(document.getElementById('chart-batt'), [
-    { label: 'V', stroke: COL.batt, width: 1.5 },
-  ], ts2data(battD, ['batt_v']), { height: 120 });
+    { label: 'Battery V', stroke: COL.batt, width: 1.5 },
+  ], gapped(battD, ['batt_v']), { height: 120 });
 }
 
 /* ---------- forecast panel ---------- */
