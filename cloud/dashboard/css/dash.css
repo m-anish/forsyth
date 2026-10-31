@@ -330,8 +330,14 @@ h1.headline {
 
 /* wind rose as a shared widget body: a square box so the rose scales up to
    the full width of its card (the panel title already names station + window) */
-.wg-rose { display: flex; align-items: center; justify-content: center;
-  width: 100%; aspect-ratio: 1 / 1; max-height: 420px; }
+/* a column, not a row: the rose used to emit only an SVG, so a flex row was
+   harmless. It now emits the dial, the "mostly from the NW" line and the speed
+   legend, which belong under it rather than beside it. The aspect-ratio has to
+   go with the row — a square box cannot hold a dial plus two lines of text. */
+.wg-rose { display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 2px;
+  width: 100%; min-height: 230px; max-height: 460px; }
+.wg-rose .rose { flex: 1 1 auto; min-height: 0; }
 
 /* lightning feed */
 .feed { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
