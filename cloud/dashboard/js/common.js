@@ -928,6 +928,31 @@ async function renderForecast(el, slug, opts = {}) {
     refit();
     document.fonts?.ready?.then(refit);
   }
+
+  /* The strip and the chart are two views of the same window, so moving one
+     moves the other. Without this the bubbles slide and the graph beneath them
+     sits still, which reads as two unrelated things that happen to be stacked.
+     The chart PANS rather than scrolls — its axes stay put and only the data
+     moves, so the y-scale and the time labels remain readable.
+
+     Throttled to one frame: setScale redraws, and redrawing on every scroll
+     event stalls momentum scrolling on a phone. */
+  if (u && strip) {
+    const t0 = d.ts[0], t1 = d.ts[d.ts.length - 1], span = t1 - t0;
+    const syncFromStrip = () => {
+      const over = strip.scrollWidth - strip.clientWidth;
+      if (over <= 4 || !span) { u.setScale('x', { min: t0, max: t1 }); return; }
+      const frac = strip.clientWidth / strip.scrollWidth;
+      const start = strip.scrollLeft / strip.scrollWidth;
+      u.setScale('x', { min: t0 + span * start, max: t0 + span * (start + frac) });
+    };
+    let raf = 0;
+    strip.addEventListener('scroll', () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => { raf = 0; syncFromStrip(); });
+    }, { passive: true });
+    syncFromStrip();
+  }
   el._fcPlot = u;
   return u;
 }

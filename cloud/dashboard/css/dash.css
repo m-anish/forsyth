@@ -168,7 +168,12 @@ h1.headline {
 
 /* forecast strip: horizontal scroll with a "more →" fade that lifts at the
    end, snap per card, thin scrollbar (narrow screens live here) */
-.fc-strip { scroll-snap-type: x proximity; scrollbar-width: thin; }
+/* overscroll containment: once the strip hits its right end, further
+   horizontal swipes used to chain out to the page, after which the gesture
+   belonged to the browser and the strip stopped responding — it read as the
+   scroll locking at the end. `contain` keeps the gesture in the strip. */
+.fc-strip { scroll-snap-type: x proximity; scrollbar-width: thin;
+  overscroll-behavior-x: contain; }
 .fc-seg { scroll-snap-align: start; }
 .fc-strip::-webkit-scrollbar { height: 5px; }
 .fc-strip::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
