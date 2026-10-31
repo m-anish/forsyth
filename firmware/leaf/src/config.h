@@ -67,36 +67,80 @@
  * the leaf ships raw cumulative tips. See PROTOCOL.md reading bit6.          */
 
 /* ================= wind vane LUT ======================================== */
-/* Ratiometric ladder (excitation = VDD = ADC ref, so battery voltage
- * cancels). 12-bit ADC centers computed from the Board D candidate resistor
- * set — board-d-wind.md says in bold: DO NOT TRUST THIS TABLE, measure every
- * sector on the bench and paste the measured centers here. [B]
- * Classification: nearest center wins if within ±VANE_WINDOW counts.
- * The NW+N wrap pair collides with N (the documented ladder wart) — its entry
- * ships disabled; enable it only if you re-ordered the ladder on the bench.  */
+/* Argent/SparkFun-style 16-position vane (the 80422 family): ONE reed-switched
+ * resistor to ground per position, 688 R … 120 k, all 16 distinguishable — it
+ * is not Board D's ladder and has none of its wrap-around wart. Wiring is the
+ * part datasheet's own example circuit, mapped onto Board A's J3:
+ *
+ *   J3.1 VBAT ── vane ──┬── J3.3 VANE_ADC ── R17 1 k ── PA6
+ *                       ├── R_DIV 7.5 k 1 % ── GND   (fit at the connector)
+ *                       └── C 100 nF + SMAJ5.0A (already on Board A)
+ *
+ * Ratiometric: the excitation is VBAT and the ADC reference is VDD = VBAT, so
+ * the cell voltage cancels exactly and the code is a pure resistance ratio.
+ * R17 carries no DC drop (PA6 is nA-class), so it does not enter the maths.
+ *
+ * Why 7.5 k [B]: the divider cannot be linear across a 175:1 resistance span,
+ * so the value is chosen to maximise the SMALLEST gap between adjacent codes.
+ * The binding pair is always E (1.00 k) / ENE (891 R) — 11 % apart in
+ * resistance and sitting high on the curve where it is most compressed:
+ *
+ *     R_DIV   min gap   clearance*   I worst   I avg (16 pos)
+ *      3.5 k  79 counts  —           827 µA    ~375 µA   best resolution
+ *      4.7 k  66 counts  25 counts   612 µA     303 µA
+ *      6.8 k  51 counts  18 counts   441 µA     238 µA
+ *      7.5 k  47 counts  16 counts   403 µA     223 µA   <- fitted
+ *     10   k  37 counts  12 counts   309 µA     182 µA
+ *     *after 2 % vane + 1 % divider tolerance and ADC noise
+ *
+ * 16 counts of clearance is already ~3x the stack that has to fit inside it,
+ * and the divider is excited permanently (see the README's "known hardware
+ * quirk" — nothing gates it), so resolution past that is bought with current
+ * we never stop paying. 4.7 k would spend +36 % average current for 19 counts
+ * nobody reads. At 7.5 k the 16-position average is ~223 µA, a quarter under
+ * the old Board D ladder's ~300 µA: better on both axes at once.
+ *
+ * The centers below are COMPUTED from the datasheet resistances, not measured,
+ * so they inherit the vane's own tolerance. They are good enough to deploy on
+ * — unlike Board D's table, this is a specified commercial part — but the
+ * bench pass still wins: rotate through all 16 positions, read `vane_adc`
+ * (verbose readings carry it), and replace any VANE_CODE() with the measured
+ * number. Mixed is fine; the macro is only a default.                        */
 #define VANE_LUT_SIZE 16
-#define VANE_WINDOW   60             /* [B] ± ADC counts; half the smallest
-                                        measured gap, minus margin            */
-#define VANE_DEG_DISABLED 0xFFFF
+#define VANE_DIV_R_OHMS 7500UL       /* [C] the pulldown you actually fitted —
+                                        change it and the whole table follows */
+#define VANE_CODE(rv) ((uint16_t)((4095UL * VANE_DIV_R_OHMS) \
+                                  / (VANE_DIV_R_OHMS + (rv))))
+#define VANE_WINDOW   23             /* [B] ± ADC counts. Half the smallest gap
+                                        (E/ENE, 47 counts); every other gap is
+                                        ≥90, so this one pair sets the knob.
+                                        Re-cut it if you paste measured centers
+                                        or change VANE_DIV_R_OHMS.            */
+#define VANE_DEG_DISABLED 0xFFFF     /* no position needs it on this vane      */
 typedef struct { uint16_t adc; uint16_t deg_x10; } vane_entry_t;
+/* Sorted by code (cosmetic — vane_lookup is a linear nearest-center scan).   */
 #define VANE_LUT_DEFAULT { \
-    {  262, 225  },  /* N+NE  22.5° */ \
-    {  369, VANE_DEG_DISABLED }, /* NW+N 337.5° — collides with N, disabled */ \
-    {  373, 0    },  /* N      0.0° */ \
-    {  504, 675  },  /* NE+E  67.5° */ \
-    {  737, 450  },  /* NE    45.0° */ \
-    {  815, 1125 },  /* E+SE 112.5° */ \
-    { 1151, 900  },  /* E     90.0° */ \
-    { 1241, 1575 },  /* SE+S 157.5° */ \
-    { 1659, 1350 },  /* SE   135.0° */ \
-    { 1790, 2025 },  /* S+SW 202.5° */ \
-    { 2232, 1800 },  /* S    180.0° */ \
-    { 2457, 2475 },  /* SW+W 247.5° */ \
-    { 2818, 2250 },  /* SW   225.0° */ \
-    { 3161, 2925 },  /* W+NW 292.5° */ \
-    { 3378, 2700 },  /* W    270.0° */ \
-    { 3781, 3150 },  /* NW   315.0° */ \
+    { VANE_CODE(120000), 2700 },  /* W   270.0°  code  240 */ \
+    { VANE_CODE( 64900), 3150 },  /* NW  315.0°  code  424 */ \
+    { VANE_CODE( 42120), 2925 },  /* WNW 292.5°  code  618 */ \
+    { VANE_CODE( 33000),    0 },  /* N     0.0°  code  758 */ \
+    { VANE_CODE( 21880), 3375 },  /* NNW 337.5°  code 1045 */ \
+    { VANE_CODE( 16000), 2250 },  /* SW  225.0°  code 1306 */ \
+    { VANE_CODE( 14120), 2475 },  /* WSW 247.5°  code 1420 */ \
+    { VANE_CODE(  8200),  450 },  /* NE   45.0°  code 1956 */ \
+    { VANE_CODE(  6570),  225 },  /* NNE  22.5°  code 2182 */ \
+    { VANE_CODE(  3900), 1800 },  /* S   180.0°  code 2694 */ \
+    { VANE_CODE(  3140), 2025 },  /* SSW 202.5°  code 2886 */ \
+    { VANE_CODE(  2200), 1350 },  /* SE  135.0°  code 3166 */ \
+    { VANE_CODE(  1410), 1575 },  /* SSE 157.5°  code 3446 */ \
+    { VANE_CODE(  1000),  900 },  /* E    90.0°  code 3613 */ \
+    { VANE_CODE(   891),  675 },  /* ENE  67.5°  code 3660 */ \
+    { VANE_CODE(   688), 1125 },  /* ESE 112.5°  code 3750 */ \
 }
+/* Fault signatures the ±window catches for free: an open cable or a vane
+ * between reeds reads ~0 (R_DIV alone pulls the node down), a shorted one
+ * reads 4095 — both are hundreds of counts from any center, so they raise
+ * FLP_F_VANE_FAULT instead of silently reporting W or ESE.                   */
 #define VANE_ADC_SAMPLES 8           /* [C] median-of-N per read              */
 
 /* ================= temperature / humidity =============================== */

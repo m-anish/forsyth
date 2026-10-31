@@ -49,6 +49,44 @@ question obsolete. Firmware uses a calibrated LUT with ±half-gap windows either
 - C1 100 nF at the cable exit + the 1 k series resistor lives on **Board A's**
   protection row (so the cable, not the mast board, is what it protects).
 
+## 1a. Alternative — commercial 16-position vane (in service 2026-10-31)
+
+Board D's ladder is a build-it-yourself answer. The unit actually on the mast is an
+Argent/SparkFun-style vane (80422 family), which solves the §1 wart outright: it is
+**one reed-switched resistor per position**, not a ladder of parallel pairs, so all
+16 positions are distinct and nothing wraps around.
+
+| Deg | R | Deg | R | Deg | R | Deg | R |
+|---|---|---|---|---|---|---|---|
+| 0 | 33 k | 90 | 1.0 k | 180 | 3.9 k | 270 | 120 k |
+| 22.5 | 6.57 k | 112.5 | 688 | 202.5 | 3.14 k | 292.5 | 42.12 k |
+| 45 | 8.2 k | 135 | 2.2 k | 225 | 16 k | 315 | 64.9 k |
+| 67.5 | 891 | 157.5 | 1.41 k | 247.5 | 14.12 k | 337.5 | 21.88 k |
+
+It replaces §1 entirely — **no R_top, no R1–R8, no reed ring**. Board D reduces to the
+cable junction and the anemometer RC (§2), and one resistor:
+
+```
+J1.1 (VBAT excitation) ── vane ──┬── J1.3 (VANE_ADC, to Board A)
+                                 ├── R_DIV 7.5 k 1 % ── GND
+                                 └── C1 100 nF ── GND   (at the cable exit)
+```
+
+Still ratiometric, so the cell voltage cancels as before. **7.5 k** is chosen to
+maximise the smallest gap between adjacent ADC codes, not to centre the range: the
+688 R…120 k span is 175:1 and no divider linearises it. The binding pair is
+E (1.0 k) / ENE (891 R) at 47 counts of 4095, which still leaves ~16 counts of
+clearance after the 2 % vane + 1 % divider + ADC-noise stack — about three times
+what has to fit inside it. Lower values resolve better and cost current the
+permanently-excited divider never stops paying: 3.5 k buys 79 counts for 827 µA
+worst-case, 4.7 k buys 66 counts for +36 % average current over 7.5 k. At 7.5 k the
+draw is 403 µA worst and ~223 µA averaged over the 16 positions, a quarter under the
+old ladder's ~300 µA. Firmware derives the whole table from this one number
+(`VANE_DIV_R_OHMS`, `firmware/leaf/src/config.h`); 6.8 k and 4.7 k are drop-in if
+that is what the drawer holds.
+
+Bench pass §5 items 1–2 still apply; item 3 (the NW+N decision) is moot here.
+
 ## 2. Wind speed — anemometer reed
 
 Reed in series to GND, pulled up by Board A (internal pull-up on `ANEMO`), RC

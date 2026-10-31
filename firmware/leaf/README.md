@@ -42,13 +42,18 @@ Hardware context you must not violate (from `hardware/boards/board-a-core.md`):
   bucket, average = whole interval. Calibrate by drill-spinning the cups at a
   known RPM, or side-by-side with a handheld anemometer, then update the knob —
   it's also OTA-settable (TLV 0x06) so a deployed mast doesn't need a ladder trip.
-- **Wind direction**: `VANE_LUT_DEFAULT` in config.h. The compiled table is
-  computed from Board D's *candidate* resistor set and the board doc explicitly
-  says not to trust it: at bring-up, rotate the vane through all 16 positions,
-  read the raw ADC (the leaf transmits `vane_adc` while `VERBOSE_DEFAULT=1` —
-  you can calibrate from the dashboard without touching the mast), and paste the
-  measured centers in. The NW+N wrap-around entry ships disabled (the documented
-  ladder wart); resolve per board-d-wind.md §1 options a/b/c.
+- **Wind direction**: `VANE_DIV_R_OHMS` + `VANE_LUT_DEFAULT` in config.h. The vane
+  in service is an Argent/SparkFun-style 16-position unit (688 R…120 k, one
+  reed-switched resistor per position) wired as the part datasheet's own
+  example circuit: vane from `J3.1` VBAT to `J3.3` VANE_ADC, and a **7.5 k 1 %
+  pulldown from VANE_ADC to GND**, fitted at the connector. The LUT centers are
+  *computed* from the datasheet resistances by the `VANE_CODE()` macro, so
+  changing the pulldown re-derives the whole table from one number. Unlike
+  Board D's ladder this part is specified, all 16 positions are distinct and
+  nothing ships disabled — but the bench pass still wins: rotate through the 16
+  positions, read `vane_adc` (verbose readings carry it, so you can calibrate
+  from the dashboard without a ladder trip) and paste measured centers over any
+  `VANE_CODE()`. `VANE_WINDOW` is set by the single tight pair, E/ENE.
 - **Lightning sensitivity**: `AS3935_*` knobs — noise floor, watchdog, spike
   rejection, min strikes, indoor/outdoor gain, disturber masking. All six are in
   one OTA TLV (0x03), because tuning an AS3935 is *always* an iterative field
@@ -111,10 +116,13 @@ board powered from its own battery (or bench 3V3) during flashing
 
 Sanity first: `pymcuprog ping -t uart -u <port> -d attiny3226` should return
 the device ID. Then check the oscillator fuse once per chip —
-`pymcuprog read -t uart -u <port> -d attiny3226 -m fuses`; **OSCCFG (fuse 2)
-must be 0x02 (20 MHz)**, which is the factory default. If a part ever reads
-0x01 (16 MHz), either write the fuse or rebuild with `F_CPU=4000000UL` —
-otherwise every UART baud rate is 20 % off and nothing will speak.
+`pymcuprog read -t uart -u <port> -d attiny3226 -m fuses`. Only **FREQSEL,
+bits [1:0] of OSCCFG (fuse 2), which must read 0b10 (20 MHz)** — the factory
+default. The rest of the byte is reserved and reads back as ones, so a healthy
+part prints `0x7E`, *not* `0x02`; mask before you judge it (`0x7E & 0x03 ==
+0x02` ✓, verified on hardware 2026-10-31). If FREQSEL ever reads 0b01
+(16 MHz), either write the fuse or rebuild with `F_CPU=4000000UL` — otherwise
+every UART baud rate is 20 % off and nothing will speak.
 
 Reflash caveat: `--erase` clears **EEPROM too** — OTA-applied config reverts
 to the compiled defaults and the leaf re-burns its radio NVRAM on the next
@@ -132,8 +140,10 @@ boot (by design, self-healing; just re-send any OTA tweaks).
    a scope/counter on the IRQ pin with `DISP_LCO` (see as3935.c register notes)
    — target 500 kHz ± 3.5 % (divided by LCO_FDIV, default ÷16 → 31.25 kHz).
    Then the piezo-lighter click test from a few metres.
-5. Vane LUT: rotate through 16 positions, record `vane_adc` per position,
-   update `VANE_LUT_DEFAULT` and `VANE_WINDOW`.
+5. Vane LUT: confirm the 7.5 k pulldown is fitted at J3, then rotate through
+   the 16 positions and record `vane_adc` per position. The computed table
+   should land within ~20 counts; paste measured centers over `VANE_CODE()`
+   where it does not, and re-cut `VANE_WINDOW` from the smallest gap you see.
 6. Anemometer: drill-spin, verify pulse counting (wind_avg in readings), set
    `ANEMO_MS_PER_HZ_X1000`. If edges look lazy at high RPM on the scope, fit
    the DNP 10 k pull-up pad on Board A (board doc §6 item 5).
@@ -145,8 +155,14 @@ boot (by design, self-healing; just re-send any OTA tweaks).
 
 ## Known hardware quirk the firmware can't fix
 
-The vane ladder is excited from VBAT permanently (no GPIO gates it). With the
-N reed closed that's ~300 µA continuous through 11 k — several times the rest
-of the sleep floor. Solar makes it irrelevant in practice, but it's the first
-thing to reclaim in a REV1 (gate the excitation from a spare pin and sample
-before reading). Noted 2026-07-13 during firmware bring-up planning.
+The vane divider is excited from VBAT permanently (no GPIO gates it). Standing
+current depends on where the vane is pointing — from 26 µA at W (120 k) to
+403 µA at ESE (688 R), averaging ~223 µA over the 16 positions — against a
+sleep floor of roughly 80–100 µA, most of it the AS3935 that is never
+duty-cycled. `VANE_DIV_R_OHMS` is the only lever the firmware has on it, and
+7.5 k already spends a quarter less than the old Board D ladder did (~300 µA)
+while keeping three times the tolerance stack between adjacent codes. Solar makes it
+irrelevant in practice, but it is still the first thing to reclaim in a REV1:
+gate the excitation from a spare pin and settle before sampling. Noted
+2026-07-13 during firmware bring-up planning; re-measured against the
+commercial vane 2026-10-31.
