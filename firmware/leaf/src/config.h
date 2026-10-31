@@ -52,7 +52,7 @@
                                         gust is a 3 s mean; 10 s is the power-
                                         friendly compromise. Continuous
                                         back-to-back buckets, no dead time.   */
-#define ANEMO_MS_PER_HZ_X1000 667    /* [E 0x06][B] m/s per pulse-Hz ×1000.
+#define ANEMO_MS_PER_HZ_X1000 667    /* [E 0x06] m/s per pulse-Hz ×1000.
                                         SparkFun SEN-15901 / Fine Offset cup
                                         set: the datasheet's English text says
                                         "a wind speed of 2.4 km/h causes the
@@ -63,17 +63,21 @@
                                         WAS 2400, a Davis-style cup default,
                                         which over-reported this meter by 3.6x
                                         (it read the 2.4 as m/s, not km/h).
-                                        NOTE the same datasheet's Chinese text
-                                        says 0.33 m/s per closure — exactly
-                                        half — which is what you would see if
-                                        the rotor closed the reed TWICE per
-                                        turn. The English/SparkFun figure is
-                                        the one in use. If a drill-spin or a
-                                        side-by-side check reads exactly 2x
-                                        high, that is this ambiguity and the
-                                        answer is 333, not a slow re-fit.
-                                        OTA-settable (TLV 0x06), so settling it
-                                        costs no ladder trip.                 */
+                                        SETTLED, don't re-litigate: the same
+                                        datasheet's Chinese text says 0.33 m/s
+                                        per closure, exactly half, which would
+                                        be right only if the rotor closed the
+                                        reed twice per turn. Anish confirmed
+                                        the rotor closes it ONCE per
+                                        revolution (2026-10-31), so that line
+                                        is simply wrong for this unit and 667
+                                        is the calibrated value, not a guess.
+                                        What is still open is the CUP
+                                        aerodynamics, which only a side-by-side
+                                        against a reference anemometer in
+                                        steady wind can check [B]. TLV 0x06
+                                        makes that a message, not a ladder
+                                        trip.                                 */
 #define ANEMO_MIN_EDGE_MS   4        /* [C] ISR-level noise gate; the board RC
                                         (τ≈7 ms vs internal pull-up) already
                                         rounds edges — see board-a §6 item 5  */

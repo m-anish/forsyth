@@ -37,16 +37,18 @@ Hardware context you must not violate (from `hardware/boards/board-a-core.md`):
 
 ## Sensor tuning — where each number lives
 
-- **Wind speed**: `ANEMO_MS_PER_HZ_X1000`, now **667** for the SparkFun
-  SEN-15901 cup set — its datasheet closes the reed once per second at
-  2.4 km/h, i.e. 0.6667 m/s per Hz. It was 2400 (a Davis-style default that
-  read that 2.4 as m/s), which over-reported this meter by **3.6x**. Pulses are
-  counted in the PA4 ISR (falling edges, noise-gated), bucketed per
-  `WIND_GATE_S` seconds; gust = max bucket, average = whole interval. The
-  datasheet contradicts itself — its Chinese text says 0.33 m/s per closure,
-  exactly half, which is what a rotor closing the reed twice per turn would
-  give. If a drill-spin or a side-by-side check reads exactly 2x high, set 333.
-  It's OTA-settable (TLV 0x06), so settling it needs no ladder trip.
+- **Wind speed**: `ANEMO_MS_PER_HZ_X1000`, **667** for the SparkFun SEN-15901
+  cup set — its datasheet closes the reed once per second at 2.4 km/h, i.e.
+  0.6667 m/s per Hz. It was 2400 (a Davis-style default that read that 2.4 as
+  m/s), which over-reported this meter by **3.6x**. Pulses are counted in the
+  PA4 ISR (falling edges, noise-gated), bucketed per `WIND_GATE_S` seconds;
+  gust = max bucket, average = whole interval. The datasheet's Chinese text
+  contradicts its English, claiming 0.33 m/s per closure — exactly half, which
+  would hold only for a rotor closing the reed twice per turn. **This rotor
+  closes once per revolution (confirmed 2026-10-31), so 667 is calibrated, not
+  assumed.** What remains unverified is cup aerodynamics, which needs a
+  side-by-side against a reference anemometer in steady wind; `667` is the
+  manufacturer's figure for an undamaged rotor. OTA-settable (TLV 0x06).
 - **Wind direction**: `VANE_LUT_DEFAULT` in config.h, **bench-measured
   2026-10-31** and no longer computed. The vane is a SparkFun SEN-15901 /
   Fine Offset 16-position unit wired as its datasheet's example circuit: vane
