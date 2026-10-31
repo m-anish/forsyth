@@ -412,3 +412,67 @@ Slugs, volts and dBm. Nothing here is for a visitor (§3.2).
 Once location resolves automatically (§3.3), the wrapper's job shrinks to a
 location *switcher* in the header. The `— pick a location —` default option
 should not exist; `@here` should fall back to nearest, then to the only station.
+
+---
+
+## 8. Chart types — what each quantity actually is
+
+The generic `chart` widget draws **every** metric as an unmarked line. That is
+right for some of them and wrong for others, and `renderForecast` already knows
+better: it draws forecast rain as **bars** and ensemble spread as a **band**.
+Those patterns exist in the codebase and simply are not applied to history.
+
+The question to ask of each metric is not "does a line look nice" but **what
+kind of quantity is this** — and the answer dictates the encoding.
+
+### 8.1 The rules
+
+1. **Instantaneous quantities get lines.** Temperature, humidity, pressure,
+   wind speed, PM — each sample is a reading of a thing that existed at that
+   instant, and the value between samples genuinely varied continuously.
+2. **Interval quantities get bars.** Rain is *accumulation since the previous
+   report* (`schema.sql` says so). Lightning counts are per-bucket. These have
+   no meaningful value "between" samples — a line through them draws a quantity
+   that never existed.
+3. **Never smooth a measurement.** Spline interpolation manufactures peaks and
+   troughs that were never recorded — on a gust series it will invent a maximum
+   higher than the highest gust. Straight segments, or steps for interval data.
+   (uPlot's linear default is already correct; the rule is "don't 'improve' it".)
+4. **Circular quantities never get a linear axis.** See 8.2.
+5. **Zero-base only what lives near zero.** Rain and wind speed: yes. Pressure
+   (838 ± 2 hPa), battery (3.2–3.4 V) and °C: absolutely not — a zero-based
+   axis flattens the entire signal into a straight line.
+6. **A gap must look like a gap.** This matters more here than on most sites:
+   the battery taper (§ firmware) legitimately stretches reporting from 5 to 40
+   minutes, and hibernate stops it entirely. A line drawn straight across a
+   four-hour hole asserts data that was never collected. Break the series on
+   gaps beyond ~2 expected intervals.
+7. **Show sample density when cadence varies.** `makeChart` sets
+   `points:{show:false}` globally. For PM — sampled every 6th report, and far
+   less often under taper — the dots *are* information. Show points where
+   samples are sparse.
+
+### 8.2 Per-metric
+
+| metric | today | should be | why |
+|---|---|---|---|
+| temperature | line | **line** ✓ | continuous; add day/night shading and a "now" marker |
+| humidity | line | **line** ✓ | as above |
+| pressure | line | **line, tightly auto-ranged** | the signal is ±2 hPa on an 838 base; the *trend* is the story, so annotate the 3 h delta |
+| wind avg + gust | two lines | **band between avg and gust, line on avg** | the gap between sustained and gust *is* the information; two spiky lines read as noise |
+| **wind direction** | line | **arrow glyphs along the time axis** | **a line here is actively wrong**: 350°→10° is a 20° shift that draws as a full-height vertical crash. Circular data cannot go on a linear axis |
+| **rain** | line | **bars, hourly buckets** + cumulative line | interval quantity; a line interpolates rain that did not fall. The forecast already does this correctly |
+| PM2.5 / PM10 | line | **line + visible points, AQI bands behind** | sparse sampling; the category thresholds are the context that makes the number mean anything |
+| battery | line | **line, tight range, taper thresholds as reference lines** | LiFePO4's plateau is flat; the thresholds are what make it readable |
+| **lightning** | feed only | **bar histogram of strikes per bucket** + **scatter of distance vs time** | discrete events — a line between strikes implies continuity that does not exist |
+| forecast temp | line | **line + ensemble spread band** ✓ | already right; keep |
+| forecast precip | bars ✓ | **bars** ✓ | already right; probability as bar opacity or a second light series |
+
+### 8.3 Two additions worth the pixels
+
+- **A 24 h sparkline under the hero temperature.** One line, no axes, no
+  legend. It answers "is this normal for today?" in a glance and costs almost
+  nothing.
+- **Day/night shading behind every time-series chart.** It converts a chart
+  into something readable without consulting the axis, and the diurnal cycle is
+  the dominant pattern in nearly all of these metrics.
