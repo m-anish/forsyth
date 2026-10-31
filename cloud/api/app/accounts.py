@@ -65,15 +65,17 @@ DEFAULT_LAYOUT = {
     # Order matters twice over: on a phone GridStack collapses to one column and
     # sorts by (y, x), so the reading order below IS the mobile order.
     "widgets": [
-        {"id": "wnow", "type": "now",      "x": 0, "y": 0,  "w": 12, "h": 5,
+        # Desktop puts "what is it like now" and "is the air OK" side by side
+        # at the SAME height: as a 12-wide hero the card ran ~1900px for a
+        # couple of hundred pixels of content, and the air card beside a
+        # taller forecast left a visible hole under it.
+        {"id": "wnow", "type": "now",      "x": 0, "y": 0,  "w": 8,  "h": 5,
          "config": {"station": "@here"}},
-        {"id": "wfc",  "type": "forecast", "x": 0, "y": 5,  "w": 8,  "h": 7,
+        {"id": "wair", "type": "aqi",      "x": 8, "y": 0,  "w": 4,  "h": 5,
+         "config": {"station": "@here"}},
+        # the forecast chart is the one thing here that genuinely wants width
+        {"id": "wfc",  "type": "forecast", "x": 0, "y": 5,  "w": 12, "h": 7,
          "config": {"station": "@here", "hours": 48}},
-        # h5 not h7: one-column mode on a phone keeps the desktop height, and
-        # the air card holds ~220px of content — matching the forecast's height
-        # for desktop symmetry left a 560px mostly-empty card on mobile.
-        {"id": "wair", "type": "aqi",      "x": 8, "y": 5,  "w": 4,  "h": 5,
-         "config": {"station": "@here"}},
         {"id": "wmap", "type": "map",      "x": 0, "y": 12, "w": 12, "h": 6,
          "config": {}},
         {"id": "wrep", "type": "reports",  "x": 0, "y": 18, "w": 12, "h": 4,

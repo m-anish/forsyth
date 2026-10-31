@@ -106,7 +106,7 @@ const Widgets = (() => {
       <p class="hero-say">${says.join(' ')}</p>
       ${spark}
       <div class="hero-meta">${hiLo ? hiLo + ' · ' : ''}measured at ${s.name}, ${agoLabel(s.last_seen)}</div>
-      <div class="kv">
+      <div class="hero-stats">
         <div><span class="k">Humidity</span><span class="v">${fmt(s.rh, 0, '%')}</span></div>
         <div><span class="k">Wind</span><span class="v">${windText(s)}</span></div>
         <div><span class="k">Gust</span><span class="v">${gustText(s)}</span></div>
