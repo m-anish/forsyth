@@ -943,6 +943,30 @@ async function renderForecast(el, slug, opts = {}) {
     ] : []),
     F.precip_mm,
   ];
+  /* Fix the vertical scale to the WHOLE forecast, not the visible slice.
+     uPlot re-fits y to whatever is on screen, so scrolling the strip changed
+     the shape of the curve underneath it: a calm stretch got stretched to fill
+     the card and read as weather, and two parts of the forecast could not be
+     compared because each was drawn to its own scale. A fixed range means the
+     shape you see is the shape that exists.
+
+     Not a performance fix — setScale measures 0.1 ms either way (the drag
+     stutter was scroll-snap, not redraw cost). This is about the chart telling
+     the truth while it moves.
+
+     Series 1..n-1 are the temperature line and, when the ensemble is in, its
+     ±σ band edges; the last series is precipitation on its own 'mm' scale. */
+  const tVals = [];
+  for (let si = 1; si < data.length - 1; si++)
+    for (const v of data[si]) if (v !== null && v !== undefined) tVals.push(v);
+  const pVals = (F.precip_mm || []).filter(v => v !== null && v !== undefined);
+  const tMin = tVals.length ? Math.min(...tVals) : null;
+  const tMax = tVals.length ? Math.max(...tVals) : null;
+  /* a little headroom, and a floor so a dead-flat day is not a single line
+     pinned to the frame */
+  const tPad = tMin === null ? 0 : Math.max(0.5, (tMax - tMin) * 0.08);
+  const pMax = Math.max(1, ...(pVals.length ? pVals : [0]));
+
   const u = makeChart(chartEl, series, data, {
     height: chartH,
     uplot: {
@@ -951,7 +975,10 @@ async function renderForecast(el, slug, opts = {}) {
          zoom and dragging to scroll cannot both own the same gesture. Scrolling
          is what a forecast is read with. Hover still reads values. */
       cursor: { drag: { x: false, y: false, setScale: false } },
-      scales: { mm: { range: (u, mn, mx) => [0, Math.max(1, mx)] } },
+      scales: {
+        mm: { range: [0, pMax] },
+        ...(tMin !== null ? { y: { range: [tMin - tPad, tMax + tPad] } } : {}),
+      },
       /* The rain axis shares no gridlines with the temperature axis, so its
          tick marks landed at heights nothing else sits at and read as a
          misprint along the right edge. Labels stay; the stray dashes go. */
