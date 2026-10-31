@@ -275,9 +275,17 @@ h1.headline {
 .now .desc { color: var(--text-dim); margin: 8px 0 16px; font-size: 15px; }
 .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; }
 .kv div { display: flex; justify-content: space-between; gap: 10px;
-  border-bottom: 1px dashed var(--border-2); padding: 5px 0; }
+  border-bottom: 1px dashed var(--border-2); padding: 5px 0;
+  /* without min-width:0 a long value ("93 satisfactory") refuses to shrink and
+     is clipped by the card instead of wrapping */
+  min-width: 0; flex-wrap: wrap; }
 .kv .k { color: var(--text-mute); font-size: 13px; }
-.kv .v { font-family: var(--mono); font-size: 14px; }
+.kv .v { font-family: var(--mono); font-size: 14px; text-align: right;
+  min-width: 0; overflow-wrap: anywhere; }
+/* Two columns of label+value need ~200px each. On a phone the card is ~310px
+   wide, so the pair collide and wrap mid-value; one column reads far better
+   than two cramped ones. */
+@media (max-width: 560px) { .kv { grid-template-columns: 1fr; gap: 2px; } }
 
 /* gauge-ish bits */
 .trend { font-family: var(--mono); font-size: 14px; }

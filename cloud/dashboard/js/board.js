@@ -155,14 +155,13 @@ async function loadBoard() {
   } else if (B.user && B.user.is_admin) {
     /* the admin's one reminder that this board is everybody's */
     sub.textContent = 'The public homepage — “arrange” changes what every visitor sees.';
-  } else if (B.user) {
-    sub.textContent = '';
   } else {
-    sub.innerHTML = '<a href="#" id="signin-hint">Sign in</a> to customize.';
-    sub.querySelector('#signin-hint').onclick = (ev) => {
-      ev.preventDefault();
-      document.getElementById('btn-login').click();
-    };
+    /* Everyone else — signed in or not — gets nothing here. "Sign in to
+       customize." used to be the first line of the page, sitting above the
+       weather: an invitation to do admin, shown to someone who came to find
+       out whether they need a jacket (docs/v2-design.md §3.2, §6.1). The
+       mechanism stays; signing in lives in the header, where it belongs. */
+    sub.textContent = '';
   }
 
   B.grid.removeAll();
