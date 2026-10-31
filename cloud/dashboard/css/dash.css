@@ -29,7 +29,11 @@
   --ch-wind: #7fa2c4;  --ch-gust: #c9a15a;  --ch-gust-fill: rgba(201,161,90,0.20);
   --rose-1: #3f5f73;   --rose-2: #5f8aa6;   --rose-3: #8fb6c9;   --rose-4: #d9b06a;
   --ch-rain: #7fa2c4;  --ch-rain-fill: rgba(127,162,196,0.25);
-  --ch-pm25: #c9a15a;  --ch-pm10: #8a6a4a;  --ch-batt: #7fb98a;
+  /* PM2.5 and PM10 were two warm browns a shade apart, and PM2.5 was the same
+     amber as --ch-gust. Orange vs blue separates on hue AND lightness and
+     survives deuteranopia and protanopia, which red/green pairs do not. */
+  --ch-pm25: #e8913c;  --ch-pm10: #5aa9d6;  --ch-batt: #7fb98a;
+  --ch-pm25-fill: rgba(232,145,60,0.20); --ch-pm10-fill: rgba(90,169,214,0.14);
 }
 
 [data-theme="light"] {
@@ -54,7 +58,8 @@
   --ch-wind: #3f6c96;  --ch-gust: #96702c;  --ch-gust-fill: rgba(150,112,44,0.16);
   --rose-1: #c3d4de;   --rose-2: #8bafc6;   --rose-3: #4f7d9b;   --rose-4: #96702c;
   --ch-rain: #3f6c96;  --ch-rain-fill: rgba(63,108,150,0.18);
-  --ch-pm25: #96702c;  --ch-pm10: #6b4f33;  --ch-batt: #3e7d4f;
+  --ch-pm25: #c2621a;  --ch-pm10: #1f6f9c;  --ch-batt: #3e7d4f;
+  --ch-pm25-fill: rgba(194,98,26,0.16); --ch-pm10-fill: rgba(31,111,156,0.12);
 }
 
 * { box-sizing: border-box; }
@@ -382,6 +387,7 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
 
 .rose-lead { margin: 6px 0 2px; text-align: center; font-size: .86rem; color: var(--text); }
 .rose-dim { color: var(--text-dim); font-weight: 400; }
+.rose-gust { margin: 0 0 2px; text-align: center; font-size: .8rem; color: var(--text-mute); }
 .rose-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; justify-content: center;
   margin-top: 4px; font-family: var(--mono); font-size: 10px; color: var(--text-mute); }
 .rose-key { display: inline-flex; align-items: center; gap: 4px; }

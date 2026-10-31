@@ -160,7 +160,8 @@ def windrose(slug: str, hours: float = Query(24, gt=0, le=24 * 366)):
     sql = text("""
         SELECT (floor((((wind_dir_deg + 11.25)::numeric % 360) / 22.5))::int) AS bin,
                width_bucket(wind_avg_ms, :edges) AS band,
-               count(*) AS n, avg(wind_avg_ms) AS speed
+               count(*) AS n, avg(wind_avg_ms) AS speed,
+               max(wind_gust_ms) AS gust
         FROM readings
         WHERE station_id = :sid AND ts >= :since
           AND wind_dir_deg IS NOT NULL AND wind_avg_ms IS NOT NULL
@@ -182,13 +183,14 @@ def windrose(slug: str, hours: float = Query(24, gt=0, le=24 * 366)):
             totals_sql, {"sid": sid, "since": since, "calm": ROSE_CALM_MS}).one()
 
     nb = len(ROSE_BAND_EDGES) + 1
-    bins = [{"n": 0, "speed": 0.0, "bands": [0] * nb} for _ in range(16)]
+    bins = [{"n": 0, "speed": 0.0, "gust": 0.0, "bands": [0] * nb} for _ in range(16)]
     weighted = [0.0] * 16
-    for b, band, n, speed in rows:
+    for b, band, n, speed, gust in rows:
         i = int(b)
         bins[i]["bands"][min(int(band), nb - 1)] += n
         bins[i]["n"] += n
         weighted[i] += float(speed or 0) * n
+        bins[i]["gust"] = max(bins[i]["gust"], round(float(gust or 0), 2))
     for i, b in enumerate(bins):
         b["speed"] = round(weighted[i] / b["n"], 2) if b["n"] else 0.0
 

@@ -203,6 +203,17 @@ const Widgets = (() => {
       lead = `<p class="rose-lead">Still air — no wind to speak of in the last ${hours} h.</p>`;
     }
 
+    /* Gusts cannot ride the petals: the radial axis is frequency, and
+       overloading it with a second meaning would make both unreadable. So the
+       strongest gust and where it came from are simply stated. */
+    let gustLine = '';
+    let gi = -1;
+    bins.forEach((b, i) => { if ((b.gust || 0) > (gi < 0 ? 0 : (bins[gi].gust || 0))) gi = i; });
+    if (gi >= 0 && (bins[gi].gust || 0) > 0) {
+      gustLine = `<p class="rose-gust">Strongest gust <b>${Math.round(bins[gi].gust * 3.6)} km/h</b>`
+               + `<span class="rose-dim"> from the ${dirName(gi * 22.5)}</span></p>`;
+    }
+
     const edges = (d.band_edges_ms || [2, 4, 8]).map(v => Math.round(v * 3.6));
     const legend = total ? `<div class="rose-legend">` + ROSE_BANDS.slice(0, nb).map((c, k) => {
       const txt = k === 0 ? `<${edges[0]}`
@@ -214,7 +225,7 @@ const Widgets = (() => {
     /* no width/height: the SVG scales to its container via the viewBox (CSS
        keeps it square), so the rose fills whatever card it is dropped into. */
     el.innerHTML = `<svg class="rose" viewBox="0 0 240 240" preserveAspectRatio="xMidYMid meet">${out}</svg>`
-      + lead + legend
+      + lead + gustLine + legend
       + (config.label === false ? ''
          : `<div class="wg-sub" style="text-align:center">${s.name} · ${hours} h</div>`);
   }

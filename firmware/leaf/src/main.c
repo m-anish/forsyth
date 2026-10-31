@@ -344,12 +344,22 @@ static void do_report(void)
      * gate so slow winds near the interval boundary aren't lost            */
     uint32_t pulses = wind.rep_pulses + wind.gate_pulses;
     uint16_t secs   = wind.rep_secs + wind.gate_secs;
-    uint16_t maxg   = wind.max_gate_pulses;
-    if (wind.gate_pulses > maxg) maxg = wind.gate_pulses;
+    /* Gust is the fastest COMPLETED gate. The trailing partial gate only
+     * compares once scaled to its own length: the old code took its raw pulse
+     * count and divided by a full WIND_GATE_S, so a gust arriving in the last
+     * seconds before a report was under-stated by the ratio of the two — a
+     * 3 s remainder reported a third of the real speed. Guarded by
+     * WIND_PARTIAL_MIN_S so a lone pulse in a 1 s remainder cannot invent a
+     * gust. */
+    uint16_t gust_cms = wind_cms(wind.max_gate_pulses, WIND_GATE_S);
+    if (wind.gate_secs >= WIND_PARTIAL_MIN_S) {
+        uint16_t partial = wind_cms(wind.gate_pulses, wind.gate_secs);
+        if (partial > gust_cms) gust_cms = partial;
+    }
     memset(&wind, 0, sizeof wind);
     mask |= FLP_R_WAVG | FLP_R_WGUST;
     po = flp_put16(payload, po, wind_cms(pulses, secs));
-    po = flp_put16(payload, po, wind_cms(maxg, WIND_GATE_S));
+    po = flp_put16(payload, po, gust_cms);
 
     uint16_t vadc = adc_read_vane();
     uint16_t deg  = vane_lookup(vadc);

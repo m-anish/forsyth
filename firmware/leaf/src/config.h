@@ -48,6 +48,11 @@
 #define LIGHTNING_QUEUE     4        /* [C] events buffered between TX chances */
 
 /* ================= wind ================================================= */
+#define WIND_PARTIAL_MIN_S  3        /* [C] shortest trailing partial gate that
+                                        may set the gust. WMO's gust is a 3 s
+                                        mean; below that a single stray pulse
+                                        in a 1 s remainder would report a
+                                        0.67 m/s gust out of nothing.          */
 #define WIND_GATE_S         10       /* [C] gust bucket width, seconds. WMO
                                         gust is a 3 s mean; 10 s is the power-
                                         friendly compromise. Continuous

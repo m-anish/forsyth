@@ -12,6 +12,7 @@ function COLs() {
     wind: cssVar('--ch-wind'), gust: cssVar('--ch-gust'),
     rain: cssVar('--ch-rain'), rainFill: cssVar('--ch-rain-fill'),
     pm25: cssVar('--ch-pm25'), pm10: cssVar('--ch-pm10'), batt: cssVar('--ch-batt'),
+    pm25Fill: cssVar('--ch-pm25-fill'), pm10Fill: cssVar('--ch-pm10-fill'),
   };
 }
 
@@ -158,7 +159,8 @@ async function drawCharts() {
          as noise (§8). Direction rides on top as arrows — a circular quantity
          cannot go on a linear axis without 350°→10° looking like a crash. */
       bands: [{ series: [2, 1], fill: cssVar('--ch-gust-fill') }],
-      plugins: [windDirArrows(windD.ts, windD.series.wind_dir_deg || [])],
+      plugins: [windDirArrows(windD.ts, windD.series.wind_dir_deg || [],
+                              windD.series.wind_gust_ms || [])],
     },
   });
 
@@ -187,10 +189,24 @@ async function drawCharts() {
      whether the sensor skipped a cycle or the station was down for four hours.
      Dropping the between-sample nulls and then breaking on real gaps separates
      the two, and the points show how sparse the sampling actually is (§8). */
+  /* PM2.5 is a SUBSET of PM10 — "particles under 10 µm" includes "under
+     2.5 µm" — so PM10 >= PM2.5 always, and two independent lines hide that.
+     Drawn as nested areas instead: PM2.5 filled from zero, PM10 as the upper
+     bound, and the band between them IS the coarse fraction (2.5–10 µm), which
+     is the dust/pollen part and behaves quite differently from the fine
+     fraction. The reading is every 6th report (~30 min), so points mark the
+     real samples rather than implying a continuous trace. */
   S.charts.pm = makeChart(document.getElementById('chart-pm'), [
-    { label: 'PM2.5 µg/m³', stroke: COL.pm25, width: 1.5, points: { show: true, size: 3 } },
-    { label: 'PM10 µg/m³', stroke: COL.pm10, width: 1, points: { show: true, size: 3 } },
-  ], gapped(pmD, ['pm25', 'pm10'], { dropNulls: true }));
+    { label: 'PM10 µg/m³', stroke: COL.pm10, width: 1.3, points: { show: true, size: 3.5 } },
+    { label: 'PM2.5 µg/m³', stroke: COL.pm25, width: 1.6, fill: COL.pm25Fill,
+      points: { show: true, size: 3.5 } },
+  ], gapped(pmD, ['pm10', 'pm25'], { dropNulls: true }), {
+    uplot: {
+      bands: [{ series: [1, 2], fill: COL.pm10Fill }],
+      /* a concentration means little without the number it should stay under */
+      plugins: [hLine(15, 'WHO 24 h guideline')],
+    },
+  });
 
   S.charts.batt = makeChart(document.getElementById('chart-batt'), [
     { label: 'Battery V', stroke: COL.batt, width: 1.5 },

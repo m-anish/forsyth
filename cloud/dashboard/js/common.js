@@ -286,28 +286,50 @@ function breakGaps(ts, arrays, maxGapS, { dropNulls = false } = {}) {
   return [outTs, ...outs];
 }
 
+/* Below this the anemometer is not measuring, it is quantising. One reed
+   closure in a 10 s gate is 0.067 m/s, and cups this size barely turn at all
+   until roughly half a metre per second — SparkFun publishes a calibration
+   point (1.492 mph = one closure per second) but no starting threshold. So
+   anything under this reads as calm rather than as a number implying
+   precision the instrument does not have. Matches the API's ROSE_CALM_MS. */
+const WIND_CALM_MS = 0.5;
+
 /* Wind direction as arrows along the top of the wind chart, never as a line.
    Direction is circular: 350° → 10° is a 20° shift that a linear axis renders
    as a full-height vertical crash (§8 rule 4). Drawn in a uPlot `draw` hook so
-   the arrows stay aligned through zoom and resize for free, and pointing
-   downwind to match windArrow() in the stat cells. */
-function windDirArrows(ts, dirDeg, opts = {}) {
+   they stay aligned through zoom and resize for free, pointing downwind to
+   match windArrow() in the stat cells.
+
+   Arrow LENGTH carries speed, so one glance reads direction and strength
+   together — and nothing is drawn below WIND_CALM_MS, because an arrow
+   pointing confidently nowhere is worse than no arrow: a still vane keeps
+   whatever bearing it last held. */
+function windDirArrows(ts, dirDeg, speedMs, opts = {}) {
   const everyPx = opts.every || 52;
+  const calm = opts.calmMs !== undefined ? opts.calmMs : WIND_CALM_MS;
+  const spd = speedMs || [];
+  let vmax = 0;
+  for (const v of spd) if (v !== null && v !== undefined && v > vmax) vmax = v;
+  const MIN = 3.5, MAX = 9.5;
   return { hooks: { draw: u => {
+    if (vmax < calm) return;            /* nothing above the floor to draw */
     const ctx = u.ctx, bb = u.bbox, dpr = window.devicePixelRatio || 1;
-    const y = bb.top + 10 * dpr, len = 6 * dpr;
+    const y = bb.top + 11 * dpr;
     ctx.save();
     ctx.strokeStyle = opts.color || cssVar('--text-dim') || '#888';
     ctx.lineWidth = 1.4 * dpr;
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     let lastX = -Infinity;
     for (let i = 0; i < ts.length; i++) {
-      const d = dirDeg[i];
+      const d = dirDeg[i], v = spd[i];
       if (d === null || d === undefined) continue;
+      if (v === null || v === undefined || v < calm) continue;
       const x = u.valToPos(ts[i], 'x', true);
       if (x < bb.left || x > bb.left + bb.width) continue;
       if (x - lastX < everyPx * dpr) continue;
       lastX = x;
+      const frac = vmax > calm ? (v - calm) / (vmax - calm) : 1;
+      const len = (MIN + (MAX - MIN) * frac) * dpr;
       const a = ((Number(d) + 180) % 360) * Math.PI / 180;   /* flies downwind */
       const dx = Math.sin(a) * len, dy = -Math.cos(a) * len;
       const hx = x + dx, hy = y + dy;
@@ -319,6 +341,29 @@ function windDirArrows(ts, dirDeg, opts = {}) {
         ctx.lineTo(hx + Math.sin(b) * len * 0.62, hy - Math.cos(b) * len * 0.62);
       }
       ctx.stroke();
+    }
+    ctx.restore();
+  } } };
+}
+
+/* A labelled reference line. A concentration means little without the number
+   it is meant to stay under, so the chart carries that number itself. */
+function hLine(value, label, opts = {}) {
+  return { hooks: { draw: u => {
+    const bb = u.bbox, dpr = window.devicePixelRatio || 1;
+    const y = u.valToPos(value, 'y', true);
+    if (!(y >= bb.top && y <= bb.top + bb.height)) return;
+    const ctx = u.ctx, col = opts.color || cssVar('--text-dim') || '#888';
+    ctx.save();
+    ctx.strokeStyle = col; ctx.lineWidth = dpr;
+    ctx.setLineDash([4 * dpr, 4 * dpr]);
+    ctx.beginPath(); ctx.moveTo(bb.left, y); ctx.lineTo(bb.left + bb.width, y); ctx.stroke();
+    if (label) {
+      ctx.setLineDash([]);
+      ctx.fillStyle = col;
+      ctx.font = `${9.5 * dpr}px ${getComputedStyle(document.body).fontFamily}`;
+      ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+      ctx.fillText(label, bb.left + bb.width - 4 * dpr, y - 2 * dpr);
     }
     ctx.restore();
   } } };
