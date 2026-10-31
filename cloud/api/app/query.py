@@ -20,9 +20,14 @@ def public_config():
     feature-detect. Only values that are meant to be public (map keys ride in
     tile URLs and are domain-restricted, not secret) ever appear here."""
     sat = settings.satellite_tile_url
+    bm = settings.basemap_tile_url
     return {
         "satellite": ({"url": sat, "attribution": settings.satellite_attribution,
                        "maxZoom": settings.satellite_max_zoom} if sat else None),
+        "basemap": ({"url": bm,
+                     "urlDark": settings.basemap_tile_url_dark or bm,
+                     "attribution": settings.basemap_attribution,
+                     "maxZoom": settings.basemap_max_zoom} if bm else None),
     }
 
 NUMERIC_METRICS = [f for f in READING_FIELDS if f != "solar_state"]

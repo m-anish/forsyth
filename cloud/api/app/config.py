@@ -51,6 +51,22 @@ class Settings:
         '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>')
     satellite_max_zoom: int = int(os.environ.get("SATELLITE_MAX_ZOOM", "20"))
 
+    # Default ("streets") basemap. Same provider-agnostic contract as the
+    # satellite layer above: paste the full XYZ raster template, key and all.
+    # This is configurable at all because CARTO's keyless basemaps started
+    # serving "API KEY REQUIRED" watermark tiles (observed 2026-10-31) — when
+    # these are unset the dashboard still falls back to CARTO, watermark and
+    # all, which beats a blank map. _DARK is optional: it is used only for the
+    # dark theme, and falls back to the light URL when empty.
+    # NB `or` rather than a get() default: compose passes these through as
+    # empty strings when they are not in .env, which would otherwise shadow it.
+    basemap_tile_url: str = os.environ.get("BASEMAP_TILE_URL", "")
+    basemap_tile_url_dark: str = os.environ.get("BASEMAP_TILE_URL_DARK", "")
+    basemap_attribution: str = os.environ.get("BASEMAP_ATTRIBUTION", "") or (
+        '© <a href="https://www.maptiler.com/copyright/">MapTiler</a> '
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>')
+    basemap_max_zoom: int = int(os.environ.get("BASEMAP_MAX_ZOOM", "") or "20")
+
     # self-serve accounts (engagement-roadmap §4). OAuth providers appear in
     # the sign-in dialog only when their id+secret are set; redirect URI to
     # register with each provider: {PUBLIC_BASE_URL}/api/v1/auth/oauth/{provider}/callback

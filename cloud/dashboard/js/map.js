@@ -122,9 +122,10 @@ const forsythMap = (() => {
   }
 
   /* ---------- tile layers ---------- */
+  /* The default basemap — no longer necessarily CARTO (see basemapUrl() in
+     common.js), but still theme-aware, so themechange re-points the layer. */
   function cartoUrl() {
-    const kind = document.documentElement.dataset.theme === 'light' ? 'light_all' : 'dark_all';
-    return `https://{s}.basemaps.cartocdn.com/${kind}/{z}/{x}/{y}{r}.png`;
+    return basemapUrl(document.documentElement.dataset.theme !== 'light');
   }
 
   /* RainViewer public radar — global composite; fail-silent (an ad-blocked or
@@ -167,9 +168,7 @@ const forsythMap = (() => {
     map.on('click focus', () => map.scrollWheelZoom.enable());
     el.addEventListener('mouseleave', () => map.scrollWheelZoom.disable());
 
-    const carto = L.tileLayer(cartoUrl(), {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>',
-      subdomains: 'abcd', maxZoom: 19 });
+    const carto = L.tileLayer(cartoUrl(), basemapOptions());
     const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
       attribution: '© OSM © <a href="https://opentopomap.org">OpenTopoMap</a>', maxZoom: 17 });
     const sat = satelliteLayer();

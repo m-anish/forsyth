@@ -240,6 +240,31 @@ function satelliteLayer() {
   ]);
 }
 
+/* The default ("streets") basemap, shared by the mesh map and the admin siting
+   picker so URL and credit live in one place — same as satelliteLayer() above.
+   CARTO's keyless basemaps began serving "API KEY REQUIRED" watermark tiles
+   (observed 2026-10-31), so the provider is configurable exactly like the
+   satellite layer: BASEMAP_TILE_URL, plus an optional _DARK for the dark
+   theme. Keyless CARTO stays as the last-resort fallback — watermarked, but a
+   watermarked map still beats a blank one. Returns a bare URL string so
+   callers can setUrl() it on themechange without rebuilding the layer. */
+function basemapUrl(dark) {
+  const bm = _cfg && _cfg.basemap;
+  if (bm && bm.url) return (dark && bm.urlDark) ? bm.urlDark : bm.url;
+  return `https://{s}.basemaps.cartocdn.com/${dark ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`;
+}
+
+/* Leaflet options belonging to basemapUrl(). Kept next to it deliberately:
+   attribution and maxZoom are provider-specific, and taking the URL from one
+   provider while keeping another's credit is how a map ends up misattributed.
+   {s} subdomains are CARTO-only, so they are set only on the fallback path. */
+function basemapOptions() {
+  const bm = _cfg && _cfg.basemap;
+  if (bm && bm.url) return { attribution: bm.attribution, maxZoom: bm.maxZoom || 20 };
+  return { subdomains: 'abcd', maxZoom: 19,
+           attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>' };
+}
+
 /* viewer's timezone, as their locale abbreviates it ("IST", "CEST", "GMT+2").
    Every timestamp on the site is already rendered in the viewer's local time
    (toLocale* APIs) — this label just says so out loud. */

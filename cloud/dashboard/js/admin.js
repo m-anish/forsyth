@@ -168,10 +168,9 @@ function openLocEditor(s) {
       LOC.map = L.map('loc-map');
       /* same as the mesh map: keep the credit, drop Leaflet's default flag */
       LOC.map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
-      const dark = document.documentElement.dataset.theme === 'light' ? 'light_all' : 'dark_all';
-      const streets = L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark}/{z}/{x}/{y}{r}.png`,
-        { subdomains: 'abcd', maxZoom: 19,
-          attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>' });
+      const streets = L.tileLayer(
+        basemapUrl(document.documentElement.dataset.theme !== 'light'),
+        basemapOptions());
       /* imagery first here: siting a mast is about which roof and which
          field, which a street map cannot show you */
       const sat = satelliteLayer().addTo(LOC.map);
