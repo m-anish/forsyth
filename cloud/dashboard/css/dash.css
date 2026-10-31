@@ -878,3 +878,26 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
 
 /* one line of what the air quality number means for a person's day */
 .aqi-advice { margin: 6px 0 2px; font-size: .82rem; color: var(--fg-2); line-height: 1.35; }
+
+/* ---- hero (the `now` widget) --------------------------------------------
+   v1 was a number over a six-cell grid. The first screenful of a weather site
+   should read like a sentence someone would say, so the glyph, temperature and
+   trend share a baseline, the sentence sits under them, and the day's shape
+   follows as a sparkline. docs/v2-design.md §5 Phase 3. */
+.hero-top { display: flex; align-items: baseline; gap: 10px 12px; flex-wrap: wrap; }
+.hero-glyph { font-size: 1.9rem; line-height: 1; }
+.hero-temp { font-family: var(--mono); line-height: 1; letter-spacing: -0.03em;
+  font-size: clamp(2.5rem, 8vw, 3.4rem); }
+.hero-temp .u { font-size: .38em; color: var(--text-mute); margin-left: 2px; }
+.hero-trend { font-family: var(--mono); font-size: .78rem; }
+.hero-trend.up { color: var(--good); }
+.hero-trend.down { color: var(--bad); }
+.hero-say { margin: 9px 0 5px; font-size: 1.02rem; line-height: 1.4; color: var(--text); }
+.hero-meta { font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+  margin: 2px 0 10px; }
+
+/* preserveAspectRatio="none" stretches the viewBox to the card, which would
+   stretch the stroke with it — non-scaling-stroke keeps the line even. */
+.spark { display: block; width: 100%; height: 30px; margin: 2px 0; }
+.spark path { fill: none; stroke: var(--ch-temp); stroke-width: 1.6;
+  stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }

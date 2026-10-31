@@ -590,6 +590,32 @@ async function refreshBanner(slug) {
   } catch { el.classList.remove('on'); }
 }
 
+/* A sparkline: the shape of the last day, no axes, no legend, no labels. It
+   answers "is this normal for today?" in a glance and costs almost nothing
+   (docs/v2-design.md §8.3). Nulls break the path rather than being bridged,
+   for the same reason the full charts break on an outage. */
+function sparkline(vals, opts = {}) {
+  const real = vals.filter(v => v !== null && v !== undefined);
+  if (real.length < 2) return '';
+  const w = opts.width || 240, h = opts.height || 30, pad = 1.5;
+  let min = Math.min(...real), max = Math.max(...real);
+  /* a flat day is still a line, not a divide-by-zero */
+  if (max - min < 0.5) { const m = (max + min) / 2; min = m - 0.25; max = m + 0.25; }
+  const n = vals.length;
+  let d = '', pen = false;
+  for (let i = 0; i < n; i++) {
+    const v = vals[i];
+    if (v === null || v === undefined) { pen = false; continue; }
+    const x = (i / (n - 1)) * w;
+    const y = pad + (h - 2 * pad) * (1 - (v - min) / (max - min));
+    d += `${pen ? ' L' : ' M'}${x.toFixed(1)},${y.toFixed(1)}`;
+    pen = true;
+  }
+  if (!d) return '';
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"`
+       + ` aria-hidden="true"><path d="${d.trim()}"/></svg>`;
+}
+
 /* ---------- forecast (shared: station page panel + board widget) ---------- */
 
 function wxGlyph(rainMm, prob, cloud, tempC) {

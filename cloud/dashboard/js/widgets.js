@@ -41,30 +41,86 @@ const Widgets = (() => {
 
   /* ---------- renderers ---------- */
 
+  /* The hero (docs/v2-design.md §5 Phase 3). v1 was a stat grid: a number and
+     six cells, two of which were battery and solar. A weather site's first
+     screenful should say what it is like out there in words a person would
+     use, and show the shape of the day — so: glyph, temperature, a sentence,
+     the last 24 h as a sparkline, and where the number came from. */
+  function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+
   async function now(el, config) {
     const s = await pick(config, el);
     if (!s) return;
     const a = aqi(s.pm25, s.pm10);
     const slp = pressureSeaLevelHpa(s.pressure_pa, s.elevation_m, s.temp_c);
     const fl = feelsLike(s.temp_c, s.rh, s.wind_avg_ms);
-    /* Only earns a cell when it actually disagrees with the thermometer —
-       "feels like 21°" next to "21°" is noise pretending to be insight. */
     const showFeels = fl !== null && s.temp_c !== null && Math.abs(fl - s.temp_c) >= 1;
-    /* Battery and Solar used to sit here. They are operator telemetry on what
-       is now a public hero card (docs/v2-design.md §7.1) — they live on the
-       station page's Housekeeping panel, which is where an operator looks. */
-    const pTitle = s.pressure_pa
-      ? `${(s.pressure_pa/100).toFixed(1)} hPa measured at the station, ${fmt(s.elevation_m,0)} m up`
-      : 'no pressure reading';
+
+    /* The day's shape, measured — not forecast. One fetch, reused across the
+       minute-by-minute refresh via a signature on the element. */
+    let spark = '', hiLo = '', trend = '';
+    try {
+      const sig = `${s.slug}|${Math.floor(Date.now() / 300000)}`;
+      if (el._histSig !== sig || !el._hist) {
+        el._hist = await getJSON(`/stations/${s.slug}/series?metrics=temp_c&hours=24`);
+        el._histSig = sig;
+      }
+      const h = el._hist, vals = (h.series && h.series.temp_c) || [];
+      const real = vals.filter(v => v !== null && v !== undefined);
+      if (real.length >= 2) {
+        spark = sparkline(vals, { width: 240, height: 30 });
+        hiLo = `High ${Math.round(Math.max(...real))}° · Low ${Math.round(Math.min(...real))}°`;
+        /* change over the last hour, from the series rather than guessed */
+        const lastTs = h.ts[h.ts.length - 1];
+        let ref = null;
+        for (let i = h.ts.length - 1; i >= 0; i--) {
+          if (vals[i] === null || vals[i] === undefined) continue;
+          if (lastTs - h.ts[i] >= 3600) { ref = vals[i]; break; }
+        }
+        const last = real[real.length - 1];
+        if (ref !== null && Math.abs(last - ref) >= 0.3) {
+          const up = last > ref;
+          trend = `<span class="hero-trend ${up ? 'up' : 'down'}">${up ? '↑' : '↓'} `
+                + `${Math.abs(last - ref).toFixed(1)}° in the last hour</span>`;
+        }
+      }
+    } catch { /* no history yet — the hero still works without it */ }
+
+    /* The glyph needs cloud cover, which only the model has; the station
+       cannot see the sky. Cached per model hour — it changes every 3 h and
+       this widget refreshes every minute. */
+    let glyph = '';
+    try {
+      const fsig = `${s.slug}|${new Date().getUTCHours()}`;
+      if (el._fcSig2 !== fsig || !el._glyph) {
+        const f = await getJSON(`/stations/${s.slug}/forecast?hours=6`);
+        const F = f.series || {};
+        el._glyph = wxGlyph((F.precip_mm || [])[0], (F.precip_prob || [])[0],
+                            (F.cloud_cover_pct || [])[0], (F.temp_c || [])[0]);
+        el._fcSig2 = fsig;
+      }
+      glyph = el._glyph || '';
+    } catch { /* no forecast: no glyph, rather than a guessed one */ }
+    /* rain measured here always beats the model's opinion of the sky */
+    if ((s.rain_mm ?? 0) > 0.3) glyph = '🌧';
+
+    const says = [cap(describe(s)) + '.'];
+    if (showFeels) says.push(`Feels like ${Math.round(fl)}°.`);
+
     el.innerHTML = `
-      <div class="wg-big">${fmt(s.temp_c,1)}<span class="u">°C</span></div>
-      <div class="wg-sub">${s.name} · ${describe(s)} · ${agoLabel(s.last_seen)}</div>
+      <div class="hero-top">
+        ${glyph ? `<span class="hero-glyph">${glyph}</span>` : ''}
+        <span class="hero-temp">${fmt(s.temp_c, 1)}<span class="u">°C</span></span>
+        ${trend}
+      </div>
+      <p class="hero-say">${says.join(' ')}</p>
+      ${spark}
+      <div class="hero-meta">${hiLo ? hiLo + ' · ' : ''}measured at ${s.name}, ${agoLabel(s.last_seen)}</div>
       <div class="kv">
-        ${showFeels ? `<div><span class="k">Feels like</span><span class="v">${fmt(fl,0,' °C')}</span></div>` : ''}
-        <div><span class="k">Humidity</span><span class="v">${fmt(s.rh,0,'%')}</span></div>
+        <div><span class="k">Humidity</span><span class="v">${fmt(s.rh, 0, '%')}</span></div>
         <div><span class="k">Wind</span><span class="v">${windText(s)}</span></div>
         <div><span class="k">Gust</span><span class="v">${gustText(s)}</span></div>
-        <div><span class="k">Pressure</span><span class="v" title="${pTitle}">${fmt(slp,0,' hPa')}</span></div>
+        <div><span class="k">Pressure</span><span class="v">${fmt(slp, 0, ' hPa')}</span></div>
         <div><span class="k">Air (${AQI_SCALE})</span><span class="v">${a ?? '—'} ${aqiLabel(a)}</span></div>
       </div>`;
   }
