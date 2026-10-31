@@ -45,16 +45,27 @@ const Widgets = (() => {
     const s = await pick(config, el);
     if (!s) return;
     const a = aqi(s.pm25, s.pm10);
+    const slp = pressureSeaLevelHpa(s.pressure_pa, s.elevation_m, s.temp_c);
+    const fl = feelsLike(s.temp_c, s.rh, s.wind_avg_ms);
+    /* Only earns a cell when it actually disagrees with the thermometer —
+       "feels like 21°" next to "21°" is noise pretending to be insight. */
+    const showFeels = fl !== null && s.temp_c !== null && Math.abs(fl - s.temp_c) >= 1;
+    /* Battery and Solar used to sit here. They are operator telemetry on what
+       is now a public hero card (docs/v2-design.md §7.1) — they live on the
+       station page's Housekeeping panel, which is where an operator looks. */
+    const pTitle = s.pressure_pa
+      ? `${(s.pressure_pa/100).toFixed(1)} hPa measured at the station, ${fmt(s.elevation_m,0)} m up`
+      : 'no pressure reading';
     el.innerHTML = `
       <div class="wg-big">${fmt(s.temp_c,1)}<span class="u">°C</span></div>
       <div class="wg-sub">${s.name} · ${describe(s)} · ${agoLabel(s.last_seen)}</div>
       <div class="kv">
+        ${showFeels ? `<div><span class="k">Feels like</span><span class="v">${fmt(fl,0,' °C')}</span></div>` : ''}
         <div><span class="k">Humidity</span><span class="v">${fmt(s.rh,0,'%')}</span></div>
-        <div><span class="k">Wind</span><span class="v">${fmt(s.wind_avg_ms,1)} m/s ${dirName(s.wind_dir_deg)}</span></div>
-        <div><span class="k">Pressure</span><span class="v">${s.pressure_pa ? (s.pressure_pa/100).toFixed(1) : '—'} hPa</span></div>
-        <div><span class="k">AQI</span><span class="v">${a ?? '—'} ${aqiLabel(a)}</span></div>
-        <div><span class="k">Battery</span><span class="v">${fmt(s.batt_v,2)} V</span></div>
-        <div><span class="k">Solar</span><span class="v">${s.solar_state ?? '—'}</span></div>
+        <div><span class="k">Wind</span><span class="v">${windText(s)}</span></div>
+        <div><span class="k">Gust</span><span class="v">${gustText(s)}</span></div>
+        <div><span class="k">Pressure</span><span class="v" title="${pTitle}">${fmt(slp,0,' hPa')}</span></div>
+        <div><span class="k">Air (${AQI_SCALE})</span><span class="v">${a ?? '—'} ${aqiLabel(a)}</span></div>
       </div>`;
   }
 
@@ -123,12 +134,19 @@ const Widgets = (() => {
     const s = await pick(config, el);
     if (!s) return;
     const a = aqi(s.pm25, s.pm10);
+    const who = whoPm25Multiple(s.pm25);
+    /* The scale is named every time. CPCB reads ~50 points kinder than the US
+       EPA at these concentrations, so a bare number with a reassuring word is
+       the one thing on this site that could mislead someone about their health
+       (docs/v2-design.md §6.2). The WHO multiple is the honest anchor. */
     el.innerHTML = `
       <div class="wg-big">${a ?? '—'}</div>
-      <div class="wg-sub">${s.name} · ${aqiLabel(a)}</div>
+      <div class="wg-sub">${s.name} · ${aqiLabel(a)} · ${AQI_SCALE} scale</div>
       <div class="aqi-band"><span class="pin" style="left:${a !== null ? Math.min(100, a/5) : 0}%"></span></div>
+      ${a !== null ? `<p class="aqi-advice">${aqiGuidance(a)}</p>` : ''}
       <div class="kv">
-        <div><span class="k">PM2.5</span><span class="v">${fmt(s.pm25,1)} µg/m³</span></div>
+        <div><span class="k">PM2.5</span><span class="v">${fmt(s.pm25,1)} µg/m³${
+          who !== null ? ` · ${who.toFixed(1)}× WHO` : ''}</span></div>
         <div><span class="k">PM10</span><span class="v">${fmt(s.pm10,1)} µg/m³</span></div>
       </div>`;
   }

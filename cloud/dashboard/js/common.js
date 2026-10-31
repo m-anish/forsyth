@@ -119,6 +119,99 @@ function describe(r) {
   return bits.join(', ');
 }
 
+/* ---- human-facing units (docs/v2-design.md §7, §6.2) --------------------
+   The instrument speaks m/s, pascals and station pressure. People do not.
+   One place to convert, so a widget can never disagree with another.        */
+
+/* Wind direction is where the wind comes FROM — the universal met convention
+   and the one the vane reports. The arrow, though, flies WITH the wind, so it
+   points downwind (bearing + 180); that is what every consumer weather app
+   draws, and an arrow pointing into the wind reads as wrong to everyone who
+   is not a meteorologist. The words always say "from", so the two together
+   cannot be misread. */
+function windArrow(deg, size = 11) {
+  if (deg === null || deg === undefined) return '';
+  const r = (Number(deg) + 180) % 360;
+  return `<svg class="wind-arrow" width="${size}" height="${size}" viewBox="0 0 24 24"
+      style="transform:rotate(${r}deg)" aria-hidden="true"><path d="M12 3 L12 21 M12 3 L6 10 M12 3 L18 10"
+      fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+function windKmh(ms) {
+  if (ms === null || ms === undefined) return null;
+  return Number(ms) * 3.6;
+}
+
+/* Beaufort, in words people use rather than numbers they look up. */
+function windWord(ms) {
+  const k = windKmh(ms);
+  if (k === null) return '—';
+  if (k < 1)  return 'calm';
+  if (k < 6)  return 'almost still';
+  if (k < 12) return 'light breeze';
+  if (k < 20) return 'breezy';
+  if (k < 29) return 'windy';
+  if (k < 39) return 'strong wind';
+  if (k < 50) return 'very strong';
+  return 'gale';
+}
+
+/* "↙ 8 km/h from NW" — arrow, number, and the direction spelled out. */
+function windText(r) {
+  const k = windKmh(r && r.wind_avg_ms);
+  if (k === null) return '—';
+  if (k < 1) return 'calm';
+  return `${windArrow(r.wind_dir_deg)} ${Math.round(k)} km/h from ${dirName(r.wind_dir_deg)}`;
+}
+
+function gustText(r) {
+  const k = windKmh(r && r.wind_gust_ms);
+  if (k === null) return '—';
+  return `${Math.round(k)} km/h`;
+}
+
+/* Station pressure at 1676 m reads ~838 hPa, which looks broken to anyone who
+   knows sea level is ~1013. Reduce to sea level (the barometric formula every
+   met service uses) and keep the station figure as the secondary number.     */
+function pressureSeaLevelHpa(pa, elevation_m, temp_c) {
+  if (pa === null || pa === undefined) return null;
+  const hPa = Number(pa) / 100;
+  if (elevation_m === null || elevation_m === undefined) return hPa;
+  const t = (temp_c === null || temp_c === undefined) ? 15 : Number(temp_c);
+  const h = Number(elevation_m);
+  return hPa * Math.pow(1 - (0.0065 * h) / (t + 0.0065 * h + 273.15), -5.257);
+}
+
+/* Apparent temperature (Australian BoM): works in both directions — humidity
+   makes warmth worse, wind makes cool worse — unlike heat-index or wind-chill
+   alone, each of which is undefined over half the range we see here.         */
+function feelsLike(temp_c, rh, wind_ms) {
+  if (temp_c === null || temp_c === undefined) return null;
+  const t = Number(temp_c);
+  const h = (rh === null || rh === undefined) ? 50 : Number(rh);
+  const v = (wind_ms === null || wind_ms === undefined) ? 0 : Number(wind_ms);
+  const e = (h / 100) * 6.105 * Math.exp((17.27 * t) / (237.7 + t));
+  return t + 0.33 * e - 0.70 * v - 4.0;
+}
+
+/* CPCB categories are more permissive than the US EPA's, so the number never
+   travels alone: the scale is named wherever it appears, and PM2.5 is shown
+   against the WHO 24-hour guideline (15 µg/m³, 2021). See §6.2.              */
+const AQI_SCALE = 'CPCB';
+function aqiGuidance(v) {
+  if (v === null || v === undefined) return '';
+  if (v <= 50)  return 'Air is clean. Go outside.';
+  if (v <= 100) return 'Fine for most. Sensitive groups, take it easy.';
+  if (v <= 200) return 'Sensitive groups: keep outdoor spells short.';
+  if (v <= 300) return 'Everyone should ease off outdoor exertion.';
+  if (v <= 400) return 'Avoid outdoor exertion.';
+  return 'Stay indoors if you can.';
+}
+function whoPm25Multiple(pm25) {
+  if (pm25 === null || pm25 === undefined) return null;
+  return Number(pm25) / 15;
+}
+
 /* dew point (Magnus formula) and estimated cloud base — the lifting
    condensation level: ~125 m of climb per °C of temp/dew-point spread.
    An estimate for cumulus bases, not gospel; RH near 100 % → base ~0 (fog). */

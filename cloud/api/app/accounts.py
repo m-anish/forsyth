@@ -51,27 +51,30 @@ WIDGET_TYPES = {"now", "chart", "windrose", "aqi", "lightning", "camera", "map",
 # shows its work, the map gives the valley, feeds carry what people and the
 # sky reported, and mesh health lets the instrument show its own pulse.
 DEFAULT_LAYOUT = {
-    "title": "The mesh, at a glance",
-    # The homepage mixes mesh-wide widgets (map, reports, lightning, health)
-    # with location-bound ones (forecast, current conditions, wind rose, temp/RH)
-    # that follow the reader's chosen/nearest station via the '@here' sentinel
-    # (js/location.js). The mesh map takes the prominent top slot; the location-
-    # bound widgets live inside one 'localpanel' card whose title carries the
-    # picker that switches what those '@here' widgets show.
+    "title": "Weather in the hills",
+    # v2 homepage (docs/v2-design.md §5 Phase 1). v1 led with the mesh map and a
+    # "pick a location" panel, so a visitor saw no weather at all until they
+    # worked for it — while `health` put slugs, volts and dBm on a public page.
+    # The order below answers the questions people actually arrive with, in the
+    # order they ask them: what is it like now, what is coming, is the air OK —
+    # and only then the map to explore and the community feed.
+    # `health` moved off the homepage entirely (operator telemetry) and
+    # `lightning` lives on the station page, where it has room for context.
+    # The location-bound widgets use the '@here' sentinel, which now always
+    # resolves to a station rather than a placeholder (js/location.js).
     # Order matters twice over: on a phone GridStack collapses to one column and
-    # sorts by (y, x), so the reading order below IS the mobile order —
-    # map, local conditions, reports, lightning, health.
+    # sorts by (y, x), so the reading order below IS the mobile order.
     "widgets": [
-        {"id": "w5", "type": "map",        "x": 0, "y": 0,  "w": 12, "h": 6, "config": {}},
-        # one card enclosing the location-bound widgets (forecast, current
-        # conditions, temp/RH, wind rose); its title carries the location picker.
-        # Grows to fit its content rather than sitting at a fixed height.
-        {"id": "wl", "type": "localpanel", "x": 0, "y": 6,  "w": 8,  "h": 11, "config": {}},
-        # community observation is half the product — a tall column, week window.
-        {"id": "w7", "type": "reports",    "x": 8, "y": 6,  "w": 4,  "h": 5,
+        {"id": "wnow", "type": "now",      "x": 0, "y": 0,  "w": 12, "h": 5,
+         "config": {"station": "@here"}},
+        {"id": "wfc",  "type": "forecast", "x": 0, "y": 5,  "w": 8,  "h": 7,
+         "config": {"station": "@here", "hours": 48}},
+        {"id": "wair", "type": "aqi",      "x": 8, "y": 5,  "w": 4,  "h": 7,
+         "config": {"station": "@here"}},
+        {"id": "wmap", "type": "map",      "x": 0, "y": 12, "w": 12, "h": 6,
+         "config": {}},
+        {"id": "wrep", "type": "reports",  "x": 0, "y": 18, "w": 12, "h": 4,
          "config": {"hours": 168}},
-        {"id": "w6", "type": "lightning",  "x": 8, "y": 11, "w": 4,  "h": 3, "config": {}},
-        {"id": "w9", "type": "health",     "x": 8, "y": 14, "w": 4,  "h": 3, "config": {}},
     ],
 }
 

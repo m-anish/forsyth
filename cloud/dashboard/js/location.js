@@ -65,8 +65,13 @@ const ForsythLoc = (() => {
       }
     } catch { /* fall through to placeholder */ }
 
-    /* 3) nothing → let the reader choose */
-    activeSlug = null;
+    /* 3) nothing known → answer anyway. A weather site whose first words are
+          "pick a location" has asked the reader to work before telling them
+          anything (docs/v2-design.md §3.3). Default to the first sited station
+          — where there is only one, that IS the answer — and deliberately do
+          NOT persist it, so a real choice or a later geolocation grant still
+          wins on the next visit. */
+    activeSlug = sited[0].slug;
   }
 
   /* on-demand: the reader tapped "use my location" — here we may prompt */

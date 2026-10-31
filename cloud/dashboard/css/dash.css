@@ -823,3 +823,11 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
 }
 .leaflet-control-attribution a { color: var(--text-dim) !important; border-bottom: none; }
 .leaflet-control-attribution a:hover { color: var(--accent) !important; }
+
+/* wind direction arrow — inline with the speed it belongs to. Rotation is set
+   per-element by windArrow() in common.js; keeping the transform there means
+   the glyph and its bearing can never drift apart. */
+.wind-arrow { display: inline-block; vertical-align: -1px; margin-right: 2px; opacity: .85; }
+
+/* one line of what the air quality number means for a person's day */
+.aqi-advice { margin: 6px 0 2px; font-size: .82rem; color: var(--fg-2); line-height: 1.35; }
