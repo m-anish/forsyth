@@ -69,7 +69,10 @@ DEFAULT_LAYOUT = {
          "config": {"station": "@here"}},
         {"id": "wfc",  "type": "forecast", "x": 0, "y": 5,  "w": 8,  "h": 7,
          "config": {"station": "@here", "hours": 48}},
-        {"id": "wair", "type": "aqi",      "x": 8, "y": 5,  "w": 4,  "h": 7,
+        # h5 not h7: one-column mode on a phone keeps the desktop height, and
+        # the air card holds ~220px of content — matching the forecast's height
+        # for desktop symmetry left a 560px mostly-empty card on mobile.
+        {"id": "wair", "type": "aqi",      "x": 8, "y": 5,  "w": 4,  "h": 5,
          "config": {"station": "@here"}},
         {"id": "wmap", "type": "map",      "x": 0, "y": 12, "w": 12, "h": 6,
          "config": {}},

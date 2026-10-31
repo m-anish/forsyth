@@ -70,8 +70,14 @@ const ForsythLoc = (() => {
           anything (docs/v2-design.md §3.3). Default to the first sited station
           — where there is only one, that IS the answer — and deliberately do
           NOT persist it, so a real choice or a later geolocation grant still
-          wins on the next visit. */
-    activeSlug = sited[0].slug;
+          wins on the next visit.
+          Prefer a station that has actually been heard from, most recent
+          first: a registered-but-silent station (one exists) would otherwise
+          become the default and greet every visitor with a confident "—",
+          which is worse than asking them to choose. */
+    const heard = sited.filter(s => s.last_seen)
+      .sort((a, b) => new Date(b.last_seen) - new Date(a.last_seen));
+    activeSlug = (heard[0] || sited[0]).slug;
   }
 
   /* on-demand: the reader tapped "use my location" — here we may prompt */
