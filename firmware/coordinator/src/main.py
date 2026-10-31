@@ -146,6 +146,13 @@ def _handle_frame(radio, up, payload, rssi):
         if "vane_adc" in msg:
             print("   diag: vane_adc=%d mcu_temp=%s"
                   % (msg["vane_adc"], msg.get("mcu_temp_c")))
+        # Raw cumulative tips, not mm. During a manual tipping test this is the
+        # number to watch: rain_mm is a DIFFERENCE between consecutive packets
+        # and is suppressed entirely on a re-baseline, so it can read 0 or
+        # vanish while the counter underneath is moving correctly.
+        if "rain_tips" in msg:
+            print("   diag: rain_tips=%d (cumulative since leaf boot)"
+                  % msg["rain_tips"])
         # Present at all = the two temperature sensors disagreed, or verbose is
         # on. Worth a line of its own either way: outside verbose this is a
         # fault report, not a diagnostic (PROTOCOL.md reading bit 14).

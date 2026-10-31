@@ -49,6 +49,13 @@ ifdef DIAG_BOOST
 CFLAGS += -DDIAG_BOOST
 endif
 
+# Rain/anemometer diagnostic: LED blinks once per COUNTED pulse (rain = long,
+# anemo = short). Hand-tip the bucket / hand-turn the cups and count blinks.
+#   make clean && make DIAG_PULSE=1 && make flash PORT=...
+ifdef DIAG_PULSE
+CFLAGS += -DDIAG_PULSE
+endif
+
 # RF-link diagnostic: unconfigured (factory-default) E220, blind-send test
 # packets. Pair with the coordinator debug listener.
 #   make clean && make DIAG_LORATX=1 && make flash PORT=...

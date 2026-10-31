@@ -51,10 +51,24 @@ ISR(PORTA_PORT_vect)
     }
     if (flags & RAIN_bm) {
         static uint16_t last;
-        if (!(RAIN_PORT.IN & RAIN_bm) &&
-            (uint16_t)(now - last) >= RAIN_DEBOUNCE_MS) {
-            v_rain_tips++;
-            last = now;
+        static uint32_t last_s;
+        /* The RTC tick counter is 16-bit at 1024 Hz, so it wraps every ~64 s.
+         * (now - last) is wrap-correct only for gaps SHORTER than that: a tip
+         * landing ~64 s (or 128 s, or 192 s…) after the previous one computes
+         * a near-zero difference and was silently rejected as a bounce. Real
+         * tips are usually minutes apart, so that is a rare but permanent
+         * undercount — ~0.2 % of tips, forever, biased low.
+         * The seconds counter has no such horizon: anything at least 2 s after
+         * the last accepted tip is unambiguously a new one, whatever the tick
+         * arithmetic says, so it short-circuits the comparison.             */
+        if (!(RAIN_PORT.IN & RAIN_bm)) {
+            uint32_t nows = g_uptime_s;
+            if ((uint32_t)(nows - last_s) >= 2 ||
+                (uint16_t)(now - last) >= RAIN_DEBOUNCE_MS) {
+                v_rain_tips++;
+                last = now;
+                last_s = nows;
+            }
         }
     }
 }
@@ -480,6 +494,10 @@ int main(void)
 
     hal_init();
 
+#ifdef DIAG_PULSE
+    uint16_t seen_rain = 0, seen_anemo = 0;
+#endif
+
 #ifdef DIAG_BOOST
     /* Bench diagnostic (build with DIAG_BOOST=1): bring up ONLY the E220's
      * 5 V boost via the normal pre-power sequence and hold it on, so the
@@ -490,6 +508,38 @@ int main(void)
     for (;;) {
         hal_led_blink(1, 40);
         hal_delay_ms(900);                  /* hal_delay_ms feeds the WDT    */
+        hal_wdt_reset();
+    }
+#endif
+
+#ifdef DIAG_PULSE
+    /* Rain / anemometer bring-up (build with DIAG_PULSE=1): no radio, no I2C,
+     * no sleep, no reporting — just the two pulse ISRs and the LED. One blink
+     * = one pulse the FIRMWARE ACTUALLY CREDITED, debounce and all, so what
+     * you see is the counter's truth rather than the switch's:
+     *   rain  (PA5): one LONG  blink (250 ms)
+     *   anemo (PA4): one SHORT blink (40 ms)
+     *
+     * Tip the bucket by hand: one physical tip must give exactly ONE long
+     * blink. Two means the bucket's mechanical rock is carrying the magnet
+     * past the reed twice and RAIN_DEBOUNCE_MS is too short — raise it, there
+     * is enormous headroom (see config.h). Zero means the reed, the cable or
+     * the pull-up, not the firmware.
+     *
+     * Turn the cups slowly BY HAND to count closures per revolution. The
+     * blinks are blocking, so this is a hand-speed test only: a drill-spin
+     * loses counts to the LED, not to the ISR — do not read it as a fault. */
+    for (;;) {
+        uint16_t r, a;
+        ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { r = v_rain_tips; a = v_anemo_pulses; }
+        while (seen_rain != r) {
+            seen_rain++;
+            hal_led(1); hal_delay_ms(250); hal_led(0); hal_delay_ms(150);
+        }
+        while (seen_anemo != a) {
+            seen_anemo++;
+            hal_led(1); hal_delay_ms(40); hal_led(0); hal_delay_ms(60);
+        }
         hal_wdt_reset();
     }
 #endif
