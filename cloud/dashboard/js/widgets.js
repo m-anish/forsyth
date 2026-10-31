@@ -119,35 +119,104 @@ const Widgets = (() => {
     el._chartKey = key;
   }
 
+  /* A rose scaled by frequency alone cannot answer the question it is usually
+     asked — does this direction bring a breeze or a gale? Petals are stacked
+     by speed band, the outer ring states what share of the time it represents,
+     and calm sits in the hole at the centre because a still vane has no
+     direction to contribute. docs/v2-design.md §7.3. */
+  const ROSE_BANDS = ['rose-b1', 'rose-b2', 'rose-b3', 'rose-b4'];
+
   async function windrose(el, config) {
     const s = await pick(config, el);
     if (!s) return;
-    const { bins, total } = await getJSON(`/stations/${s.slug}/windrose?hours=${config.hours || 24}`);
-    /* 240-unit viewBox: the cardinal labels scale with the SVG, so they need to
-       be a decent fraction of it to stay readable in a small card */
-    const cx = 120, cy = 120, rMax = 96, rLab = rMax + 14;
-    const maxN = Math.max(1, ...bins.map(b => b.n));
+    const hours = config.hours || 24;
+    const d = await getJSON(`/stations/${s.slug}/windrose?hours=${hours}`);
+    const bins = d.bins || [];
+    const total = d.total || 0;
+    const nb = (d.band_edges_ms || [2, 4, 8]).length + 1;
+
+    /* 240-unit viewBox: cardinal labels scale with the SVG, so they need to be
+       a decent fraction of it to stay readable in a small card. */
+    const cx = 120, cy = 120, rMax = 92, r0 = 20, rLab = rMax + 15;
+    const maxN = Math.max(1, ...bins.map(b => b.n || 0));
+    const rAt = frac => r0 + (rMax - r0) * frac;
+    const pt = (r, a) => `${(cx + r * Math.cos(a)).toFixed(2)},${(cy + r * Math.sin(a)).toFixed(2)}`;
+
     let out = '';
-    for (const rr of [0.33, 0.66, 1.0]) out += `<circle class="ring" cx="${cx}" cy="${cy}" r="${rMax*rr}"/>`;
+    for (const rr of [0.34, 0.67, 1.0]) {
+      out += `<circle class="ring" cx="${cx}" cy="${cy}" r="${rAt(rr).toFixed(2)}"/>`;
+    }
+
     bins.forEach((b, i) => {
       if (!b.n) return;
-      const r = rMax * (b.n / maxN);
-      const a0 = ((i*22.5 - 90 - 10) * Math.PI) / 180, a1 = ((i*22.5 - 90 + 10) * Math.PI) / 180;
-      out += `<path class="spoke" d="M${cx},${cy} L${cx + r*Math.cos(a0)},${cy + r*Math.sin(a0)}
-              A${r},${r} 0 0 1 ${cx + r*Math.cos(a1)},${cy + r*Math.sin(a1)} Z"/>`;
+      const bands = b.bands || [b.n];
+      const a0 = ((i * 22.5 - 90 - 9.5) * Math.PI) / 180;
+      const a1 = ((i * 22.5 - 90 + 9.5) * Math.PI) / 180;
+      let cum = 0;
+      for (let k = 0; k < nb; k++) {
+        const n = bands[k] || 0;
+        if (!n) { continue; }
+        const rIn = rAt(cum / maxN);
+        cum += n;
+        const rOut = rAt(cum / maxN);
+        /* annular wedge: out along a0, arc to a1, back in, arc home */
+        out += `<path class="spoke ${ROSE_BANDS[Math.min(k, ROSE_BANDS.length - 1)]}" d="`
+             + `M${pt(rIn, a0)} L${pt(rOut, a0)}`
+             + ` A${rOut.toFixed(2)},${rOut.toFixed(2)} 0 0 1 ${pt(rOut, a1)}`
+             + ` L${pt(rIn, a1)}`
+             + ` A${rIn.toFixed(2)},${rIn.toFixed(2)} 0 0 0 ${pt(rIn, a0)} Z"/>`;
+      }
     });
-    for (const [t, i] of [['N',0],['E',4],['S',8],['W',12]]) {
-      const a = ((i*22.5 - 90) * Math.PI) / 180;
-      out += `<text x="${cx + rLab*Math.cos(a)}" y="${cy + rLab*Math.sin(a)+5}" text-anchor="middle">${t}</text>`;
+
+    /* What the outer ring is worth, so the petals mean something absolute.
+       Without this a reader cannot tell 10 % of the time from 60 %. */
+    if (total) {
+      const pct = Math.round((maxN / total) * 100);
+      out += `<text class="rose-ring" x="${cx + 3}" y="${cy - rMax + 1}">${pct}%</text>`;
     }
-    if (!total) out += `<text class="rose-empty" x="${cx}" y="${cy}" text-anchor="middle">no wind data</text>`;
+
+    for (const [txt, i] of [['N', 0], ['E', 4], ['S', 8], ['W', 12]]) {
+      const a = ((i * 22.5 - 90) * Math.PI) / 180;
+      out += `<text class="rose-card" x="${(cx + rLab * Math.cos(a)).toFixed(1)}"`
+           + ` y="${(cy + rLab * Math.sin(a) + 5).toFixed(1)}" text-anchor="middle">${txt}</text>`;
+    }
+
+    /* calm lives in the hole: it has no direction to be drawn in */
+    out += `<circle class="rose-hole" cx="${cx}" cy="${cy}" r="${r0 - 1}"/>`;
+    if (d.calm_pct !== undefined && d.samples) {
+      out += `<text class="rose-calm" x="${cx}" y="${cy - 1}" text-anchor="middle">${Math.round(d.calm_pct)}%</text>`
+           + `<text class="rose-calmlab" x="${cx}" y="${cy + 9}" text-anchor="middle">calm</text>`;
+    }
+    if (!total && !(d.samples || 0)) {
+      out += `<text class="rose-empty" x="${cx}" y="${cy + 34}" text-anchor="middle">no wind data yet</text>`;
+    }
+
+    /* the sentence most readers actually wanted from the rose */
+    let lead = '';
+    if (total) {
+      let bi = 0;
+      bins.forEach((b, i) => { if ((b.n || 0) > (bins[bi].n || 0)) bi = i; });
+      const pct = Math.round((bins[bi].n / total) * 100);
+      lead = `<p class="rose-lead">Mostly from the <b>${dirName(bi * 22.5)}</b>`
+           + `<span class="rose-dim"> · ${pct}% of the time it blows</span></p>`;
+    } else if (d.samples) {
+      lead = `<p class="rose-lead">Still air — no wind to speak of in the last ${hours} h.</p>`;
+    }
+
+    const edges = (d.band_edges_ms || [2, 4, 8]).map(v => Math.round(v * 3.6));
+    const legend = total ? `<div class="rose-legend">` + ROSE_BANDS.slice(0, nb).map((c, k) => {
+      const txt = k === 0 ? `<${edges[0]}`
+                : k === nb - 1 ? `${edges[nb - 2]}+`
+                : `${edges[k - 1]}–${edges[k]}`;
+      return `<span class="rose-key"><i class="${c}"></i>${txt}</span>`;
+    }).join('') + `<span class="rose-key rose-dim">km/h</span></div>` : '';
+
     /* no width/height: the SVG scales to its container via the viewBox (CSS
-       keeps it square), so the rose fills whatever card it is dropped into.
-       `label: false` drops the caption where the station is already named by
-       an enclosing title (station page panel, homepage local panel). */
+       keeps it square), so the rose fills whatever card it is dropped into. */
     el.innerHTML = `<svg class="rose" viewBox="0 0 240 240" preserveAspectRatio="xMidYMid meet">${out}</svg>`
+      + lead + legend
       + (config.label === false ? ''
-         : `<div class="wg-sub" style="text-align:center">${s.name} · ${config.hours || 24} h</div>`);
+         : `<div class="wg-sub" style="text-align:center">${s.name} · ${hours} h</div>`);
   }
 
   async function aqiW(el, config) {

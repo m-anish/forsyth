@@ -139,24 +139,69 @@ def series(
     }
 
 
+# Wind-speed bands for the rose, in m/s. Anything below CALM_MS is not given a
+# direction at all: a cup anemometer at a standstill leaves the vane pointing
+# wherever it last was, so counting those samples would inflate whichever
+# direction the vane happened to be resting in. Calm is reported as its own
+# share instead (docs/v2-design.md §7.3).
+ROSE_CALM_MS = 0.5
+ROSE_BAND_EDGES = [2.0, 4.0, 8.0]      # → bands <2, 2–4, 4–8, ≥8 m/s
+
+
 @router.get("/stations/{slug}/windrose")
 def windrose(slug: str, hours: float = Query(24, gt=0, le=24 * 366)):
-    """16 compass bins: sample count + mean speed per bin."""
+    """16 compass bins × 4 speed bands, plus the calm share.
+
+    Frequency alone cannot say whether a direction brings a breeze or a gale,
+    which is the question a rose is usually being asked. `bands` carries the
+    per-bin speed distribution; `n` and `speed` remain for older callers.
+    """
     since = datetime.now(timezone.utc) - timedelta(hours=hours)
     sql = text("""
         SELECT (floor((((wind_dir_deg + 11.25)::numeric % 360) / 22.5))::int) AS bin,
+               width_bucket(wind_avg_ms, :edges) AS band,
                count(*) AS n, avg(wind_avg_ms) AS speed
         FROM readings
-        WHERE station_id = :sid AND ts >= :since AND wind_dir_deg IS NOT NULL
-        GROUP BY bin ORDER BY bin
+        WHERE station_id = :sid AND ts >= :since
+          AND wind_dir_deg IS NOT NULL AND wind_avg_ms IS NOT NULL
+          AND wind_avg_ms >= :calm
+        GROUP BY bin, band ORDER BY bin
+    """)
+    totals_sql = text("""
+        SELECT count(*) FILTER (WHERE wind_avg_ms < :calm) AS calm,
+               count(*) AS samples
+        FROM readings
+        WHERE station_id = :sid AND ts >= :since AND wind_avg_ms IS NOT NULL
     """)
     with engine.connect() as conn:
         sid = _station_id(conn, slug)
-        rows = conn.execute(sql, {"sid": sid, "since": since}).all()
-    bins = [{"n": 0, "speed": 0.0} for _ in range(16)]
-    for b, n, speed in rows:
-        bins[int(b)] = {"n": n, "speed": round(speed or 0, 2)}
-    return {"bins": bins, "total": sum(b["n"] for b in bins)}
+        rows = conn.execute(sql, {"sid": sid, "since": since,
+                                  "calm": ROSE_CALM_MS,
+                                  "edges": ROSE_BAND_EDGES}).all()
+        calm, samples = conn.execute(
+            totals_sql, {"sid": sid, "since": since, "calm": ROSE_CALM_MS}).one()
+
+    nb = len(ROSE_BAND_EDGES) + 1
+    bins = [{"n": 0, "speed": 0.0, "bands": [0] * nb} for _ in range(16)]
+    weighted = [0.0] * 16
+    for b, band, n, speed in rows:
+        i = int(b)
+        bins[i]["bands"][min(int(band), nb - 1)] += n
+        bins[i]["n"] += n
+        weighted[i] += float(speed or 0) * n
+    for i, b in enumerate(bins):
+        b["speed"] = round(weighted[i] / b["n"], 2) if b["n"] else 0.0
+
+    total = sum(b["n"] for b in bins)
+    return {
+        "bins": bins,
+        "total": total,                      # samples with a usable direction
+        "calm": calm,                        # samples below ROSE_CALM_MS
+        "samples": samples,                  # every sample with a wind reading
+        "calm_pct": round(100 * calm / samples, 1) if samples else 0.0,
+        "calm_ms": ROSE_CALM_MS,
+        "band_edges_ms": ROSE_BAND_EDGES,
+    }
 
 
 @router.get("/lightning")

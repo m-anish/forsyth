@@ -27,6 +27,7 @@
   --ch-axis: #63676e;  --ch-grid: #1c1f26;
   --ch-temp: #c47f7f;  --ch-rh:   #7fa2c4;  --ch-pres: #b8a06a;
   --ch-wind: #7fa2c4;  --ch-gust: #c9a15a;  --ch-gust-fill: rgba(201,161,90,0.20);
+  --rose-1: #3f5f73;   --rose-2: #5f8aa6;   --rose-3: #8fb6c9;   --rose-4: #d9b06a;
   --ch-rain: #7fa2c4;  --ch-rain-fill: rgba(127,162,196,0.25);
   --ch-pm25: #c9a15a;  --ch-pm10: #8a6a4a;  --ch-batt: #7fb98a;
 }
@@ -51,6 +52,7 @@
   --ch-axis: #80858c;  --ch-grid: #e3e1d8;
   --ch-temp: #b05555;  --ch-rh:   #3f6c96;  --ch-pres: #8a6f38;
   --ch-wind: #3f6c96;  --ch-gust: #96702c;  --ch-gust-fill: rgba(150,112,44,0.16);
+  --rose-1: #c3d4de;   --rose-2: #8bafc6;   --rose-3: #4f7d9b;   --rose-4: #96702c;
   --ch-rain: #3f6c96;  --ch-rain-fill: rgba(63,108,150,0.18);
   --ch-pm25: #96702c;  --ch-pm10: #6b4f33;  --ch-batt: #3e7d4f;
 }
@@ -355,8 +357,33 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
   display: block; margin: 0 auto; aspect-ratio: 1 / 1;
   height: 100%; width: auto; max-width: 100%; max-height: 100%;
 }
-.rose .spoke { fill: color-mix(in srgb, var(--accent) 50%, transparent); stroke: var(--accent); stroke-width: 0.5; }
+/* Petals are stacked by speed band, so each segment is a solid fill from the
+   ramp rather than one translucent accent — the whole point is that the eye
+   can read speed and direction at once (docs/v2-design.md §7.3). */
+.rose .spoke { stroke: var(--bg-1); stroke-width: 0.4; }
+.rose .spoke.rose-b1 { fill: var(--rose-1); }
+.rose .spoke.rose-b2 { fill: var(--rose-2); }
+.rose .spoke.rose-b3 { fill: var(--rose-3); }
+.rose .spoke.rose-b4 { fill: var(--rose-4); }
 .rose .ring { fill: none; stroke: var(--border); }
+/* calm has no direction, so it gets the hole in the middle instead of a petal */
+.rose .rose-hole { fill: var(--bg-1); stroke: var(--border); stroke-width: 0.5; }
+.rose text.rose-calm { font-size: 15px; fill: var(--text); }
+.rose text.rose-calmlab { font-size: 8.5px; fill: var(--text-dim); letter-spacing: .06em; }
+/* what the outer ring is worth — without it the petals have no absolute scale */
+.rose text.rose-ring { font-size: 9px; fill: var(--text-dim); }
+.rose text.rose-card { font-size: 14px; }
+
+.rose-lead { margin: 6px 0 2px; text-align: center; font-size: .86rem; color: var(--text); }
+.rose-dim { color: var(--text-dim); font-weight: 400; }
+.rose-legend { display: flex; flex-wrap: wrap; gap: 4px 10px; justify-content: center;
+  margin-top: 4px; font-family: var(--mono); font-size: 10px; color: var(--text-mute); }
+.rose-key { display: inline-flex; align-items: center; gap: 4px; }
+.rose-key i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
+.rose-key i.rose-b1 { background: var(--rose-1); }
+.rose-key i.rose-b2 { background: var(--rose-2); }
+.rose-key i.rose-b3 { background: var(--rose-3); }
+.rose-key i.rose-b4 { background: var(--rose-4); }
 /* sized in viewBox units (240 wide), so this scales with the rose — 9px was
    ~6 real px in a small card, which was barely legible */
 .rose text { fill: var(--text-mute); font-family: var(--mono); font-size: 14px; }
