@@ -375,13 +375,27 @@ const Widgets = (() => {
     /* shared renderer (js/common.js) — strip only when the widget is short.
        `reuse` lets it bail out when the model run hasn't changed: forecasts
        refresh every 3 h, so rebuilding this every minute was pure churn. */
+    /* The grid settles AFTER the first render, so a card measured while it was
+       still 80px tall decided "too short for a chart" — and because the reuse
+       signature did not include that decision, the guard then locked the
+       chartless version in for good. Same failure as the map's: a measurement
+       taken before layout finished, trusted forever. The decision is part of
+       the signature now, and a ResizeObserver re-renders once the card
+       actually reaches its height. */
+    const wantChart = el.clientHeight > 190;
     el._uplot = await renderForecast(el, s.slug, {
       hours,
-      chart: el.clientHeight > 190,
+      chart: wantChart,
       fit: true,   /* measure the leftover space instead of guessing at it */
-      reuse: el._fcSig === `${s.slug}|${hours}`,
+      reuse: el._fcSig === `${s.slug}|${hours}|${wantChart}`,
     });
-    el._fcSig = `${s.slug}|${hours}`;
+    el._fcSig = `${s.slug}|${hours}|${wantChart}`;
+    if (!el._fcRo) {
+      el._fcRo = new ResizeObserver(() => {
+        if (el.clientHeight > 190 && !el._uplot) forecast(el, config);
+      });
+      el._fcRo.observe(el);
+    }
   }
 
   async function reports(el, config) {
