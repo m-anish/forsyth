@@ -39,7 +39,13 @@ _READING_FIELDS = (
     ("vane_adc", "<H", 1),
     ("mcu_temp_c", "<h", 0.01),
     ("ltg_stats", "3B", 1),
+    ("temp_delta_c", "<h", 0.01),     # SHTx minus BMx280; sensor cross-check
 )
+
+# Mirrors ENV_TEMP_DIVERGE_X100 in leaf/src/config.h. The leaf decides what to
+# SEND; this is only what the coordinator calls loud enough to shout about,
+# since bit 14 also arrives routinely while the leaf's verbose knob is on.
+TEMP_DIVERGE_C = 3.0
 
 # ACK TLV types (encode side)
 TLV_INTERVAL = 0x01
@@ -97,7 +103,7 @@ def parse(frame):
                 vals[0] * scale if scale != 1 else vals[0])
         # tidy floats
         for k in ("temp_c", "rh", "wind_avg_ms", "wind_gust_ms",
-                  "wind_dir_deg", "batt_v", "mcu_temp_c"):
+                  "wind_dir_deg", "batt_v", "mcu_temp_c", "temp_delta_c"):
             if k in out:
                 out[k] = round(out[k], 3)
     elif out["type"] == T_LIGHTNING:

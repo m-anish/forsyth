@@ -319,8 +319,8 @@ static void do_report(void)
     /* Priority stack: SHTx (SHT3x/SHTC3) owns temp+RH; BMx280 owns pressure and
      * fills temp (and, on a BME280, RH) when no SHTx is present. Packed in
      * mask-bit order: TEMP(0), RH(1), PRESS(2).                              */
-    int16_t  temp; uint16_t rh; uint32_t pa;
-    uint8_t  env = env_read(&temp, &rh, &pa);
+    int16_t  temp; uint16_t rh; uint32_t pa; int16_t temp_delta = 0;
+    uint8_t  env = env_read(&temp, &rh, &pa, &temp_delta);
     if (env & ENV_TEMP)  { mask |= FLP_R_TEMP;  po = flp_put16(payload, po, (uint16_t)temp); }
     if (env & ENV_RH)    { mask |= FLP_R_RH;    po = flp_put16(payload, po, rh); }
     if (env & ENV_PRESS) { mask |= FLP_R_PRESS; po = flp_put32(payload, po, pa); }
@@ -382,6 +382,18 @@ static void do_report(void)
         po = flp_put8(payload, po, st_disturbers);
         po = flp_put8(payload, po, st_noise);
         st_strikes = st_disturbers = st_noise = 0;
+    }
+
+    /* Sensor cross-check, packed LAST (highest mask bit) so a coordinator that
+     * predates the bit ignores it instead of mis-parsing the fields after it.
+     * Sent whenever the two temperature sources disagree beyond the threshold
+     * — that presence is itself the alarm — and additionally while verbose, so
+     * commissioning can watch the spread before it becomes a fault.          */
+    if ((env & ENV_XCHECK) &&
+        (g_cfg.verbose || temp_delta >=  ENV_TEMP_DIVERGE_X100
+                       || temp_delta <= -ENV_TEMP_DIVERGE_X100)) {
+        mask |= FLP_R_TEMPDELTA;
+        po = flp_put16(payload, po, (uint16_t)temp_delta);
     }
 
     size_t o = flp_begin(frame, FLP_T_READING, STATION_ID, ++g_seq,

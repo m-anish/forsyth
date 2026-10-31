@@ -178,6 +178,22 @@ typedef struct { uint16_t adc; uint16_t deg_x10; } vane_entry_t;
                                         drives the charge policy; the factory
                                         sigrow cal is ±3 °C — bench-check it  */
 
+/* Cross-check between the two temperature sources, when Board B carries both.
+ * env_read()'s priority stack gives temp_c to the SHTx whenever it answers and
+ * throws the BMx280's reading away — right by default (better part, and CRC'd)
+ * but it means a drifting-yet-responsive SHTx silently beats a healthy BME280.
+ * Both numbers are already in hand, so the leaf ships the signed difference
+ * (SHTx - BMx280) when it gets large, on reading mask bit 14.
+ *
+ * 3.00 °C [C]: comfortably outside the two parts' combined spec error — SHTC3
+ * ±0.2 °C typ / ±0.8 worst, BME280 ±0.5 typ / ±1.0 worst, so ~1.8 °C even if
+ * both are at their limits and opposite — while still tight enough to catch a
+ * part that has actually gone wrong. Lower it and normal part-to-part spread
+ * starts crying wolf; raise it much and you stop catching slow drift.
+ * Not OTA-settable: it is a fault threshold, not a calibration, and the
+ * verbose knob already streams the raw delta when you want to watch it.      */
+#define ENV_TEMP_DIVERGE_X100 300
+
 /* ================= battery & power policy ================================ */
 #define VBAT_DIV_NUM        4030     /* [B] divider ratio ×1000. Nominal
                                         (1 M + 330 k)/330 k = 4.0303; measure

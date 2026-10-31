@@ -129,7 +129,7 @@ def _handle_frame(radio, up, payload, rssi):
         r = {"ts": uplink_mod.iso_now(), "rssi_dbm": rssi}
         for k in ("temp_c", "rh", "pressure_pa", "wind_avg_ms",
                   "wind_gust_ms", "wind_dir_deg", "pm1", "pm25", "pm10",
-                  "batt_v"):
+                  "batt_v", "temp_delta_c"):
             if k in msg:
                 r[k] = msg[k]
         if "rain_tips" in msg:
@@ -146,6 +146,15 @@ def _handle_frame(radio, up, payload, rssi):
         if "vane_adc" in msg:
             print("   diag: vane_adc=%d mcu_temp=%s"
                   % (msg["vane_adc"], msg.get("mcu_temp_c")))
+        # Present at all = the two temperature sensors disagreed, or verbose is
+        # on. Worth a line of its own either way: outside verbose this is a
+        # fault report, not a diagnostic (PROTOCOL.md reading bit 14).
+        if "temp_delta_c" in msg:
+            print("   sensor cross-check: SHTx-BMx280 = %+.2f C%s"
+                  % (msg["temp_delta_c"],
+                     "  <-- DIVERGED"
+                     if abs(msg["temp_delta_c"]) >= protocol.TEMP_DIVERGE_C
+                     else ""))
     elif msg["type"] == protocol.T_LIGHTNING:
         ev = {"ts": uplink_mod.iso_ago(msg["age_s"]),
               "energy": msg["energy"], "count": msg["count"]}

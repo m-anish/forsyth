@@ -189,7 +189,8 @@ uint8_t bmx_read(int16_t *temp_c_x100, uint16_t *rh_x100, uint32_t *pa, uint8_t 
 /* Priority stack: a dedicated SHTx owns T/RH; the BMx280 owns pressure and is
  * the T (and, on a BME280, RH) fallback when no SHTx answers. Returns a bitmask
  * of which of ENV_TEMP | ENV_RH | ENV_PRESS are valid. */
-uint8_t env_read(int16_t *temp_c_x100, uint16_t *rh_x100, uint32_t *pa)
+uint8_t env_read(int16_t *temp_c_x100, uint16_t *rh_x100, uint32_t *pa,
+                 int16_t *temp_delta_x100)
 {
     uint8_t have = 0;
 
@@ -206,6 +207,19 @@ uint8_t env_read(int16_t *temp_c_x100, uint16_t *rh_x100, uint32_t *pa)
 
     if (sht_ok)                 { *rh_x100 = st_rh; have |= ENV_RH; }  /* rh: SHTx first */
     else if (bmx_ok && bme_rh)  { *rh_x100 = brh;   have |= ENV_RH; }
+
+    /* Cross-check. The stack above DISCARDS bt whenever an SHTx answers, so a
+     * drifting-but-responsive SHTx outranks a healthy BME280 and nothing
+     * notices. Both numbers are already in hand here, so the disagreement
+     * costs one subtraction. Only meaningful when both answered: with one
+     * device there is nothing to disagree with.
+     * No overflow risk — both are sensor-converted °C ×100 (SHT range
+     * -4500..13000, BMx280 similar), so the difference stays well inside
+     * int16 even at the extremes.                                           */
+    if (sht_ok && bmx_ok) {
+        *temp_delta_x100 = (int16_t)(st_t - bt);
+        have |= ENV_XCHECK;
+    }
 
     return have;
 }

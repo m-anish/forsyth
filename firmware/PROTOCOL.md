@@ -80,11 +80,28 @@ Payload: `u16 field_mask`, then only the present fields, packed in bit order:
 | 11 | vane_adc | u16 | raw 12-bit ADC — diagnostic, sent when verbose knob on. **This is how you calibrate the vane LUT remotely.** |
 | 12 | mcu_temp_c | i16 ×100 | internal sensor; the charge-inhibit policy input, sent verbose |
 | 13 | ltg_stats | u8×3 | strikes / disturbers / noise events since last reading |
-| 14–15 | reserved | | |
+| 14 | temp_delta_c | i16 ×100 | **sensor cross-check**: SHTx temp *minus* BMx280 temp, sent only when BOTH answered. Present whenever \|delta\| ≥ the leaf's divergence threshold, and additionally while the verbose knob is on. See below. |
+| 15 | reserved | | |
 
 Wind avg is engineering units but rain is raw counts — asymmetric on purpose: wind is
 instantaneous (nothing accumulates, loss loses nothing), rain is cumulative (a counter
 survives packet loss; a pre-computed delta doesn't).
+
+**Bit 14, the temperature cross-check.** Board B can carry two devices that measure
+temperature — an SHTx and a BMx280 — and `env_read()`'s priority stack hands `temp_c`
+to the SHTx whenever it answers, discarding the BMx280's reading. That is the right
+default (the SHTx is the better instrument and is CRC-checked) but it means a
+*drifting yet responsive* SHTx silently outranks a healthy BME280, with nothing
+anywhere recording the disagreement. Bit 14 closes that hole: the leaf already has
+both numbers in hand, so it ships the signed difference.
+
+Absence of the bit is not "they agree" — it also covers *only one sensor present*,
+which is the common case on a Board-B-less leaf. Presence of the bit outside verbose
+mode IS the alarm; the value tells you which way and by how much. Sign convention is
+SHTx − BMx280, so a positive delta means the reported `temp_c` reads high relative to
+the cross-check. It is packed last, at the highest mask bit, so a coordinator built
+before this bit existed ignores it and mis-parses nothing: the unknown field lands at
+the tail of the payload and is never reached.
 
 ### Type 0x02 — LIGHTNING (leaf → coordinator, sent promptly)
 

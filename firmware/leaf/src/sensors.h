@@ -17,6 +17,7 @@
 #define ENV_TEMP   0x01
 #define ENV_RH     0x02
 #define ENV_PRESS  0x04
+#define ENV_XCHECK 0x08   /* BOTH temp sources answered; *temp_delta_x100 set */
 
 uint8_t shtc3_read(int16_t *temp_c_x100, uint16_t *rh_x100);
 uint8_t sht3x_read(uint8_t addr, int16_t *temp_c_x100, uint16_t *rh_x100);
@@ -26,7 +27,11 @@ uint8_t bme280_init(void);                                    /* trimming + conf
 uint8_t bmx_read(int16_t *temp_c_x100, uint16_t *rh_x100,
                  uint32_t *pa, uint8_t *has_rh);              /* BMP280/BME280 */
 
-/* combined read with the priority stack; returns ENV_* bitmask of valid fields */
-uint8_t env_read(int16_t *temp_c_x100, uint16_t *rh_x100, uint32_t *pa);
+/* Combined read with the priority stack; returns an ENV_* bitmask of valid
+ * fields. temp_delta_x100 receives (SHTx - BMx280) °C ×100 and is only
+ * meaningful when ENV_XCHECK is set — i.e. when both devices answered, which
+ * is the only time their disagreement means anything.                        */
+uint8_t env_read(int16_t *temp_c_x100, uint16_t *rh_x100, uint32_t *pa,
+                 int16_t *temp_delta_x100);
 
 #endif
