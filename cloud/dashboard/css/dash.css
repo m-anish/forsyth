@@ -226,9 +226,17 @@ h1.headline {
 .wg-map { isolation: isolate; }   /* same rule for the board widget's map */
 #map { height: 400px; width: 100%; }
 .leaflet-container { background: var(--bg-elev); font: 12px/1.4 var(--sans); }
+/* --bg-card lands within a few percent of the dark basemap, so the popup read
+   as text floating on the map rather than a panel sitting over it. It gets a
+   brighter border, a deeper shadow and a backdrop blur — a popup has to look
+   like it is ABOVE the map, whatever the tiles happen to be doing underneath. */
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
   background: var(--bg-card); color: var(--text);
-  border: 1px solid var(--border-2); box-shadow: 0 6px 24px var(--shadow);
+  border: 1px solid var(--border); box-shadow: 0 10px 34px rgba(0,0,0,.55);
+}
+.leaflet-popup-content-wrapper {
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  outline: 1px solid rgba(255,255,255,.04); outline-offset: -2px;
 }
 .leaflet-popup-content { margin: 12px 16px; }
 .map-pop h4 { font-family: var(--serif); font-size: 17px; margin: 0 0 6px; }
