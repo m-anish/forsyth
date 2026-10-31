@@ -913,3 +913,20 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
 .spark { display: block; width: 100%; height: 30px; margin: 2px 0; }
 .spark path { fill: none; stroke: var(--ch-temp); stroke-width: 1.6;
   stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+
+/* ---- trend chips --------------------------------------------------------
+   The arrow points forward through time and tilts with the rate, so a gentle
+   drift and a collapse cannot look alike. Colour is per METRIC, not per
+   direction (TREND_SPECS in common.js): rising pollution is not "up,
+   therefore good", and warmer is neither better nor worse. */
+.trend-chip { display: inline-flex; flex-wrap: wrap; align-items: center;
+  gap: 3px 5px; font-family: var(--mono); font-size: .78rem; line-height: 1.2; }
+.trend-chip .tr-arrow { flex: none; display: block; }
+.trend-chip .tr-val { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.trend-chip .tr-win { color: var(--text-dim); white-space: nowrap; }
+.trend-chip.tone-good { color: var(--good); }
+.trend-chip.tone-bad { color: var(--bad); }
+.trend-chip.tone-neutral { color: var(--text-mute); }
+
+#now-trend:not(:empty) { margin: 7px 0 0; }
+.aqi-trend { margin: 5px 0 0; }

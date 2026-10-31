@@ -70,19 +70,9 @@ const Widgets = (() => {
       if (real.length >= 2) {
         spark = sparkline(vals, { width: 240, height: 30 });
         hiLo = `High ${Math.round(Math.max(...real))}° · Low ${Math.round(Math.min(...real))}°`;
-        /* change over the last hour, from the series rather than guessed */
-        const lastTs = h.ts[h.ts.length - 1];
-        let ref = null;
-        for (let i = h.ts.length - 1; i >= 0; i--) {
-          if (vals[i] === null || vals[i] === undefined) continue;
-          if (lastTs - h.ts[i] >= 3600) { ref = vals[i]; break; }
-        }
-        const last = real[real.length - 1];
-        if (ref !== null && Math.abs(last - ref) >= 0.3) {
-          const up = last > ref;
-          trend = `<span class="hero-trend ${up ? 'up' : 'down'}">${up ? '↑' : '↓'} `
-                + `${Math.abs(last - ref).toFixed(1)}° in the last hour</span>`;
-        }
+        /* 3 h, the same window the pressure panel uses and the one met
+           services quote — long enough to survive the taper's slow cadence. */
+        trend = trendHtml(trendFromSeries('temp_c', h.ts, vals, 3));
       }
     } catch { /* no history yet — the hero still works without it */ }
 
@@ -291,6 +281,24 @@ const Widgets = (() => {
     if (!s) return;
     const a = aqi(s.pm25, s.pm10);
     const who = whoPm25Multiple(s.pm25);
+    /* Worth more than most trends here: "getting worse" is the cue to shut a
+       window, and the index moves slowly enough that a 3 h fit is meaningful.
+       Rising reads red, falling green — the polarity lives in TREND_SPECS,
+       because a naive up-is-good would call worsening air an improvement. */
+    let aqTrend = '';
+    try {
+      const sig = `${s.slug}|${Math.floor(Date.now() / 300000)}`;
+      if (el._aqSig !== sig || !el._aqHist) {
+        el._aqHist = await getJSON(`/stations/${s.slug}/series?metrics=pm25,pm10&hours=3`);
+        el._aqSig = sig;
+      }
+      const H = el._aqHist, p25 = (H.series && H.series.pm25) || [],
+            p10 = (H.series && H.series.pm10) || [];
+      const idx = p25.map((v, i) =>
+        (v === null || v === undefined) && (p10[i] === null || p10[i] === undefined)
+          ? null : aqi(v, p10[i]));
+      aqTrend = trendHtml(trendOf('aqi', H.ts, idx, 3));
+    } catch { /* no history: no trend, which is the honest default */ }
     /* The scale is named every time. CPCB reads ~50 points kinder than the US
        EPA at these concentrations, so a bare number with a reassuring word is
        the one thing on this site that could mislead someone about their health
@@ -298,6 +306,7 @@ const Widgets = (() => {
     el.innerHTML = `
       <div class="wg-big">${a ?? '—'}</div>
       <div class="wg-sub">${s.name} · ${aqiLabel(a)} · ${AQI_SCALE} scale</div>
+      ${aqTrend ? `<div class="aqi-trend">${aqTrend}</div>` : ''}
       <div class="aqi-band"><span class="pin" style="left:${a !== null ? Math.min(100, a/5) : 0}%"></span></div>
       ${a !== null ? `<p class="aqi-advice">${aqiGuidance(a)}</p>` : ''}
       <div class="kv">

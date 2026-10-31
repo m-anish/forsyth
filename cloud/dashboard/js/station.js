@@ -107,15 +107,26 @@ async function refreshNow() {
 /* ---------- pressure trend ---------- */
 
 async function refreshPressureTrend() {
-  const d = await getJSON(`/stations/${slug}/series?metrics=pressure_pa&hours=3`);
-  const vals = d.series.pressure_pa.filter(v => v !== null);
+  const d = await getJSON(`/stations/${slug}/series?metrics=pressure_pa,temp_c&hours=3`);
   const el = document.getElementById('pres-trend');
   const verdict = document.getElementById('pres-verdict');
-  if (vals.length < 2) { el.textContent = 'not enough data'; return; }
-  const delta = (vals[vals.length - 1] - vals[0]) / 100; // hPa
-  const arrow = delta > 0.6 ? '↑' : delta < -0.6 ? '↓' : '→';
-  el.textContent = `${arrow} ${delta >= 0 ? '+' : ''}${delta.toFixed(1)} hPa over 3 h`;
-  el.className = 'trend ' + (delta > 0.6 ? 'up' : delta < -0.6 ? 'down' : 'flat');
+
+  /* temperature gets the same treatment, in the same window */
+  const tt = trendOf('temp_c', d.ts, d.series.temp_c || [], 3);
+  document.getElementById('now-trend').innerHTML = trendHtml(tt);
+
+  const pt = trendOf('pressure_pa', d.ts, d.series.pressure_pa || [], 3);
+  if (!pt) {
+    /* Below the barometer's noise floor is not "no data" — it is the most
+       common state a barometer is in, and the verdict line already says so. */
+    const vals = (d.series.pressure_pa || []).filter(v => v !== null);
+    el.innerHTML = vals.length < 2 ? '<span class="tr-win">not enough data yet</span>'
+                                   : '<span class="tr-win">steady over 3 h</span>';
+    verdict.textContent = vals.length < 2 ? '' : 'Steady. No drama expected.';
+    return;
+  }
+  el.innerHTML = trendHtml(pt);
+  const delta = pt.delta;
   verdict.textContent =
     delta < -2.5 ? 'Falling fast. Forsyth is paying attention.' :
     delta < -0.6 ? 'Sliding. Keep the washing within reach.' :

@@ -375,6 +375,94 @@ function windDirArrows(ts, dirDeg, speedMs, opts = {}) {
   } } };
 }
 
+/* ---- trends -------------------------------------------------------------
+   A trend is a RATE, not a difference, so the arrow is drawn at an angle:
+   rise over run, where the run is time. A vertical arrow says only "up"; a
+   diagonal one says how fast, and reads as movement through the window it
+   names. The tilt is mapped from the metric's own "full tilt" rate and clamped
+   to ±45°, so a gentle drift and a collapse do not look alike.
+
+   Deliberately NOT a zigzag tracing the samples. At glyph size you cannot
+   resolve more than two or three segments, so the shape would be noise rather
+   than information, and it would flicker between refreshes as the window
+   slides. Shape is the sparkline's job, and the chart's; a glyph's job is
+   direction and pace.
+
+   The slope is a least-squares fit across the window, not last-minus-first:
+   hanging a trend on two samples means one noisy endpoint can reverse it.
+
+   `polarity` decides colour, and it is per metric rather than per direction —
+   rising air pollution is not "up, therefore good". Temperature has no
+   polarity at all: warmer is neither better nor worse.                      */
+const TREND_SPECS = {
+  temp_c:      { unit: '°C',  dp: 1, noise: 0.3,  full: 2.0,  polarity: 'neutral' },
+  pressure_pa: { unit: 'hPa', dp: 1, noise: 0.6,  full: 2.0,  polarity: 'neutral',
+                 conv: v => v / 100 },
+  aqi:         { unit: '',    dp: 0, noise: 5,    full: 30,   polarity: 'up-bad' },
+  batt_v:      { unit: 'V',   dp: 2, noise: 0.02, full: 0.10, polarity: 'neutral' },
+};
+
+/* Returns null — meaning "say nothing" — whenever the trend would not be
+   honest: too few samples, a window barely covered, or a change inside the
+   instrument's noise. A trend is worth showing when it is true, not when
+   there happens to be room for it. */
+function trendOf(metric, ts, vals, hours) {
+  const spec = TREND_SPECS[metric];
+  if (!spec || !ts || !vals) return null;
+  const conv = spec.conv || (v => v);
+  const xs = [], ys = [];
+  for (let i = 0; i < ts.length; i++) {
+    const v = vals[i];
+    if (v === null || v === undefined) continue;
+    xs.push(ts[i]); ys.push(conv(v));
+  }
+  if (xs.length < 4) return null;
+  if (xs[xs.length - 1] - xs[0] < hours * 3600 * 0.5) return null;
+  const n = xs.length;
+  const mx = xs.reduce((a, b) => a + b, 0) / n;
+  const my = ys.reduce((a, b) => a + b, 0) / n;
+  let num = 0, den = 0;
+  for (let i = 0; i < n; i++) { const dx = xs[i] - mx; num += dx * (ys[i] - my); den += dx * dx; }
+  if (!den) return null;
+  const delta = (num / den) * hours * 3600;
+  if (!isFinite(delta) || Math.abs(delta) < spec.noise) return null;
+  const frac = Math.max(-1, Math.min(1, delta / spec.full));
+  const rising = delta > 0;
+  const tone = spec.polarity === 'up-bad'  ? (rising ? 'bad' : 'good')
+             : spec.polarity === 'up-good' ? (rising ? 'good' : 'bad')
+             : 'neutral';
+  return { delta, angle: frac * 45, rising, tone, spec, hours };
+}
+
+/* The arrow points forward through time and tilts with the rate. Rotation is
+   negated because SVG's y grows downward, so "up" is a negative angle. */
+function trendArrow(t, size = 14) {
+  return `<svg class="tr-arrow" width="${size}" height="${size}" viewBox="0 0 24 24"`
+       + ` style="transform:rotate(${(-t.angle).toFixed(1)}deg)" aria-hidden="true">`
+       + `<path d="M3 12 H19 M19 12 L13.5 7 M19 12 L13.5 17" fill="none"`
+       + ` stroke="currentColor" stroke-width="2.4" stroke-linecap="round"`
+       + ` stroke-linejoin="round"/></svg>`;
+}
+
+function trendHtml(t) {
+  if (!t) return '';
+  const s = t.spec;
+  const sign = t.delta >= 0 ? '+' : '\u2212';
+  const unit = s.unit ? `\u2009${s.unit}` : '';
+  return `<span class="trend-chip tone-${t.tone}">${trendArrow(t)}`
+       + `<span class="tr-val">${sign}${Math.abs(t.delta).toFixed(s.dp)}${unit}</span>`
+       + `<span class="tr-win">over ${t.hours} h</span></span>`;
+}
+
+/* Convenience: slice a longer series down to the trailing `hours` and fit. */
+function trendFromSeries(metric, ts, vals, hours) {
+  if (!ts || !ts.length) return null;
+  const cut = ts[ts.length - 1] - hours * 3600;
+  const xs = [], ys = [];
+  for (let i = 0; i < ts.length; i++) if (ts[i] >= cut) { xs.push(ts[i]); ys.push(vals[i]); }
+  return trendOf(metric, xs, ys, hours);
+}
+
 /* Sunrise and sunset for a date and place (the standard NOAA/SunCalc
    approximation — good to about a minute at these latitudes). Returns epoch
    seconds, or null where the sun never crosses the horizon. */
