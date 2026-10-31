@@ -959,3 +959,44 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
 .hero .spark { flex: 1 1 auto; min-height: 34px; max-height: 110px; }
 .hero-stats { margin-top: auto; }       /* stats sit at the foot of the card */
 .hero-sub2 { color: var(--text-dim); }
+
+/* ---- phones: cards size to their content --------------------------------
+   GridStack gives every card a height of gs-h x cellHeight, which is right on
+   a grid and wrong in a single column: content that fits at desktop overflows
+   on a phone, and .wg-body's overflow turns that into a scrollbar INSIDE a
+   card — you end up scrolling a widget inside a scrolling page to read a
+   number. Tuning each widget's h per viewport only moves the problem around,
+   because one number cannot suit both.
+
+   Below the breakpoint the static (read-only) board stops being a grid and
+   becomes a plain stack with natural heights. Scoped to .grid-stack-static so
+   the signed-in arrange mode keeps real grid behaviour. */
+@media (max-width: 767px) {
+  .grid-stack.grid-stack-static { height: auto !important; }
+  .grid-stack.grid-stack-static > .grid-stack-item {
+    position: static !important; inset: auto !important;
+    width: 100% !important; height: auto !important;
+    transform: none !important; margin: 0 0 14px !important; }
+  .grid-stack.grid-stack-static > .grid-stack-item > .grid-stack-item-content {
+    position: static !important; inset: auto !important;
+    height: auto !important; overflow: visible !important; }
+  .grid-stack.grid-stack-static .wg-body {
+    overflow: visible !important; height: auto !important; }
+
+  /* Two exceptions: a map and a chart have no intrinsic height, so they need
+     one given to them or they collapse to nothing. */
+  .grid-stack.grid-stack-static .gs-type-map .wg-body { min-height: 400px; }
+  .grid-stack.grid-stack-static .gs-type-forecast .wg-body { min-height: 440px; }
+
+  /* the hero's ribbon stops flexing once the card grows to fit it */
+  .hero { height: auto; }
+  .hero .spark { flex: none; height: 46px; max-height: none; }
+}
+
+/* A clearer "there is more to the right": the fade starts sooner and the
+   scrollbar stays visible as a second, unambiguous affordance. */
+.fc-strip { scrollbar-color: var(--border) transparent; }
+.fc-strip.scrollable:not(.at-end) {
+  -webkit-mask-image: linear-gradient(90deg, #000 72%, rgba(0,0,0,0.25) 94%, transparent);
+          mask-image: linear-gradient(90deg, #000 72%, rgba(0,0,0,0.25) 94%, transparent);
+}
