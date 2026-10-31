@@ -528,7 +528,14 @@ int main(void)
      *
      * Turn the cups slowly BY HAND to count closures per revolution. The
      * blinks are blocking, so this is a hand-speed test only: a drill-spin
-     * loses counts to the LED, not to the ISR — do not read it as a fault. */
+     * loses counts to the LED, not to the ISR — do not read it as a fault.
+     *
+     * THREE fast blinks at boot say "DIAG_PULSE is running and the LED works".
+     * Without them, silence is ambiguous — a dead reed and the wrong firmware
+     * look identical, which is exactly the hour this costs you otherwise.
+     * Three, not the normal firmware's two, so the two builds are telling
+     * apart at a glance.                                                   */
+    hal_led_blink(3, 80);
     for (;;) {
         uint16_t r, a;
         ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { r = v_rain_tips; a = v_anemo_pulses; }

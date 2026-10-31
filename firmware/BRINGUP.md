@@ -83,8 +83,14 @@ you are watching the counter's truth rather than the switch's.
 
 | | blink |
 |---|---|
+| at boot | **three fast blinks** — DIAG_PULSE is running and the LED works |
 | rain tip (PA5) | **long**, 250 ms |
 | anemometer (PA4) | **short**, 40 ms |
+
+The boot signature matters: without it, "no blink when I tip" cannot be told
+apart from "I am not running the build I think I am". Three blinks, against the
+real firmware's two, identifies the build at a glance. **If you do not see
+three blinks on power-up or reset, the diag build is not on the chip.**
 
 Hand-tip the bucket. One physical tip must give **exactly one long blink**.
 **Result on the real gauge, 2026-10-31: one tip, one blink** — the reed, the
