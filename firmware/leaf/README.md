@@ -37,23 +37,29 @@ Hardware context you must not violate (from `hardware/boards/board-a-core.md`):
 
 ## Sensor tuning — where each number lives
 
-- **Wind speed**: `ANEMO_MS_PER_HZ_X1000`. Pulses are counted in the PA4 ISR
-  (falling edges, noise-gated), bucketed per `WIND_GATE_S` seconds; gust = max
-  bucket, average = whole interval. Calibrate by drill-spinning the cups at a
-  known RPM, or side-by-side with a handheld anemometer, then update the knob —
-  it's also OTA-settable (TLV 0x06) so a deployed mast doesn't need a ladder trip.
-- **Wind direction**: `VANE_DIV_R_OHMS` + `VANE_LUT_DEFAULT` in config.h. The vane
-  in service is an Argent/SparkFun-style 16-position unit (688 R…120 k, one
-  reed-switched resistor per position) wired as the part datasheet's own
-  example circuit: vane from `J3.1` VBAT to `J3.3` VANE_ADC, and a **7.5 k 1 %
-  pulldown from VANE_ADC to GND**, fitted at the connector. The LUT centers are
-  *computed* from the datasheet resistances by the `VANE_CODE()` macro, so
-  changing the pulldown re-derives the whole table from one number. Unlike
-  Board D's ladder this part is specified, all 16 positions are distinct and
-  nothing ships disabled — but the bench pass still wins: rotate through the 16
-  positions, read `vane_adc` (verbose readings carry it, so you can calibrate
-  from the dashboard without a ladder trip) and paste measured centers over any
-  `VANE_CODE()`. `VANE_WINDOW` is set by the single tight pair, E/ENE.
+- **Wind speed**: `ANEMO_MS_PER_HZ_X1000`, now **667** for the SparkFun
+  SEN-15901 cup set — its datasheet closes the reed once per second at
+  2.4 km/h, i.e. 0.6667 m/s per Hz. It was 2400 (a Davis-style default that
+  read that 2.4 as m/s), which over-reported this meter by **3.6x**. Pulses are
+  counted in the PA4 ISR (falling edges, noise-gated), bucketed per
+  `WIND_GATE_S` seconds; gust = max bucket, average = whole interval. The
+  datasheet contradicts itself — its Chinese text says 0.33 m/s per closure,
+  exactly half, which is what a rotor closing the reed twice per turn would
+  give. If a drill-spin or a side-by-side check reads exactly 2x high, set 333.
+  It's OTA-settable (TLV 0x06), so settling it needs no ladder trip.
+- **Wind direction**: `VANE_LUT_DEFAULT` in config.h, **bench-measured
+  2026-10-31** and no longer computed. The vane is a SparkFun SEN-15901 /
+  Fine Offset 16-position unit wired as its datasheet's example circuit: vane
+  from `J3.1` VBAT to `J3.3` VANE_ADC, **7.5 k 1 % pulldown** to GND at the
+  connector. The eight single-reed positions were read off the real vane; the
+  eight between-reed positions (two reeds closed = two resistors in parallel)
+  are derived from those neighbours in ratio space, so they carry the same
+  calibration and assume no resistor value at all. Measured came in +5…+8
+  counts above the datasheet prediction — an implied divider of ~7.59 k, the
+  fitted part ~1.2 % high, which is the signature of a healthy divider; a
+  *scattered* offset would mean a bad reed or a cable fault. `VANE_CODE()` and
+  `VANE_DIV_R_OHMS` survive only to regenerate the table if you refit a
+  different pulldown. `VANE_WINDOW` is 23, half the one tight gap (E/ENE).
 - **Lightning sensitivity**: `AS3935_*` knobs — noise floor, watchdog, spike
   rejection, min strikes, indoor/outdoor gain, disturber masking. All six are in
   one OTA TLV (0x03), because tuning an AS3935 is *always* an iterative field
@@ -140,10 +146,9 @@ boot (by design, self-healing; just re-send any OTA tweaks).
    a scope/counter on the IRQ pin with `DISP_LCO` (see as3935.c register notes)
    — target 500 kHz ± 3.5 % (divided by LCO_FDIV, default ÷16 → 31.25 kHz).
    Then the piezo-lighter click test from a few metres.
-5. Vane LUT: confirm the 7.5 k pulldown is fitted at J3, then rotate through
-   the 16 positions and record `vane_adc` per position. The computed table
-   should land within ~20 counts; paste measured centers over `VANE_CODE()`
-   where it does not, and re-cut `VANE_WINDOW` from the smallest gap you see.
+5. Vane LUT: **done 2026-10-31** — 7.5 k fitted, all eight cardinals measured,
+   the eight intermediates derived, `VANE_WINDOW` 23. Re-do only if the
+   pulldown or the vane changes. Spot-check: W should read ~247, E ~3619.
 6. Anemometer: drill-spin, verify pulse counting (wind_avg in readings), set
    `ANEMO_MS_PER_HZ_X1000`. If edges look lazy at high RPM on the scope, fit
    the DNP 10 k pull-up pad on Board A (board doc §6 item 5).

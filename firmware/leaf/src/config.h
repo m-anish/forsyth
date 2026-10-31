@@ -52,10 +52,28 @@
                                         gust is a 3 s mean; 10 s is the power-
                                         friendly compromise. Continuous
                                         back-to-back buckets, no dead time.   */
-#define ANEMO_MS_PER_HZ_X1000 2400   /* [E 0x06][B] m/s per pulse-Hz ×1000.
-                                        2.400 is the Davis-style cup default;
-                                        CALIBRATE: drill-spin at known RPM or
-                                        drive-by against a phone anemometer.  */
+#define ANEMO_MS_PER_HZ_X1000 667    /* [E 0x06][B] m/s per pulse-Hz ×1000.
+                                        SparkFun SEN-15901 / Fine Offset cup
+                                        set: the datasheet's English text says
+                                        "a wind speed of 2.4 km/h causes the
+                                        switch to close once per second", and
+                                        SparkFun's own documentation gives the
+                                        same figure as 1.492 mph. 2.4 km/h =
+                                        0.6667 m/s per Hz -> 667.
+                                        WAS 2400, a Davis-style cup default,
+                                        which over-reported this meter by 3.6x
+                                        (it read the 2.4 as m/s, not km/h).
+                                        NOTE the same datasheet's Chinese text
+                                        says 0.33 m/s per closure — exactly
+                                        half — which is what you would see if
+                                        the rotor closed the reed TWICE per
+                                        turn. The English/SparkFun figure is
+                                        the one in use. If a drill-spin or a
+                                        side-by-side check reads exactly 2x
+                                        high, that is this ambiguity and the
+                                        answer is 333, not a slow re-fit.
+                                        OTA-settable (TLV 0x06), so settling it
+                                        costs no ladder trip.                 */
 #define ANEMO_MIN_EDGE_MS   4        /* [C] ISR-level noise gate; the board RC
                                         (τ≈7 ms vs internal pull-up) already
                                         rounds edges — see board-a §6 item 5  */
@@ -67,10 +85,11 @@
  * the leaf ships raw cumulative tips. See PROTOCOL.md reading bit6.          */
 
 /* ================= wind vane LUT ======================================== */
-/* Argent/SparkFun-style 16-position vane (the 80422 family): ONE reed-switched
- * resistor to ground per position, 688 R … 120 k, all 16 distinguishable — it
- * is not Board D's ladder and has none of its wrap-around wart. Wiring is the
- * part datasheet's own example circuit, mapped onto Board A's J3:
+/* Argent/SparkFun-style 16-position vane (SparkFun SEN-15901 / Fine Offset,
+ * datasheet DS-15901): ONE reed-switched resistor to ground per position,
+ * 688 R … 120 k. All 16 are distinguishable — it is not Board D's ladder and
+ * has none of its wrap-around wart. Wiring is the datasheet's own example
+ * circuit, mapped onto Board A's J3:
  *
  *   J3.1 VBAT ── vane ──┬── J3.3 VANE_ADC ── R17 1 k ── PA6
  *                       ├── R_DIV 7.5 k 1 % ── GND   (fit at the connector)
@@ -80,62 +99,66 @@
  * the cell voltage cancels exactly and the code is a pure resistance ratio.
  * R17 carries no DC drop (PA6 is nA-class), so it does not enter the maths.
  *
- * Why 7.5 k [B]: the divider cannot be linear across a 175:1 resistance span,
- * so the value is chosen to maximise the SMALLEST gap between adjacent codes.
- * The binding pair is always E (1.00 k) / ENE (891 R) — 11 % apart in
- * resistance and sitting high on the curve where it is most compressed:
+ * Why 7.5 k: the divider cannot be linear across a 175:1 resistance span, so
+ * the value maximises the SMALLEST gap between adjacent codes rather than
+ * centring the range. The binding pair is always E (1.00 k) / ENE (891 R) —
+ * 11 % apart in resistance and high on the curve where it is most compressed.
+ * 7.5 k gives 46 counts there, ~3x the tolerance + ADC-noise stack, at ~223 µA
+ * averaged over the 16 positions. Nothing gates the excitation (see the
+ * README's "known hardware quirk"), so finer resolution is bought with current
+ * we never stop paying: 4.7 k would spend +36 % average current for 19 counts
+ * nobody reads. 6.8 k and 4.7 k are drop-in if the drawer changes.
  *
- *     R_DIV   min gap   clearance*   I worst   I avg (16 pos)
- *      3.5 k  79 counts  —           827 µA    ~375 µA   best resolution
- *      4.7 k  66 counts  25 counts   612 µA     303 µA
- *      6.8 k  51 counts  18 counts   441 µA     238 µA
- *      7.5 k  47 counts  16 counts   403 µA     223 µA   <- fitted
- *     10   k  37 counts  12 counts   309 µA     182 µA
- *     *after 2 % vane + 1 % divider tolerance and ADC noise
+ * THE TABLE BELOW IS BENCH-MEASURED, not computed [2026-10-31]. The eight
+ * single-reed positions were read off the real vane on the real board. The
+ * eight between-reed positions close TWO adjacent reeds at once, putting those
+ * resistors in parallel (datasheet, final paragraph), so their codes are
+ * derived from the measured neighbours by the parallel identity in ratio
+ * space: with x = R_vane/R_DIV = (4095-code)/code, the pair is
+ * x_ab = x_a*x_b/(x_a+x_b) and code = 4095/(1+x_ab). R_DIV cancels, so the
+ * derived entries inherit the measurement's calibration exactly and no
+ * resistor value is assumed anywhere in this table.
  *
- * 16 counts of clearance is already ~3x the stack that has to fit inside it,
- * and the divider is excited permanently (see the README's "known hardware
- * quirk" — nothing gates it), so resolution past that is bought with current
- * we never stop paying. 4.7 k would spend +36 % average current for 19 counts
- * nobody reads. At 7.5 k the 16-position average is ~223 µA, a quarter under
- * the old Board D ladder's ~300 µA: better on both axes at once.
+ * Measured vs the datasheet prediction at a nominal 7.5 k: +5 to +8 counts
+ * across all eight, i.e. an implied R_DIV of ~7.59 k — the fitted resistor
+ * reading ~1.2 % high, comfortably inside 1 % part tolerance plus the vane's
+ * own. A uniform offset like that is the signature of a healthy divider; a
+ * scattered one would mean a bad reed or a cable fault.
  *
- * The centers below are COMPUTED from the datasheet resistances, not measured,
- * so they inherit the vane's own tolerance. They are good enough to deploy on
- * — unlike Board D's table, this is a specified commercial part — but the
- * bench pass still wins: rotate through all 16 positions, read `vane_adc`
- * (verbose readings carry it), and replace any VANE_CODE() with the measured
- * number. Mixed is fine; the macro is only a default.                        */
+ * To re-cut after refitting a different pulldown: either rotate the vane and
+ * paste fresh numbers, or set VANE_DIV_R_OHMS and regenerate from the
+ * datasheet resistances with VANE_CODE() (kept below for exactly that, and
+ * for the 8 intermediates if you only measure the cardinals again).          */
 #define VANE_LUT_SIZE 16
-#define VANE_DIV_R_OHMS 7500UL       /* [C] the pulldown you actually fitted —
-                                        change it and the whole table follows */
+#define VANE_DIV_R_OHMS 7500UL       /* [C] nominal value of the fitted part.
+                                        NOT used by the measured table below —
+                                        it only feeds VANE_CODE() when you
+                                        regenerate from datasheet resistances */
 #define VANE_CODE(rv) ((uint16_t)((4095UL * VANE_DIV_R_OHMS) \
                                   / (VANE_DIV_R_OHMS + (rv))))
 #define VANE_WINDOW   23             /* [B] ± ADC counts. Half the smallest gap
-                                        (E/ENE, 47 counts); every other gap is
-                                        ≥90, so this one pair sets the knob.
-                                        Re-cut it if you paste measured centers
-                                        or change VANE_DIV_R_OHMS.            */
+                                        (E/ENE, 46 counts); every other gap is
+                                        ≥90, so that one pair sets the knob.   */
 #define VANE_DEG_DISABLED 0xFFFF     /* no position needs it on this vane      */
 typedef struct { uint16_t adc; uint16_t deg_x10; } vane_entry_t;
 /* Sorted by code (cosmetic — vane_lookup is a linear nearest-center scan).   */
 #define VANE_LUT_DEFAULT { \
-    { VANE_CODE(120000), 2700 },  /* W   270.0°  code  240 */ \
-    { VANE_CODE( 64900), 3150 },  /* NW  315.0°  code  424 */ \
-    { VANE_CODE( 42120), 2925 },  /* WNW 292.5°  code  618 */ \
-    { VANE_CODE( 33000),    0 },  /* N     0.0°  code  758 */ \
-    { VANE_CODE( 21880), 3375 },  /* NNW 337.5°  code 1045 */ \
-    { VANE_CODE( 16000), 2250 },  /* SW  225.0°  code 1306 */ \
-    { VANE_CODE( 14120), 2475 },  /* WSW 247.5°  code 1420 */ \
-    { VANE_CODE(  8200),  450 },  /* NE   45.0°  code 1956 */ \
-    { VANE_CODE(  6570),  225 },  /* NNE  22.5°  code 2182 */ \
-    { VANE_CODE(  3900), 1800 },  /* S   180.0°  code 2694 */ \
-    { VANE_CODE(  3140), 2025 },  /* SSW 202.5°  code 2886 */ \
-    { VANE_CODE(  2200), 1350 },  /* SE  135.0°  code 3166 */ \
-    { VANE_CODE(  1410), 1575 },  /* SSE 157.5°  code 3446 */ \
-    { VANE_CODE(  1000),  900 },  /* E    90.0°  code 3613 */ \
-    { VANE_CODE(   891),  675 },  /* ENE  67.5°  code 3660 */ \
-    { VANE_CODE(   688), 1125 },  /* ESE 112.5°  code 3750 */ \
+    {  247, 2700 },  /* W   270.0°  measured  120 k  */ \
+    {  430, 3150 },  /* NW  315.0°  measured  64.9 k */ \
+    {  629, 2925 },  /* WNW 292.5°  derived   42.12k */ \
+    {  766,    0 },  /* N     0.0°  measured  33 k   */ \
+    { 1056, 3375 },  /* NNW 337.5°  derived   21.88k */ \
+    { 1313, 2250 },  /* SW  225.0°  measured  16 k   */ \
+    { 1429, 2475 },  /* WSW 247.5°  derived   14.12k */ \
+    { 1962,  450 },  /* NE   45.0°  measured  8.2 k  */ \
+    { 2190,  225 },  /* NNE  22.5°  derived   6.57 k */ \
+    { 2699, 1800 },  /* S   180.0°  measured  3.9 k  */ \
+    { 2892, 2025 },  /* SSW 202.5°  derived   3.14 k */ \
+    { 3174, 1350 },  /* SE  135.0°  measured  2.2 k  */ \
+    { 3453, 1575 },  /* SSE 157.5°  derived   1.41 k */ \
+    { 3619,  900 },  /* E    90.0°  measured  1.0 k  */ \
+    { 3665,  675 },  /* ENE  67.5°  derived   891 R  */ \
+    { 3755, 1125 },  /* ESE 112.5°  derived   688 R  */ \
 }
 /* Fault signatures the ±window catches for free: an open cable or a vane
  * between reeds reads ~0 (R_DIV alone pulls the node down), a shorted one

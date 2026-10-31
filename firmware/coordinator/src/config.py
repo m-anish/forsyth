@@ -106,7 +106,15 @@ MQTT_KEEPALIVE = 60
 # unit_id (leaf STATION_ID / E220 ADDL) -> per-station facts.
 #   slug            must exist as a station in the cloud (admin console creates it)
 #   rain_mm_per_tip bucket calibration — lives HERE, not on the leaf, so it can
-#                   be fixed without an OTA round-trip (see PROTOCOL.md bit6)
+#                   be fixed without an OTA round-trip (see PROTOCOL.md bit6).
+#                   0.2794 is the SparkFun SEN-15901 / Fine Offset tipping
+#                   bucket: datasheet DS-15901 English text, "each 0.2794mm of
+#                   rain cause one momentary contact closure" = 0.011 in exactly,
+#                   and SparkFun documents the same figure. (That datasheet's
+#                   Chinese text rounds it to 0.3 mm — a 7 % difference. The
+#                   precise value is the one in use.) Confirmed against the
+#                   datasheet 2026-10-31; still worth a field check, since a
+#                   bucket's real volume drifts with level and debris.
 STATIONS = {
     1: {"slug": "leaf-01", "rain_mm_per_tip": 0.2794},
     # 2: {"slug": "leaf-02", "rain_mm_per_tip": 0.2794},
