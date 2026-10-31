@@ -635,8 +635,8 @@ function satelliteLayer() {
      geometry, naming and which tracks exist, which is what looked wrong. */
   const sat = _cfg && _cfg.satellite;
   if (sat && sat.url) {
-    return L.tileLayer(sat.url,
-      { maxZoom: sat.maxZoom || 20, attribution: sat.attribution });
+    return L.tileLayer(sat.url, { maxZoom: sat.maxZoom || 20,
+      attribution: sat.attribution, ...retinaTileOpts(sat.url) });
   }
   return L.layerGroup([
     L.tileLayer(
@@ -673,9 +673,35 @@ function basemapUrl(dark) {
    attribution and maxZoom are provider-specific, and taking the URL from one
    provider while keeping another's credit is how a map ends up misattributed.
    {s} subdomains are CARTO-only, so they are set only on the fallback path. */
+/* Place names were unreadably small on every layer. The fix is the same one
+   the fallback label layer already used: ask for the @2x tile ONE ZOOM LEVEL
+   BACK and draw it at 512 CSS px. The tile then covers the same ground as two
+   normal tiles, so every label, road and symbol on it renders at double size
+   — and because the source has four times the pixels, it stays crisp rather
+   than being upscaled. Keyed off the URL so the server config stays
+   provider-agnostic: put @2x in the template and the client does the rest. */
+function retinaTileOpts(url) {
+  return /@2x/.test(url || '') ? { tileSize: 512, zoomOffset: -1 } : {};
+}
+
+/* Terrain, configurable like the others. The keyless OpenTopoMap fallback has
+   no retina tile, so its labels stay small — that is the cost of having no
+   key, not a preference. */
+function terrainLayer() {
+  const tr = _cfg && _cfg.terrain;
+  if (tr && tr.url) {
+    return L.tileLayer(tr.url, { maxZoom: tr.maxZoom || 18,
+      attribution: tr.attribution, ...retinaTileOpts(tr.url) });
+  }
+  return L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    { attribution: '© OSM © <a href="https://opentopomap.org">OpenTopoMap</a>',
+      maxZoom: 17 });
+}
+
 function basemapOptions() {
   const bm = _cfg && _cfg.basemap;
-  if (bm && bm.url) return { attribution: bm.attribution, maxZoom: bm.maxZoom || 20 };
+  if (bm && bm.url) return { attribution: bm.attribution, maxZoom: bm.maxZoom || 20,
+                             ...retinaTileOpts(bm.url) };
   return { subdomains: 'abcd', maxZoom: 19,
            attribution: '© <a href="https://www.openstreetmap.org/copyright">OSM</a> © <a href="https://carto.com/attributions">CARTO</a>' };
 }
@@ -852,14 +878,25 @@ async function renderForecast(el, slug, opts = {}) {
 
   /* signal "more →" when the strip overflows; the fade lifts at the end */
   const strip = el.querySelector('.fc-strip');
+  /* Runs on every scroll frame, so it does no DOM lookups and writes nothing
+     that has not changed — a redundant class write still invalidates style,
+     and on a masked element that means a repaint per frame. */
+  let edgeMore = null, edgeEnd = null;
   const stripEdges = () => {
+    const ch = el.querySelector('.fc-chart');
     const more = strip.scrollWidth > strip.clientWidth + 4;
     const end = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 4;
-    strip.classList.toggle('scrollable', more);
-    strip.classList.toggle('at-end', end);
-    /* the chart is the same window, so it carries the same "more →" edge */
-    const ch = el.querySelector('.fc-chart');
-    if (ch) { ch.classList.toggle('scrollable', more); ch.classList.toggle('at-end', end); }
+    if (more !== edgeMore) {
+      edgeMore = more;
+      strip.classList.toggle('scrollable', more);
+      if (ch) ch.classList.toggle('scrollable', more);
+    }
+    if (end !== edgeEnd) {
+      edgeEnd = end;
+      strip.classList.toggle('at-end', end);
+      /* the chart is the same window, so it carries the same "more →" edge */
+      if (ch) ch.classList.toggle('at-end', end);
+    }
   };
   stripEdges();
   strip.addEventListener('scroll', stripEdges, { passive: true });
@@ -971,18 +1008,29 @@ async function renderForecast(el, slug, opts = {}) {
        to us. */
     chartEl.style.touchAction = 'pan-y';
     chartEl.style.cursor = 'grab';
-    let fromX = null, fromScroll = 0;
+    let fromX = null, fromScroll = 0, wantScroll = 0, dragRaf = 0;
     chartEl.addEventListener('pointerdown', e => {
-      fromX = e.clientX; fromScroll = strip.scrollLeft;
+      fromX = e.clientX; fromScroll = strip.scrollLeft; wantScroll = fromScroll;
       chartEl.style.cursor = 'grabbing';
       try { chartEl.setPointerCapture(e.pointerId); } catch {}
     });
+    /* A pointermove can fire several times per frame, and each write of
+       scrollLeft forces a synchronous layout, fires a scroll event and
+       redraws the chart. Doing that three or four times for one painted frame
+       is what made the drag feel like it was catching on something. Record
+       the wanted position; apply it once, in the frame. */
     chartEl.addEventListener('pointermove', e => {
       if (fromX === null) return;
-      strip.scrollLeft = fromScroll - (e.clientX - fromX);
-    });
+      wantScroll = fromScroll - (e.clientX - fromX);
+      if (dragRaf) return;
+      dragRaf = requestAnimationFrame(() => {
+        dragRaf = 0;
+        if (fromX !== null) strip.scrollLeft = wantScroll;
+      });
+    }, { passive: true });
     const endDrag = e => {
       fromX = null; chartEl.style.cursor = 'grab';
+      if (dragRaf) { cancelAnimationFrame(dragRaf); dragRaf = 0; }
       try { chartEl.releasePointerCapture(e.pointerId); } catch {}
     };
     chartEl.addEventListener('pointerup', endDrag);

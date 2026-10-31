@@ -24,6 +24,10 @@ def public_config():
     return {
         "satellite": ({"url": sat, "attribution": settings.satellite_attribution,
                        "maxZoom": settings.satellite_max_zoom} if sat else None),
+        "terrain": ({"url": settings.terrain_tile_url,
+                     "attribution": settings.terrain_attribution,
+                     "maxZoom": settings.terrain_max_zoom}
+                    if settings.terrain_tile_url else None),
         "basemap": ({"url": bm,
                      "urlDark": settings.basemap_tile_url_dark or bm,
                      "attribution": settings.basemap_attribution,

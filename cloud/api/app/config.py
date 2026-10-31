@@ -67,6 +67,14 @@ class Settings:
         '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>')
     basemap_max_zoom: int = int(os.environ.get("BASEMAP_MAX_ZOOM", "") or "20")
 
+    # Terrain layer, same contract again. Unset falls back to keyless
+    # OpenTopoMap, whose labels are small and which has no retina tile.
+    terrain_tile_url: str = os.environ.get("TERRAIN_TILE_URL", "")
+    terrain_attribution: str = os.environ.get("TERRAIN_ATTRIBUTION", "") or (
+        '© <a href="https://www.maptiler.com/copyright/">MapTiler</a> '
+        '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>')
+    terrain_max_zoom: int = int(os.environ.get("TERRAIN_MAX_ZOOM", "") or "18")
+
     # self-serve accounts (engagement-roadmap §4). OAuth providers appear in
     # the sign-in dialog only when their id+secret are set; redirect URI to
     # register with each provider: {PUBLIC_BASE_URL}/api/v1/auth/oauth/{provider}/callback

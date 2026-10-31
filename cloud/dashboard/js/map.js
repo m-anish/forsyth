@@ -169,8 +169,7 @@ const forsythMap = (() => {
     el.addEventListener('mouseleave', () => map.scrollWheelZoom.disable());
 
     const carto = L.tileLayer(cartoUrl(), basemapOptions());
-    const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-      attribution: '© OSM © <a href="https://opentopomap.org">OpenTopoMap</a>', maxZoom: 17 });
+    const topo = terrainLayer();
     const sat = satelliteLayer();
     carto.addTo(map);
     window.addEventListener('themechange', () => carto.setUrl(cartoUrl()));
