@@ -1005,3 +1005,20 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
   -webkit-mask-image: linear-gradient(90deg, #000 72%, rgba(0,0,0,0.25) 94%, transparent);
           mask-image: linear-gradient(90deg, #000 72%, rgba(0,0,0,0.25) 94%, transparent);
 }
+
+/* The chart carries the same "more to the right" edge as the strip above it —
+   they are one window, so one of them fading and the other not read as a
+   mistake. */
+.fc-chart.scrollable:not(.at-end) {
+  -webkit-mask-image: linear-gradient(90deg, #000 78%, rgba(0,0,0,0.3) 95%, transparent);
+          mask-image: linear-gradient(90deg, #000 78%, rgba(0,0,0,0.3) 95%, transparent);
+}
+
+/* Map tools collapse behind one button; `contents` lets the revealed buttons
+   rejoin the flex bar rather than nesting inside a box of their own. */
+.wx-tools .wx-toolset { display: none; }
+.wx-tools.open .wx-toolset { display: contents; }
+.wx-more { font-size: 15px; line-height: 1; }
+/* chips sit closest to the legend they are explained by */
+.wx-ctl .wx-tools { order: 1; }
+.wx-ctl .wx-modes { order: 2; }

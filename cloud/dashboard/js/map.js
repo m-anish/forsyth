@@ -397,9 +397,18 @@ const forsythMap = (() => {
       } catch { /* no permissions API — stay quiet, the 📍 tool still works */ }
     })();
 
-    /* ---- controls: modes row + tools row, ONE control so the block sits
-       beside the zoom column (row layout via CSS on .leaflet-top.leaflet-left) */
-    const ctl = L.control({ position: 'topleft' });
+    /* ---- controls (v2) ------------------------------------------------
+       They live at the BOTTOM now. A Leaflet popup opens upward from its
+       marker, so controls along the top are exactly where the popup is going
+       to be — tapping a station put its reading underneath the toolbar. Moving
+       the cluster below the markers avoids the collision structurally rather
+       than patching around it, and it puts the metric chips next to the legend
+       that explains the colours they switch between.
+
+       The tools row collapses behind one button, open only when asked. Six
+       glyph buttons permanently occupying a 300px-wide card was most of the
+       map spent on controls nobody had reached for yet. */
+    const ctl = L.control({ position: 'bottomleft' });
     ctl.onAdd = () => {
       const wrap = L.DomUtil.create('div', 'wx-ctl');
       L.DomEvent.disableClickPropagation(wrap);
@@ -417,15 +426,24 @@ const forsythMap = (() => {
       });
 
       const tools = L.DomUtil.create('div', 'wx-tools leaflet-bar', wrap);
-      tools.innerHTML = `<button type="button" data-t="radar" title="rain radar (RainViewer)">☂</button>
+      tools.innerHTML = `<button type="button" data-t="more" class="wx-more" title="map tools" aria-expanded="false">⋯</button>`
+                     + `<span class="wx-toolset">`
+                     + `<button type="button" data-t="radar" title="rain radar (RainViewer)">☂</button>
                      <button type="button" data-t="ltg" title="recent lightning">⚡</button>
                      <button type="button" data-t="rep" title="human weather reports, last 6 h">💬</button>
                      <button type="button" data-t="scrub" title="time travel, last 24 h">⏱</button>
                      <button type="button" data-t="me" title="center on my location"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1.5v4M12 18.5v4M1.5 12h4M18.5 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/></svg></button>
                      <button type="button" data-t="fit" title="fit stations">⌖</button>` +
-        (opts.compact ? '' : `<button type="button" data-t="fs" title="fullscreen">⛶</button>`);
+        (opts.compact ? '' : `<button type="button" data-t="fs" title="fullscreen">⛶</button>`)
+        + `</span>`;
       tools.addEventListener('click', async e => {
         const b = e.target.closest('button[data-t]'); if (!b) return;
+        if (b.dataset.t === 'more') {
+          const open = tools.classList.toggle('open');
+          b.setAttribute('aria-expanded', open ? 'true' : 'false');
+          b.classList.toggle('on', open);
+          return;
+        }
         if (b.dataset.t === 'fit') fit();
         if (b.dataset.t === 'me') {
           if (!navigator.geolocation) { b.title = 'this browser has no geolocation'; return; }
@@ -624,7 +642,15 @@ const forsythMap = (() => {
         const staleOverride = scrub ? !s.sampleOk : undefined;
         return L.marker([s.lat, s.lon],
                         { icon: chipIcon(s, state.mode, staleOverride), keyboard: false })
-          .addTo(map).bindPopup(popupHtml(scrub ? orig : s), { maxWidth: 280 });
+          .addTo(map).bindPopup(popupHtml(scrub ? orig : s), {
+            maxWidth: 280,
+            /* Leaflet will pan so the popup clears these margins. Without it a
+               marker near an edge opened its reading half off the map, or under
+               the zoom column. Bottom is the larger number because that is
+               where the controls and legend now sit. */
+            autoPanPaddingTopLeft: L.point(14, 14),
+            autoPanPaddingBottomRight: L.point(14, 104),
+          });
       });                          /* popups always show LIVE data */
     }
 

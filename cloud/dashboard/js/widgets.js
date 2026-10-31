@@ -104,9 +104,15 @@ const Widgets = (() => {
     const windCell = (() => {
       const k = windKmh(s.wind_avg_ms), g = windKmh(s.wind_gust_ms);
       if (k === null) return '—';
-      const base = k < 1 ? 'calm' : `${windArrow(s.wind_dir_deg)} ${Math.round(k)} km/h ${dirName(s.wind_dir_deg)}`;
-      return (g !== null && g >= 1 && Math.round(g) > Math.round(k))
-        ? `${base}<span class="hero-sub2"> · gusting ${Math.round(g)}</span>` : base;
+      const base = k < 1 ? 'calm'
+        : `${windArrow(s.wind_dir_deg)} ${Math.round(k)} km/h ${dirName(s.wind_dir_deg)}`;
+      /* A gust is only worth naming once it clears the same floor everything
+         else uses (WIND_CALM_MS). "calm · gusting 1" was one reed closure in a
+         10 s gate reported as weather, and it read as broken because it is. */
+      const gustWorthSaying = g !== null && (s.wind_gust_ms >= WIND_CALM_MS) &&
+                              Math.round(g) > Math.round(k);
+      return gustWorthSaying
+        ? `${base}<span class="hero-sub2"> · gusting ${Math.round(g)} km/h</span>` : base;
     })();
 
     el.innerHTML = `

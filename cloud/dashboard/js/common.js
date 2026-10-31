@@ -853,9 +853,13 @@ async function renderForecast(el, slug, opts = {}) {
   /* signal "more →" when the strip overflows; the fade lifts at the end */
   const strip = el.querySelector('.fc-strip');
   const stripEdges = () => {
-    strip.classList.toggle('scrollable', strip.scrollWidth > strip.clientWidth + 4);
-    strip.classList.toggle('at-end',
-      strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 4);
+    const more = strip.scrollWidth > strip.clientWidth + 4;
+    const end = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 4;
+    strip.classList.toggle('scrollable', more);
+    strip.classList.toggle('at-end', end);
+    /* the chart is the same window, so it carries the same "more →" edge */
+    const ch = el.querySelector('.fc-chart');
+    if (ch) { ch.classList.toggle('scrollable', more); ch.classList.toggle('at-end', end); }
   };
   stripEdges();
   strip.addEventListener('scroll', stripEdges, { passive: true });
@@ -906,9 +910,17 @@ async function renderForecast(el, slug, opts = {}) {
     height: chartH,
     uplot: {
       legend: { show: showLegend, live: true },
+      /* Drag-zoom off: the chart and the strip are linked now, and dragging to
+         zoom and dragging to scroll cannot both own the same gesture. Scrolling
+         is what a forecast is read with. Hover still reads values. */
+      cursor: { drag: { x: false, y: false, setScale: false } },
       scales: { mm: { range: (u, mn, mx) => [0, Math.max(1, mx)] } },
+      /* The rain axis shares no gridlines with the temperature axis, so its
+         tick marks landed at heights nothing else sits at and read as a
+         misprint along the right edge. Labels stay; the stray dashes go. */
       axes: [uplotAxis(), uplotAxis({ size: 46 }),
-             uplotAxis({ size: 40, scale: 'mm', side: 1, grid: { show: false } })],
+             uplotAxis({ size: 40, scale: 'mm', side: 1,
+                         grid: { show: false }, ticks: { show: false } })],
       ...(hasSpread ? { bands: [{ series: [2, 3],
         fill: cssVar('--ch-temp-band') || 'rgba(214, 129, 62, 0.14)' }] } : {}),
     },
@@ -952,6 +964,35 @@ async function renderForecast(el, slug, opts = {}) {
       raf = requestAnimationFrame(() => { raf = 0; syncFromStrip(); });
     }, { passive: true });
     syncFromStrip();
+
+    /* The chart is grabbable too. Only the bubbles were, so the half of the
+       widget most people would instinctively drag — the graph — did nothing.
+       pan-y keeps vertical page scrolling with the page; horizontal belongs
+       to us. */
+    chartEl.style.touchAction = 'pan-y';
+    chartEl.style.cursor = 'grab';
+    let fromX = null, fromScroll = 0;
+    chartEl.addEventListener('pointerdown', e => {
+      fromX = e.clientX; fromScroll = strip.scrollLeft;
+      chartEl.style.cursor = 'grabbing';
+      try { chartEl.setPointerCapture(e.pointerId); } catch {}
+    });
+    chartEl.addEventListener('pointermove', e => {
+      if (fromX === null) return;
+      strip.scrollLeft = fromScroll - (e.clientX - fromX);
+    });
+    const endDrag = e => {
+      fromX = null; chartEl.style.cursor = 'grab';
+      try { chartEl.releasePointerCapture(e.pointerId); } catch {}
+    };
+    chartEl.addEventListener('pointerup', endDrag);
+    chartEl.addEventListener('pointercancel', endDrag);
+    /* a sideways trackpad swipe over the chart, too */
+    chartEl.addEventListener('wheel', e => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      e.preventDefault();
+      strip.scrollLeft += e.deltaX;
+    }, { passive: false });
   }
   el._fcPlot = u;
   return u;
