@@ -60,6 +60,7 @@ services:
       TERRAIN_TILE_URL: ${TERRAIN_TILE_URL:-}
       TERRAIN_ATTRIBUTION: ${TERRAIN_ATTRIBUTION:-}
       TERRAIN_MAX_ZOOM: ${TERRAIN_MAX_ZOOM:-18}
+      HOME_STATION: ${HOME_STATION:-}
     volumes:
       - media:/data/media
     ports:

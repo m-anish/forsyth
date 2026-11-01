@@ -24,6 +24,7 @@ def public_config():
     return {
         "satellite": ({"url": sat, "attribution": settings.satellite_attribution,
                        "maxZoom": settings.satellite_max_zoom} if sat else None),
+        "homeStation": settings.home_station or None,
         "terrain": ({"url": settings.terrain_tile_url,
                      "attribution": settings.terrain_attribution,
                      "maxZoom": settings.terrain_max_zoom}

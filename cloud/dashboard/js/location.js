@@ -48,6 +48,16 @@ const ForsythLoc = (() => {
     catch { sited = []; }
     if (!sited.length) { activeSlug = null; return; }
 
+    /* 0) the operator's designated home station, if it is sited. Every rule
+          a fallback can invent is arbitrary — "most recently heard" flipped
+          between stations reporting a minute apart, alphabetical is stable
+          but meaningless — so the honest answer is to let someone say. */
+    try {
+      await _cfgReady;
+      const home = _cfg && _cfg.homeStation;
+      if (home && sited.some(s => s.slug === home)) { activeSlug = home; return; }
+    } catch { /* no config: fall through to the guesses below */ }
+
     /* 1) a remembered choice wins */
     const saved = localStorage.getItem(KEY);
     if (saved && sited.some(s => s.slug === saved)) { activeSlug = saved; return; }

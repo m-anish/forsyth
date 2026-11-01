@@ -75,6 +75,13 @@ class Settings:
         '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>')
     terrain_max_zoom: int = int(os.environ.get("TERRAIN_MAX_ZOOM", "") or "18")
 
+    # Which station the homepage opens on for a visitor with no saved choice
+    # and no geolocation. Without it the fallback has to invent an order, and
+    # any rule it invents is arbitrary: "most recently heard" made the page
+    # flip between stations reporting a minute apart, and alphabetical-by-slug
+    # is stable but meaningless. A slug that does not exist is ignored.
+    home_station: str = os.environ.get("HOME_STATION", "")
+
     # self-serve accounts (engagement-roadmap §4). OAuth providers appear in
     # the sign-in dialog only when their id+secret are set; redirect URI to
     # register with each provider: {PUBLIC_BASE_URL}/api/v1/auth/oauth/{provider}/callback
