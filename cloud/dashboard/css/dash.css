@@ -1068,3 +1068,20 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
    as long as the connection stayed down. Say so instead. */
 body.is-stale #seen::after { content: ' · not updating'; color: var(--ch-gust); }
 body.is-stale .dot { background: var(--ch-gust); }
+
+/* Skip link. The map alone contributes 13 of the homepage's 31 focusable
+   controls — every zoom button, metric chip and overlay toggle — so a
+   keyboard reader had to tab through the entire map to reach anything below
+   it. Off-screen until focused, then it slides in. */
+.skip-link {
+  position: absolute; left: 8px; top: -64px; z-index: 1000;
+  background: var(--bg-card); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 16px; text-decoration: none;
+  font-family: var(--mono); font-size: 13px;
+  transition: top .15s ease;
+}
+.skip-link:focus { top: 8px; }
+/* the skip target is a landmark, not a control: it takes focus so the next
+   Tab continues from the content, but it should not draw a ring of its own */
+#main:focus { outline: none; }
