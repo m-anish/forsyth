@@ -28,9 +28,13 @@ const Report = (() => {
   function build() {
     dlg = document.createElement('dialog');
     dlg.id = 'report-dlg';
+    /* A modal with no accessible name is announced as just "dialog". The
+       heading already says what it is, so point at it rather than inventing
+       a second wording that can drift from the visible one. */
+    dlg.setAttribute('aria-labelledby', 'rp-title');
     dlg.innerHTML = `
       <form method="dialog">
-        <h3>What is the sky doing?</h3>
+        <h3 id="rp-title">What is the sky doing?</h3>
         <p class="rp-why">The stations measure; you see. Tap everything you're
           seeing — it's checked against the nearest station and sharpens the
           mesh's warnings for everyone in the valley.</p>
@@ -43,7 +47,11 @@ const Report = (() => {
           <div class="chips">${ALERTS.map(([v, label]) =>
             `<button type="button" class="chip alert-${v}" data-a="${v}">${label}</button>`).join('')}</div>
         </div>
-        <input id="rp-note" maxlength="140" placeholder="a few words, if it helps (optional)" autocomplete="off" />
+        <!-- A placeholder is not a label: it vanishes the moment someone
+             types, and it is announced inconsistently. The field had nothing
+             else, so a screen reader called it "edit text, blank". -->
+        <input id="rp-note" maxlength="140" aria-label="A few words about what you can see (optional)"
+               placeholder="a few words, if it helps (optional)" autocomplete="off" />
         <div class="rp-status">
           <p class="rp-loc" id="rp-loc">…</p>
           <p class="rp-me" id="rp-me"></p>
