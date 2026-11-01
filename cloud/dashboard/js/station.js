@@ -373,13 +373,36 @@ Report.mount({ fallback: () => S.station && S.station.lat != null
    (the board's chart widget avoids this by feeding the existing plot; this page
    does not, yet). The cost is that a fresh reading can reach the panels up to
    ~4 min before it reaches the graphs. */
-setInterval(() => { refreshNow(); refreshPressureTrend(); renderWidgets(); refreshBanner(slug); }, 60_000);
-setInterval(() => { drawCharts(); refreshCamera(); refreshForecast(); }, 5 * 60_000);
+/* Every refresh is a network call, and on the connections this site is read
+   over it will sometimes fail. Three things used to go wrong when it did, all
+   silently: the rejection went unhandled (so everything after the await in
+   that function never ran, leaving the page half-updated); nothing recorded
+   that the numbers had stopped moving; and the "last heard" label froze at
+   whatever it said when the last good fetch landed — so during an outage the
+   page claimed the reading was two minutes old indefinitely.
+
+   allSettled keeps one failing endpoint from taking the others down with it,
+   and the page is only called stale when the WHOLE tick failed, which is an
+   outage rather than one endpoint hiccuping. */
+function markStale(on) { document.body.classList.toggle('is-stale', !!on); }
+
+async function tick(fns, label) {
+  const out = await Promise.allSettled(fns.map(f => f()));
+  const failed = out.filter(r => r.status === 'rejected');
+  for (const f of failed) console.warn(`[forsyth] ${label} failed:`, f.reason);
+  if (failed.length) markStale(failed.length === out.length);
+  else markStale(false);
+}
+
+const minuteWork = () => tick(
+  [refreshNow, refreshPressureTrend, renderWidgets, () => refreshBanner(slug)], 'minute refresh');
+const slowWork = () => tick(
+  [drawCharts, refreshCamera, refreshForecast], 'five-minute refresh');
+
+setInterval(minuteWork, 60_000);
+setInterval(slowWork, 5 * 60_000);
 
 /* ...and neither timer runs while the tab is in the background, so refresh
    everything on the way back in rather than showing frozen readings until the
    next tick (js/common.js) */
-onVisible(() => {
-  refreshNow(); refreshPressureTrend(); renderWidgets(); refreshBanner(slug);
-  drawCharts(); refreshCamera(); refreshForecast();
-});
+onVisible(() => { minuteWork(); slowWork(); });

@@ -65,8 +65,28 @@ async function renderWidget(el) {
   if (!meta) return;
   rangeChips(el);
   const body = el.querySelector('.wg-body');
-  try { await Widgets.REGISTRY[meta.type].render(body, meta.config); }
-  catch (e) { body.innerHTML = `<p class="wg-empty">widget unhappy: ${e.message}</p>`; }
+  try {
+    await Widgets.REGISTRY[meta.type].render(body, meta.config);
+    body.classList.remove('wg-stale');
+  } catch (e) {
+    /* A failed REFRESH must not throw away a good reading. This used to
+       replace whatever was on screen with the raw exception text, so one
+       dropped poll blanked the page and printed "TypeError: Failed to fetch"
+       five times down it, once per widget — on exactly the patchy hill
+       connections this site is for. Weather a few minutes old is worth far
+       more than an error message.
+
+       So: a widget that HAS something keeps it, dimmed and marked; only a
+       widget with nothing to show says so, and never in the exception's own
+       words. The real error goes to the console, where it is useful. */
+    console.warn('[forsyth] widget refresh failed:', meta.type, e);
+    if (body.innerText.trim() && !body.querySelector('.wg-offline')) {
+      body.classList.add('wg-stale');
+    } else {
+      body.innerHTML = '<p class="wg-empty wg-offline">Can\u2019t reach the station '
+        + 'right now. This fills in again when the connection does.</p>';
+    }
+  }
   if (Widgets.REGISTRY[meta.type].sizeToContent) fitToContent(el);
 }
 
