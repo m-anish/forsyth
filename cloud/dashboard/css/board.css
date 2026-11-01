@@ -116,7 +116,7 @@
   text-transform: uppercase; color: var(--text-mute); white-space: nowrap; overflow: hidden; }
 .fc-seg .t2 { font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.05em;
   color: var(--text-dim); white-space: nowrap; }
-.fc-seg .g { font-size: 17px; line-height: 1.2; }
+.fc-seg .g { font-size: 22px; line-height: 1; height: 22px; }
 .fc-seg .v { font-family: var(--mono); font-size: 13px; }
 /* daily cards carry "27°/18°", which needs a little more room than one value */
 .fc-strip.daily .fc-seg { flex-basis: 68px; min-width: 68px; }

@@ -38,6 +38,9 @@
      survives deuteranopia and protanopia, which red/green pairs do not. */
   --ch-pm25: #e8913c;  --ch-pm10: #5aa9d6;  --ch-batt: #7fb98a;
   --ch-pm25-fill: rgba(232,145,60,0.20); --ch-pm10-fill: rgba(90,169,214,0.14);
+  /* the sky icons: brass sun, silver moon, slate cloud. All three clear 3:1
+     against --bg-card, which is what WCAG asks of a graphic carrying meaning. */
+  --wx-sun: #d9b06a;  --wx-moon: #c9cdd6;  --wx-cloud: #8b9099;
 }
 
 [data-theme="light"] {
@@ -67,6 +70,7 @@
   --ch-rain: #3f6c96;  --ch-rain-fill: rgba(63,108,150,0.18);
   --ch-pm25: #c2621a;  --ch-pm10: #1f6f9c;  --ch-batt: #3e7d4f;
   --ch-pm25-fill: rgba(194,98,26,0.16); --ch-pm10-fill: rgba(31,111,156,0.12);
+  --wx-sun: #a8812f;  --wx-moon: #5a6472;  --wx-cloud: #7d8590;
 }
 
 * { box-sizing: border-box; }
@@ -928,6 +932,18 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
    follows as a sparkline. docs/v2-design.md §5 Phase 3. */
 .hero-top { display: flex; align-items: baseline; gap: 10px 12px; flex-wrap: wrap; }
 .hero-glyph { font-size: 1.9rem; line-height: 1; }
+
+/* The sky icons (js/common.js wxIcon). Sized in em so the one set serves a
+   17px forecast card and a 30px hero without a second scale to keep in step;
+   overflow visible because the sun's rays sit outside the 24-box. */
+.wx-ico { width: 1em; height: 1em; display: inline-block; vertical-align: -0.14em;
+  overflow: visible; }
+.wx-ico .sun   { fill: var(--wx-sun); }
+.wx-ico .ray { stroke: var(--wx-sun); stroke-width: 1.9; stroke-linecap: round; }
+.wx-ico .moon  { fill: var(--wx-moon); }
+.wx-ico .cloud { fill: var(--wx-cloud); }
+.wx-ico .drop  { stroke: var(--ch-rain); stroke-width: 1.9; stroke-linecap: round; }
+.wx-ico .flake { fill: var(--wx-moon); }
 .hero-temp { font-family: var(--mono); line-height: 1; letter-spacing: -0.03em;
   font-size: clamp(2.5rem, 8vw, 3.4rem); }
 .hero-temp .u { font-size: .38em; color: var(--text-mute); margin-left: 2px; }

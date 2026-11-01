@@ -271,7 +271,9 @@ async function refreshForecast() {
   const el = document.getElementById('forecast-box');
   if (!el) return;
   if (el._uplot) { el._uplot.destroy(); el._uplot = null; }
-  el._uplot = await renderForecast(el, slug, { height: 240 });
+  el._uplot = await renderForecast(el, slug, { height: 240,
+    /* boot() awaits refreshNow() first, so the coordinates are in by here */
+    lat: S.station && S.station.lat, lon: S.station && S.station.lon });
   const sk = el.querySelector('.fc-skill');
   if (sk) renderSkillLine(sk, slug);
 }

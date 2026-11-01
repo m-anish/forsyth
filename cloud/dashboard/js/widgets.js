@@ -82,17 +82,20 @@ const Widgets = (() => {
     let glyph = '';
     try {
       const fsig = `${s.slug}|${new Date().getUTCHours()}`;
-      if (el._fcSig2 !== fsig || !el._glyph) {
+      if (el._fcSig2 !== fsig || !el._sky) {
         const f = await getJSON(`/stations/${s.slug}/forecast?hours=6`);
         const F = f.series || {};
-        el._glyph = wxGlyph((F.precip_mm || [])[0], (F.precip_prob || [])[0],
-                            (F.cloud_cover_pct || [])[0], (F.temp_c || [])[0]);
+        el._sky = wxKind((F.precip_mm || [])[0], (F.precip_prob || [])[0],
+                         (F.cloud_cover_pct || [])[0], (F.temp_c || [])[0]);
         el._fcSig2 = fsig;
       }
-      glyph = el._glyph || '';
+      /* The sky state is cached per model hour; whether there is a sun in it
+         or a moon is settled on every render, so the icon turns over near
+         enough to sunset instead of at the top of the following hour. */
+      glyph = el._sky ? wxIcon(el._sky, isNight(Date.now() / 1000, s.lat, s.lon)) : '';
     } catch { /* no forecast: no glyph, rather than a guessed one */ }
     /* rain measured here always beats the model's opinion of the sky */
-    if ((s.rain_mm ?? 0) > 0.3) glyph = '🌧';
+    if ((s.rain_mm ?? 0) > 0.3) glyph = wxIcon('rain');
 
     const says = [cap(describe(s)) + '.'];
     if (showFeels) says.push(`Feels like ${Math.round(fl)}°.`);
@@ -179,8 +182,13 @@ const Widgets = (() => {
       if (meta.sparse) sr.points = { show: true, size: 3 };
       return sr;
     });
+    /* The nights, shaded, the same as on the station page: a board chart was
+       the one place a reader had to consult the time axis to tell which dip
+       was the night and which was the weather. */
+    const nights = nightBands(s.lat, s.lon);
     el._uplot = makeChart(el, series, data,
-                          { height: Math.max(120, el.clientHeight - 40) });
+                          { height: Math.max(120, el.clientHeight - 40),
+                            uplot: nights ? { plugins: [nights] } : {} });
     el._chartKey = key;
   }
 
@@ -410,6 +418,7 @@ const Widgets = (() => {
       hours,
       chart: wantChart,
       fit: true,   /* measure the leftover space instead of guessing at it */
+      lat: s.lat, lon: s.lon,   /* moons on the night cards, nights on the chart */
       reuse: el._fcSig === `${s.slug}|${hours}|${wantChart}`,
     });
     el._fcSig = `${s.slug}|${hours}|${wantChart}`;

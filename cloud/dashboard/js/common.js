@@ -465,7 +465,8 @@ function trendFromSeries(metric, ts, vals, hours) {
 
 /* Sunrise and sunset for a date and place (the standard NOAA/SunCalc
    approximation — good to about a minute at these latitudes). Returns epoch
-   seconds, or null where the sun never crosses the horizon. */
+   seconds, or null where the sun never crosses the horizon. -0.833° is the
+   horizon with refraction and the sun's own radius allowed for. */
 function sunTimes(dateMs, lat, lon) {
   const rad = Math.PI / 180, J1970 = 2440588, J2000 = 2451545;
   const d = dateMs / 86400000 - 0.5 + J1970 - J2000;
@@ -484,31 +485,83 @@ function sunTimes(dateMs, lat, lon) {
   return { sunrise: toEpoch(Jtransit - w), sunset: toEpoch(Jtransit + w) };
 }
 
+/* How high the sun is, in degrees, at an instant and a place. The same series
+   as sunTimes above, stopped a step earlier: where that solves for the time of
+   a crossing, this asks where the sun is right now. */
+function sunAltitude(dateMs, lat, lon) {
+  const rad = Math.PI / 180, J1970 = 2440588, J2000 = 2451545;
+  const d = dateMs / 86400000 - 0.5 + J1970 - J2000;
+  const M = rad * (357.5291 + 0.98560028 * d);
+  const C = rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
+  const L = M + C + rad * 102.9372 + Math.PI;
+  const e = rad * 23.4397;
+  const dec = Math.asin(Math.sin(L) * Math.sin(e));
+  const ra = Math.atan2(Math.sin(L) * Math.cos(e), Math.cos(L));
+  const H = rad * (280.16 + 360.9856235 * d) - rad * -lon - ra;
+  return Math.asin(Math.sin(rad * lat) * Math.sin(dec) +
+                   Math.cos(rad * lat) * Math.cos(dec) * Math.cos(H)) / rad;
+}
+
 /* Night shaded behind the series. The diurnal cycle is the dominant pattern in
    nearly every metric here, so marking it turns a chart into something you can
    read without consulting the time axis (docs/v2-design.md §8.3). Drawn on the
    `drawClear` hook, which fires after the canvas is cleared but before the
-   series, so it sits behind the data rather than over it. */
+   series, so it sits behind the data rather than over it.
+
+   Not a rectangle. A hard edge at sunset drew a vertical line through the
+   data, and a line through a chart reads as something that HAPPENED — which is
+   the one thing dusk is not. So the shading follows the sun's altitude
+   instead: clear while it is 8° up, full once it is 12° down, smoothstepped
+   between, which puts the half-dark point within a few minutes of sunset and
+   spreads the turn over the hour and a half it actually takes at this
+   latitude. Sampling altitude rather than solving for crossings also means
+   there are no cases: a polar summer simply never reaches the dark end, and
+   the far north's three-hour dusk draws itself at three hours wide.
+
+   One gradient across the plot, sixty-odd stops, rebuilt per draw. Measured at
+   well under a millisecond — the trigonometry is twelve operations a sample. */
 function nightBands(lat, lon) {
   if (lat === null || lat === undefined || lon === null || lon === undefined) return null;
+  const ease = t => t * t * (3 - 2 * t);
+  const DAY = 8, DARK = -12;            // sun altitude, degrees: clear → full
   return { hooks: { drawClear: u => {
     const bb = u.bbox, ctx = u.ctx;
     const t0 = u.scales.x.min, t1 = u.scales.x.max;
     if (t0 === undefined || t1 === undefined || t0 === null || t1 === null) return;
-    ctx.save();
-    ctx.fillStyle = cssVar('--night-band') || 'rgba(0,0,0,0.10)';
-    /* step a day at a time across the window, shading sunset → next sunrise */
-    for (let day = Math.floor(t0 / 86400) * 86400 - 86400; day <= t1 + 86400; day += 86400) {
-      const a = sunTimes(day * 1000, lat, lon);
-      const b = sunTimes((day + 86400) * 1000, lat, lon);
-      if (!a || !b) continue;
-      const from = Math.max(a.sunset, t0), to = Math.min(b.sunrise, t1);
-      if (to <= from) continue;
-      const xa = u.valToPos(from, 'x', true), xb = u.valToPos(to, 'x', true);
-      ctx.fillRect(xa, bb.top, xb - xa, bb.height);
+    if (!(t1 > t0) || !(bb.width > 0)) return;
+    const col = cssVar('--night-band') || 'rgba(0,0,0,0.10)';
+    if (fadeColor(col, 1) === null) return;   // unparseable token: draw nothing
+    /* one stop every ~6 device pixels: finer than the eye resolves on a
+       gradient, coarse enough that a wide chart stays under a hundred */
+    const n = Math.max(24, Math.min(180, Math.round(bb.width / 6)));
+    const g = ctx.createLinearGradient(bb.left, 0, bb.left + bb.width, 0);
+    let dark = false;
+    for (let i = 0; i <= n; i++) {
+      const k = i / n;
+      const alt = sunAltitude((t0 + (t1 - t0) * k) * 1000, lat, lon);
+      const a = 1 - ease(Math.max(0, Math.min(1, (alt - DARK) / (DAY - DARK))));
+      if (a > 0.01) dark = true;
+      g.addColorStop(k, fadeColor(col, a));
     }
+    if (!dark) return;                  // the whole window is daylight
+    ctx.save();
+    ctx.fillStyle = g;
+    ctx.fillRect(bb.left, bb.top, bb.width, bb.height);
     ctx.restore();
   } } };
+}
+
+/* Scale a colour's alpha. Canvas gradients take colour strings and nothing
+   else, so a stop built from a theme token has to be mixed by hand. Returns
+   null for anything that isn't rgb()/rgba(), which is the caller's cue to fall
+   back to a flat fill rather than draw nothing. */
+function fadeColor(css, k) {
+  const m = /^\s*rgba?\(([^)]+)\)\s*$/.exec(css || '');
+  if (!m) return null;
+  const p = m[1].split(',').map(v => parseFloat(v));
+  if (p.length < 3 || p.slice(0, 3).some(v => !isFinite(v))) return null;
+  const a = (p.length > 3 && isFinite(p[3]) ? p[3] : 1) * k;
+  return `rgba(${p[0]},${p[1]},${p[2]},${a.toFixed(3)})`;
 }
 
 /* A labelled reference line. A concentration means little without the number
@@ -802,16 +855,106 @@ function sparkline(vals, opts = {}) {
 
 /* ---------- forecast (shared: station page panel + board widget) ---------- */
 
-function wxGlyph(rainMm, prob, cloud, tempC) {
+/* Is it dark at this place and instant? sunTimes() resolves to the solar day
+   nearest the timestamp, which is what makes 23:00 answer against the sunrise
+   still to come rather than the one already past. An unknown place returns
+   null — the icons then keep their daytime form instead of guessing. */
+function isNight(tsSec, lat, lon) {
+  if (lat === null || lat === undefined || lon === null || lon === undefined) return null;
+  const s = sunTimes(tsSec * 1000, lat, lon);
+  if (!s) return null;              // polar day or night: no crossing to read
+  return tsSec < s.sunrise || tsSec > s.sunset;
+}
+
+/* The sky as one of five states. Cloud cover only the model has; the station
+   cannot see the sky. */
+function wxKind(rainMm, prob, cloud, tempC) {
   if ((rainMm ?? 0) > 0.3 || (prob ?? 0) > 60)
-    return (tempC !== null && tempC !== undefined && tempC <= 1) ? '🌨' : '🌧';
-  if ((cloud ?? 0) > 70) return '☁';
-  if ((cloud ?? 0) > 30) return '⛅';
-  return '☀';
+    return (tempC !== null && tempC !== undefined && tempC <= 1) ? 'snow' : 'rain';
+  if ((cloud ?? 0) > 70) return 'cloud';
+  if ((cloud ?? 0) > 30) return 'partly';
+  return 'clear';
+}
+
+/* Drawn, not typed. Emoji has no moon behind a cloud — the one state a weather
+   icon needs most between sunset and sunrise — and what it does have arrives
+   as full-colour Apple/Noto art for some codepoints and flat text symbols for
+   others, so a row of them was never one set to begin with. Seven shapes in
+   the page's own two or three colours, and the theme owns every one of them. */
+const WX_CLOUD = '<circle cx="8.6" cy="13.2" r="3.9"/><circle cx="12.6" cy="11.3" r="4.6"/>'
+               + '<circle cx="16.4" cy="13.6" r="3.4"/>'
+               + '<rect x="4.7" y="13.4" width="14.6" height="4.2" rx="2.1"/>';
+/* a crescent: one disc with a slightly tighter one taken out of its right */
+const WX_MOON = 'M16.5 4.2A8.4 8.4 0 1 0 16.5 19.8A8.2 8.2 0 0 1 16.5 4.2Z';
+
+function wxSun(cx, cy, r, r1, r2) {
+  let rays = '';
+  for (let i = 0; i < 8; i++) {
+    const t = i * Math.PI / 4, dx = Math.cos(t), dy = Math.sin(t);
+    rays += `<line x1="${(cx + dx * r1).toFixed(2)}" y1="${(cy + dy * r1).toFixed(2)}"`
+          + ` x2="${(cx + dx * r2).toFixed(2)}" y2="${(cy + dy * r2).toFixed(2)}"/>`;
+  }
+  return `<circle cx="${cx}" cy="${cy}" r="${r}"/><g class="ray">${rays}</g>`;
+}
+
+/* Said aloud, because the icon is the only place the sky state appears — the
+   card already carries the temperature and the chance of rain, but nothing
+   else on it says "cloudy". The emoji it replaces were announced by name. */
+const WX_SAID = {
+  clear: 'Clear', 'clear-night': 'Clear, night',
+  partly: 'Partly cloudy', 'partly-night': 'Partly cloudy, night',
+  cloud: 'Overcast', rain: 'Rain', snow: 'Snow',
+};
+
+function wxIcon(kind, night) {
+  const k = night && (kind === 'clear' || kind === 'partly') ? kind + '-night' : kind;
+  const cloud = (t) => `<g class="cloud" transform="${t}">${WX_CLOUD}</g>`;
+  const moon = (t) => `<path class="moon" d="${WX_MOON}" transform="${t}"/>`;
+  let body;
+  switch (k) {
+    case 'clear':
+      body = `<g class="sun">${wxSun(12, 12, 3.9, 6.1, 8.6)}</g>`; break;
+    case 'clear-night':
+      body = moon('translate(1.7 0)'); break;
+    /* sun or moon up and to the left, cloud across the lower right: the
+       overlap is what makes it read as one sky rather than two symbols */
+    case 'partly':
+      body = `<g class="sun">${wxSun(8.4, 8, 2.9, 4.6, 6.5)}</g>`
+           + cloud('translate(3.6 4.4) scale(0.82)'); break;
+    case 'partly-night':
+      body = moon('translate(0.9 0.2) scale(0.56)')
+           + cloud('translate(3.6 4.4) scale(0.82)'); break;
+    case 'cloud':
+      body = cloud('translate(0 1.2)'); break;
+    case 'rain':
+      body = cloud('translate(0 -1.4) scale(0.95)')
+           + '<g class="drop"><line x1="9.1" y1="16.4" x2="8.1" y2="20.4"/>'
+           + '<line x1="12.5" y1="17" x2="11.5" y2="21"/>'
+           + '<line x1="15.9" y1="16.4" x2="14.9" y2="20.4"/></g>'; break;
+    /* dots rather than asterisks: a six-spoke flake at 17px is sub-pixel
+       strokes, which the browser renders as a grey smudge */
+    case 'snow':
+      body = cloud('translate(0 -1.4) scale(0.95)')
+           + '<g class="flake"><circle cx="8.8" cy="18.2" r="1.3"/>'
+           + '<circle cx="12.2" cy="20.4" r="1.3"/>'
+           + '<circle cx="15.6" cy="18.2" r="1.3"/></g>'; break;
+    default: return '';
+  }
+  return '<svg class="wx-ico" viewBox="0 0 24 24" role="img"'
+       + ` aria-label="${WX_SAID[k] || ''}">${body}</svg>`;
+}
+
+/* the model numbers straight to an icon, for the two callers that hold them */
+function wxGlyph(rainMm, prob, cloud, tempC, night) {
+  return wxIcon(wxKind(rainMm, prob, cloud, tempC), night);
 }
 
 /* Renders the 6-hour strip + temp/precip chart into el (which is emptied).
-   Returns the uPlot instance, or null (no chart / no forecast yet). */
+   Returns the uPlot instance, or null (no chart / no forecast yet).
+
+   opts.lat/opts.lon are the station's: without them the strip cannot know
+   which of its cards are after dark, and the chart cannot shade the nights.
+   Both degrade to their daytime selves rather than refusing to draw. */
 async function renderForecast(el, slug, opts = {}) {
   const hours = opts.hours || 48;
   let d;
@@ -824,14 +967,21 @@ async function renderForecast(el, slug, opts = {}) {
   /* Same model run as last time, same window, DOM still intact → nothing to
      redraw. Forecasts change every 3 h; the refresh loop runs every minute. */
   const theme = document.documentElement.dataset.theme;
+  /* The run is not the only thing that goes stale. The window itself slides
+     with the clock (the API answers from now − 1 h), and so does which card
+     has a moon on it — a strip held since before sunset would still be showing
+     suns at nine in the evening. An hour is the coarsest bucket that cannot
+     get that wrong by more than an hour, and costs one rebuild. */
+  const hourKey = Math.floor(Date.now() / 3600000);
   if (opts.reuse && el._fcRun === d.run_at && el._fcTheme === theme
-      && el.querySelector('.fc-strip')) {
+      && el._fcHour === hourKey && el.querySelector('.fc-strip')) {
     return el._fcPlot || null;   // strip-only widgets have no plot to return
   }
   /* rebuilding: tear the old plot down properly, or its resize observer leaks */
   if (el._fcPlot) { el._fcPlot.destroy(); el._fcPlot = null; }
   el._fcRun = d.run_at;
   el._fcTheme = theme;   // a theme switch forces a rebuild, recolouring series too
+  el._fcHour = hourKey;
 
   const F = d.series;
 
@@ -850,6 +1000,13 @@ async function renderForecast(el, slug, opts = {}) {
     const sum = a => vals(a).reduce((x, y) => x + y, 0);
     const rain = sum(F.precip_mm), prob = max(F.precip_prob);
     const t0 = new Date(d.ts[i] * 1000);
+    /* Sun or moon is decided by the time printed on the card, not by the
+       middle of the six hours it covers. The midpoint is arguably the better
+       average — but it put a moon on a card headed 15:30, and a reader checks
+       an icon against the label beside it, not against a window they cannot
+       see. A daily card spans both and gets neither: a 24 h summary with a
+       moon on it would simply be wrong. */
+    const night = daily ? false : isNight(d.ts[i], opts.lat, opts.lon);
     segs.push({
       /* day and time on separate lines — side by side they collide on
          phones; explicit "21:00" because a bare "21" reads as a date */
@@ -860,7 +1017,7 @@ async function renderForecast(el, slug, opts = {}) {
       temp: daily ? `${fmt(max(F.temp_c), 0)}°/${fmt(min(F.temp_c), 0)}°`
                   : `${fmt(avg(F.temp_c), 0)}°`,
       rain, prob,
-      glyph: wxGlyph(rain, prob, avg(F.cloud_cover_pct), avg(F.temp_c)),
+      glyph: wxGlyph(rain, prob, avg(F.cloud_cover_pct), avg(F.temp_c), night),
     });
   }
   el.innerHTML = `
@@ -966,6 +1123,7 @@ async function renderForecast(el, slug, opts = {}) {
      pinned to the frame */
   const tPad = tMin === null ? 0 : Math.max(0.5, (tMax - tMin) * 0.08);
   const pMax = Math.max(1, ...(pVals.length ? pVals : [0]));
+  const nights = nightBands(opts.lat, opts.lon);
 
   const u = makeChart(chartEl, series, data, {
     height: chartH,
@@ -987,6 +1145,10 @@ async function renderForecast(el, slug, opts = {}) {
                          grid: { show: false }, ticks: { show: false } })],
       ...(hasSpread ? { bands: [{ series: [2, 3],
         fill: cssVar('--ch-temp-band') || 'rgba(214, 129, 62, 0.14)' }] } : {}),
+      /* The nights, shaded, same as every chart on the station page. A
+         forecast is read as "when", and the overnight dip in the temperature
+         line means nothing until you can see which part of it is overnight. */
+      ...(nights ? { plugins: [nights] } : {}),
     },
   });
 
