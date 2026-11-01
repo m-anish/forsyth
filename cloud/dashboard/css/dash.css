@@ -46,7 +46,9 @@
   --bg-card:   #fbfaf7;
   --text:      #22262c;
   --text-dim:  #4f555c;
-  --text-mute: #6a6f76;   /* 4.85:1 on --bg-card; #80858c was 3.56 */
+  --text-mute: #62676e;   /* 4.65:1 against the WORST of bg/card/elev. First
+                             pass solved only against --bg-card and so still
+                             failed at 4.13 on the darker --bg-elev panels. */
   --accent:    #3f6c96;
   --accent-2:  #8a6f38;
   --good:      #3e7d4f;
@@ -1044,6 +1046,6 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
    of them you can hit. */
 @media (max-width: 767px) {
   .range button { min-height: 28px; padding: 6px 11px; }
-  .sl-signoff a, .crumb a, .nav-chip {
+  .sl-signoff a, .crumb a, .nav-chip, .export, .brand {
     min-height: 28px; display: inline-flex; align-items: center; }
 }
