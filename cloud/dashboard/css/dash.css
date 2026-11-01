@@ -1047,5 +1047,6 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
 @media (max-width: 767px) {
   .range button { min-height: 28px; padding: 6px 11px; }
   .sl-signoff a, .crumb a, .nav-chip, .export, .brand {
-    min-height: 28px; display: inline-flex; align-items: center; }
+    min-height: 28px; min-width: 28px; justify-content: center;
+    display: inline-flex; align-items: center; }
 }
