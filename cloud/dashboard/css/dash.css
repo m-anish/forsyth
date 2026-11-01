@@ -931,7 +931,10 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
    trend share a baseline, the sentence sits under them, and the day's shape
    follows as a sparkline. docs/v2-design.md §5 Phase 3. */
 .hero-top { display: flex; align-items: baseline; gap: 10px 12px; flex-wrap: wrap; }
-.hero-glyph { font-size: 1.9rem; line-height: 1; }
+/* Tracks the temperature's own clamp at about four fifths of it: a drawn icon
+   fills less of its em box than the emoji it replaced, so the old flat 1.9rem
+   left it looking like a bullet point beside a 54px numeral. */
+.hero-glyph { font-size: clamp(1.8rem, 6.4vw, 2.7rem); line-height: 1; }
 
 /* The sky icons (js/common.js wxIcon). Sized in em so the one set serves a
    17px forecast card and a 30px hero without a second scale to keep in step;
