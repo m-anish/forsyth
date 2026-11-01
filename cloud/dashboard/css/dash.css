@@ -377,17 +377,15 @@ h1.headline {
 .feed .empty { color: var(--text-mute); border: none; font-style: italic; }
 
 /* camera */
-/* The camera burns its own telemetry into the frame: a box top-left, and a
-   strip along the bottom carrying temperature, humidity, pressure and PM
-   read by a DIFFERENT sensor than the one this page reports. Two sets of
-   numbers that can disagree, on one screen, is worse than none — so the
-   bottom strip is cropped away. The top-left box stays: it repeats the
-   station's name and position rather than contradicting a reading.
-   The ratio is the frame (1207x679) less that strip. */
+/* The frame is shown whole, at whatever shape the camera produces.
+   An earlier version cropped a fixed 5% off the bottom to hide the burnt-in
+   telemetry strip on the Bir camera — but that ratio was measured from one
+   device's output, so it would have mis-cropped every other camera while
+   quietly encoding one legacy station's quirks in the shared stylesheet.
+   A camera's own overlay is the camera's to fix, not the layout's to hide. */
 .cam-shot {
-  display: block; position: relative; overflow: hidden;
-  aspect-ratio: 1207 / 642; background: var(--bg-elev);
-  border: 1px solid var(--border-2); border-radius: 10px;
+  display: block; position: relative; background: var(--bg-elev);
+  border: 1px solid var(--border-2); border-radius: 10px; overflow: hidden;
 }
 .cam-shot img { display: block; width: 100%; }
 .cam-shot:hover, .cam-shot:focus-visible { border-color: var(--accent); }
