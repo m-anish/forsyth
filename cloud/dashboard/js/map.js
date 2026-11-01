@@ -37,8 +37,31 @@ const forsythMap = (() => {
     if (v == null) return 'hsl(215,15%,55%)';
     return v >= 3.15 ? '#2e9e5b' : v >= 2.95 ? '#e0a020' : '#d64541';
   }
-  function textOn(bg) {             // black text on the yellow-ish bands
-    return /f5d000|92d050/.test(bg) ? '#1c2430' : '#fff';
+  /* Black or white, decided by MEASURING the background. The old version
+     tested the string against two hard-coded hexes (#f5d000, #92d050) and
+     returned white for everything else — so every other light colour on a
+     ramp, and the hsl() grey used for a stale station, got white text. A
+     24.9 degree chip measured 2.05:1: the number is unreadable on the very
+     colour that is supposed to encode it. Canvas normalises any CSS colour
+     (hex, rgb, hsl, named) to one form, so the ramps can say what they like. */
+  const _ctxColor = document.createElement('canvas').getContext('2d');
+  function parseCssColor(c) {
+    try {
+      _ctxColor.fillStyle = '#000';
+      _ctxColor.fillStyle = c;
+      const s = _ctxColor.fillStyle;
+      if (s[0] === '#') return [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16));
+      const m = /rgba?\(([^)]+)\)/.exec(s);
+      return m ? m[1].split(',').slice(0, 3).map(Number) : null;
+    } catch { return null; }
+  }
+  function textOn(bg) {
+    const rgb = parseCssColor(bg);
+    if (!rgb) return '#fff';
+    const lin = rgb.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+    const L = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+    /* whichever of black or white separates further from this background */
+    return (L + 0.05) / 0.05 >= 1.05 / (L + 0.05) ? '#10141a' : '#fff';
   }
 
   /* ---------- lightning ring tuning ----------

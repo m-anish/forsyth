@@ -13,7 +13,7 @@
   --bg-card:   #14171d;
   --text:      #e8e9e6;
   --text-dim:  #9a9ea3;
-  --text-mute: #63676e;
+  --text-mute: #81858c;   /* 4.84:1 on --bg-card; #63676e was 3.16 (AA needs 4.5) */
   --accent:    #7fa2c4;   /* rain-slate */
   --accent-2:  #b8a06a;   /* barometer brass */
   --good:      #7fb98a;
@@ -46,7 +46,7 @@
   --bg-card:   #fbfaf7;
   --text:      #22262c;
   --text-dim:  #4f555c;
-  --text-mute: #80858c;
+  --text-mute: #6a6f76;   /* 4.85:1 on --bg-card; #80858c was 3.56 */
   --accent:    #3f6c96;
   --accent-2:  #8a6f38;
   --good:      #3e7d4f;
@@ -1036,3 +1036,14 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
 /* chips sit closest to the legend they are explained by */
 .wx-ctl .wx-tools { order: 1; }
 .wx-ctl .wx-modes { order: 2; }
+
+/* Touch targets on a phone. The range switchers — the main way anyone changes
+   the forecast or history window — were 17px tall, well under the 24px WCAG
+   2.5.8 minimum and nowhere near a comfortable thumb. Nav and footer links
+   get the same treatment; none of this changes how they look, only how much
+   of them you can hit. */
+@media (max-width: 767px) {
+  .range button { min-height: 28px; padding: 6px 11px; }
+  .sl-signoff a, .crumb a, .nav-chip {
+    min-height: 28px; display: inline-flex; align-items: center; }
+}
