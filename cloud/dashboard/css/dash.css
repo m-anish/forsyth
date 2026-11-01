@@ -1084,7 +1084,7 @@ body.is-stale .dot { background: var(--ch-gust); }
 .skip-link:focus { top: 8px; }
 /* the skip target is a landmark, not a control: it takes focus so the next
    Tab continues from the content, but it should not draw a ring of its own */
-#main:focus { outline: none; }
+#main:focus, #fullmap:focus { outline: none; }
 
 /* Loading skeleton. Shown only on a card with nothing in it yet — never over
    a reading that is already on screen. Reduced-motion readers get the shape
