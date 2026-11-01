@@ -65,6 +65,20 @@ async function renderWidget(el) {
   if (!meta) return;
   rangeChips(el);
   const body = el.querySelector('.wg-body');
+  /* Until the first reading lands a card is a blank rectangle — about a third
+     of a second on a good connection, seconds on a hill one, with nothing to
+     say it is working. A skeleton rather than a word: there is no wording to
+     translate and it reads as "working" to anybody.
+
+     Only on a card that has NOTHING yet. A refresh already has a reading
+     worth keeping on screen, and blanking it to show a spinner would undo
+     exactly what the failure handling below is for. */
+  const firstRender = !body.innerText.trim();
+  if (firstRender) {
+    body.setAttribute('aria-busy', 'true');
+    body.innerHTML = '<div class="wg-skel" aria-hidden="true">'
+      + '<span></span><span></span><span></span></div>';
+  }
   try {
     await Widgets.REGISTRY[meta.type].render(body, meta.config);
     body.classList.remove('wg-stale');
@@ -87,6 +101,7 @@ async function renderWidget(el) {
         + 'right now. This fills in again when the connection does.</p>';
     }
   }
+  body.removeAttribute('aria-busy');
   if (Widgets.REGISTRY[meta.type].sizeToContent) fitToContent(el);
 }
 

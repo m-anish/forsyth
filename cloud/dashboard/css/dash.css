@@ -1085,3 +1085,22 @@ body.is-stale .dot { background: var(--ch-gust); }
 /* the skip target is a landmark, not a control: it takes focus so the next
    Tab continues from the content, but it should not draw a ring of its own */
 #main:focus { outline: none; }
+
+/* Loading skeleton. Shown only on a card with nothing in it yet — never over
+   a reading that is already on screen. Reduced-motion readers get the shape
+   without the shimmer, which is the part that carries the meaning anyway. */
+.wg-skel { display: flex; flex-direction: column; gap: 11px; padding: 6px 0; }
+.wg-skel span {
+  display: block; height: 12px; border-radius: 6px;
+  background: linear-gradient(90deg, var(--bg-elev), var(--border), var(--bg-elev));
+  background-size: 220% 100%; animation: wg-skel-sweep 1.5s ease-in-out infinite;
+}
+.wg-skel span:nth-child(1) { width: 54%; height: 28px; }
+.wg-skel span:nth-child(2) { width: 84%; }
+.wg-skel span:nth-child(3) { width: 38%; }
+@keyframes wg-skel-sweep {
+  from { background-position: 220% 0; } to { background-position: -220% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wg-skel span { animation: none; background: var(--bg-elev); }
+}
