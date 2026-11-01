@@ -10,7 +10,7 @@
     {
       "name": "forsyth-dashboard",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["/private/tmp/claude-502/-Users-anish-Documents-GitHub-forsyth/eb90b35c-c369-443e-a47d-c9babb7e5678/scratchpad/proxy.py"],
+      "runtimeArgs": ["tools/dev-proxy.py"],
       "port": 4180
     },
     {

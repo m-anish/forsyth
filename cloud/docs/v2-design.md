@@ -481,3 +481,64 @@ kind of quantity is this** — and the answer dictates the encoding.
 - **Day/night shading behind every time-series chart.** It converts a chart
   into something readable without consulting the axis, and the diurnal cycle is
   the dominant pattern in nearly all of these metrics.
+
+---
+
+## 9. A palette that follows the sun — what it would cost
+
+Asked 2026-11-01, after the chart backgrounds started shading night as a
+gradient rather than a rectangle: could the *whole site* drift between its day
+and night palettes instead of flipping?
+
+It can. The mechanism is already half-built — `sunAltitude(ms, lat, lon)` in
+`js/common.js` returns the one number the whole thing needs, and `nightBands`
+already turns that number into a 0…1 darkness with a smoothstep. The question
+is what the rest of the page costs.
+
+### 9.1 The continuous version
+
+Rename the two palette blocks in `dash.css` to source sets (`--d-*`, `--n-*`),
+then derive the ~35 live tokens from them:
+
+```css
+--bg: color-mix(in oklab, var(--d-bg) calc((1 - var(--k)) * 100%), var(--n-bg));
+```
+
+…and have a two-minute tick set `--k` on `<html>` from the sun's altitude at
+the active station. Mechanical, about thirty-five lines of CSS and twenty of
+JS.
+
+Then the parts that are not CSS:
+
+- **Charts.** uPlot reads its colours once, at build, and the code rebuilds on
+  `themechange`. A palette that moves continuously either rebuilds charts on a
+  timer — which costs a redraw and throws away the reader's zoom — or needs a
+  recolour-without-rebuild path. Quantising chart strokes to a few steps is the
+  cheap way out.
+- **The map.** Raster tiles do not interpolate. Two tile sets cross-faded at a
+  threshold, or snapped at the halfway point; nothing in between.
+- **Contrast.** This is the real cost, and the reason not to hand-wave it. Both
+  endpoint palettes pass AA today. **A blend of two passing palettes is not
+  itself guaranteed to pass** — around the midpoint, text and background move
+  toward each other, and `--text-mute` on `--bg-elev` was already the tightest
+  pair in the set at 4.65:1. Every intermediate `k` has to be swept, which
+  `tools/ui-audit.js` can do unattended in steps of 0.05.
+- **Whose choice is it.** `auto` currently means "the OS setting". Adding a
+  third meaning — "the sky where you are" — is a UX decision, not a technical
+  one, and it must honour `prefers-reduced-motion`.
+
+Honest estimate: half a day for the mechanism, half a day for charts and the
+map, and **a day for the contrast sweep and fixing whatever midpoints fail** —
+call it two days, with the risk concentrated in the last part.
+
+### 9.2 The version worth doing first
+
+Three or four fixed palettes — day, golden, dusk, night — cross-faded at the
+boundaries with the transition `body` already carries. Each one is checked for
+contrast **once**, by hand, the way the current two were. It reads as "the site
+follows the sun" to anyone who is not holding a colour picker, and it is a few
+hours rather than two days.
+
+The cheapest 80% is already shipped: the chart and map backgrounds follow the
+sun continuously while the page chrome holds still, which is where the diurnal
+cue actually earns its keep.
