@@ -75,9 +75,22 @@ const ForsythLoc = (() => {
           first: a registered-but-silent station (one exists) would otherwise
           become the default and greet every visitor with a confident "—",
           which is worse than asking them to choose. */
-    const heard = sited.filter(s => s.last_seen)
+    const FRESH_MS = 30 * 60 * 1000, now = Date.now();
+    const live = sited.filter(s => s.last_seen &&
+      now - new Date(s.last_seen).getTime() < FRESH_MS);
+    const everHeard = sited.filter(s => s.last_seen)
       .sort((a, b) => new Date(b.last_seen) - new Date(a.last_seen));
-    activeSlug = (heard[0] || sited[0]).slug;
+    /* Deterministic, not "whichever reported last". Two stations reporting a
+       minute apart made the homepage flip between them from one load to the
+       next — a visitor refreshing saw the temperature jump between two
+       villages for no reason they could see. Recency still EXCLUDES stations
+       that have gone quiet; among the ones that are live the API's own stable
+       slug ordering decides, so the same visitor gets the same place every
+       time. (A station that has been heard at all, however long ago, still
+       beats one that never has.)
+       The real answer is a designated home station, which belongs with the
+       rest of the admin work — docs/v2-design.md §5 Phase 4. */
+    activeSlug = (live[0] || everHeard[0] || sited[0]).slug;
   }
 
   /* on-demand: the reader tapped "use my location" — here we may prompt */
