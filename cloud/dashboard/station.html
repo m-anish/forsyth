@@ -8,14 +8,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/uplot@1.6.31/dist/uPlot.min.css" />
-  <link rel="stylesheet" href="css/dash.css?v=101" />
-  <link rel="stylesheet" href="css/board.css?v=101" />
+  <link rel="stylesheet" href="css/dash.css?v=102" />
+  <link rel="stylesheet" href="css/board.css?v=102" />
   <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#0b0c0e" />
-  <script src="js/theme.js?v=101"></script>
+  <script src="js/theme.js?v=102"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to the weather</a>
@@ -78,6 +78,21 @@
       <div class="wg-body" data-widget="aqi"></div>
     </section>
 
+    <!-- A photograph of the place is the most concrete thing on this page, so
+         it sits with the current conditions rather than after the housekeeping.
+         Full width: the frame is 16:9 and a third-width column wasted it. -->
+    <section class="panel span12 cam" id="cam-panel" hidden>
+      <div class="headrow">
+        <h3>What it looks like out there</h3>
+        <span class="capt" id="cam-capt"></span>
+      </div>
+      <a class="cam-shot" id="cam-link" href="#" target="_blank" rel="noopener">
+        <img id="cam-img" alt="" />
+      </a>
+      <ul class="tl-list" id="tl-list"></ul>
+      <video id="tl-video" controls hidden></video>
+    </section>
+
     <!-- recent history: one time-scale drives every chart below -->
     <div class="sec-divider">
       <h2>Recent history</h2>
@@ -133,14 +148,6 @@
       </div>
     </section>
 
-    <section class="panel span4 cam" id="cam-panel" hidden>
-      <h3>The sky, as seen</h3>
-      <img id="cam-img" alt="Latest camera frame" />
-      <div class="capt" id="cam-capt"></div>
-      <ul class="tl-list" id="tl-list"></ul>
-      <video id="tl-video" controls hidden></video>
-    </section>
-
     <section class="panel span12">
       <div class="headrow"><h3>Take the data home</h3></div>
       <p class="wg-empty" style="margin:0 0 12px">
@@ -177,10 +184,10 @@
 </footer>
 
 <script src="https://unpkg.com/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
-<script src="js/common.js?v=101"></script>
-<script src="js/auth.js?v=101"></script>
-<script src="js/report.js?v=101"></script>
-<script src="js/widgets.js?v=101"></script>
-<script src="js/station.js?v=101"></script>
+<script src="js/common.js?v=102"></script>
+<script src="js/auth.js?v=102"></script>
+<script src="js/report.js?v=102"></script>
+<script src="js/widgets.js?v=102"></script>
+<script src="js/station.js?v=102"></script>
 </body>
 </html>

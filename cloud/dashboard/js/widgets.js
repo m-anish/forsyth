@@ -356,10 +356,14 @@ const Widgets = (() => {
     try {
       const f = await getJSON(`/stations/${s.slug}/frames/latest`);
       const { timelapses } = await getJSON(`/stations/${s.slug}/timelapses`);
+      const ageMin = (Date.now() - new Date(f.ts).getTime()) / 60000;
       el.innerHTML = `
-        <img src="${f.url}?t=${Date.now()}" alt="latest frame from ${s.name}"
-             style="width:100%;border:1px solid var(--border-2)" />
-        <div class="wg-sub">${s.name} · captured ${agoLabel(f.ts)}</div>
+        <a class="cam-shot" href="${f.url}" target="_blank" rel="noopener">
+          <img src="${f.url}?t=${Date.now()}"
+               alt="The view from ${s.name}, photographed ${agoLabel(f.ts)}" />
+        </a>
+        <div class="wg-sub${ageMin > 30 ? ' stale' : ''}">${s.name} · captured ${agoLabel(f.ts)}${
+          ageMin > 30 ? ' — the camera has gone quiet' : ''}</div>
         <ul class="tl-list">${timelapses.slice(0,4).map(t =>
           `<li><a href="${t.url}" target="_blank" rel="noopener">${t.day} ▸</a></li>`).join('')}</ul>`;
     } catch {

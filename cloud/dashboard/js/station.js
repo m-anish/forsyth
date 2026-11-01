@@ -340,9 +340,19 @@ async function refreshCamera() {
     const f = await getJSON(`/stations/${slug}/frames/latest`);
     const panel = document.getElementById('cam-panel');
     panel.hidden = false;
-    document.getElementById('cam-img').src = f.url + '?t=' + Date.now();
-    document.getElementById('cam-capt').textContent =
-      'captured ' + agoLabel(f.ts) + ' · one frame every few minutes';
+    const img = document.getElementById('cam-img');
+    img.src = f.url + '?t=' + Date.now();
+    img.alt = `The view from ${(S.station && S.station.name) || slug}, `
+            + `photographed ${agoLabel(f.ts)}`;
+    document.getElementById('cam-link').href = f.url;
+    /* A photograph carries no hint of its own age, so the time it was taken
+       is part of the picture's meaning, not a footnote. Past half an hour the
+       camera has missed several frames and the view may be nothing like it. */
+    const ageMin = (Date.now() - new Date(f.ts).getTime()) / 60000;
+    const capt = document.getElementById('cam-capt');
+    capt.textContent = 'captured ' + agoLabel(f.ts)
+      + (ageMin > 30 ? ' — the camera has gone quiet' : '');
+    capt.classList.toggle('stale', ageMin > 30);
     const { timelapses } = await getJSON(`/stations/${slug}/timelapses`);
     const list = document.getElementById('tl-list');
     list.innerHTML = timelapses.slice(0, 7).map(t =>
