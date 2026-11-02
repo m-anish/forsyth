@@ -34,6 +34,28 @@ class Settings:
     forecast_ensemble: bool = os.environ.get("FORECAST_ENSEMBLE", "true").lower() in ("1", "true", "yes")
     forecast_retention_days: int = int(os.environ.get("FORECAST_RETENTION_DAYS", "730"))
 
+    # Google Flood Forecasting (jobs/flood.py, docs/flood-roadmap.md). A plain
+    # Cloud API key — unlike the MapTiler key it cannot be referrer-locked, so
+    # it stays server-side and the dashboard only ever talks to us. Pilot API:
+    # Google say to expect breaking changes, so this defaults OFF and the whole
+    # feature disappears cleanly when the key is absent.
+    flood_enabled: bool = os.environ.get("FLOOD_ENABLED", "true").lower() in ("1", "true", "yes")
+    flood_api_key: str = os.environ.get("FLOOD_API_KEY", "")
+    # How far around the stations to look for reaches. 0.45 deg is ~50 km: the
+    # useful reach is as likely to be downstream as underfoot, and a tight box
+    # around a hilltop finds nothing at all.
+    flood_search_pad_deg: float = float(os.environ.get("FLOOD_SEARCH_PAD_DEG", "0.45"))
+    # How far a reach may be from a station and still be "the river below it".
+    flood_near_km: float = float(os.environ.get("FLOOD_NEAR_KM", "25"))
+
+    # Public-API rate limiting (app/limits.py). Sized for people: a station
+    # page costs 38 calls to load. An integration test suite is not a person —
+    # it makes a hundred calls in half a second from one address — so the
+    # switch exists for the local test stack, NOT for production.
+    rate_limit_enabled: bool = os.environ.get("RATE_LIMIT_ENABLED", "true").lower() in ("1", "true", "yes")
+    rate_limit_per_min: int = int(os.environ.get("RATE_LIMIT_PER_MIN", "300"))
+    rate_limit_export_per_min: int = int(os.environ.get("RATE_LIMIT_EXPORT_PER_MIN", "10"))
+
     # human weather reports (app/reports.py) — the kill switch hides the whole
     # feature: POST 404s, GET says disabled, the dashboard shows no report UI
     reports_enabled: bool = os.environ.get("REPORTS_ENABLED", "true").lower() in ("1", "true", "yes")

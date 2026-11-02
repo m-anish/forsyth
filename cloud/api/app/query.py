@@ -348,3 +348,117 @@ def health():
     with engine.connect() as conn:
         rows = [dict(m) for m in conn.execute(sql).mappings()]
     return {"stations": rows, "ok": all(not r["stale"] for r in rows) if rows else True}
+
+
+# ---------------------------------------------------------------- rivers ----
+# Severity as Google report it, ordered so "worst" is a max(). ABOVE_NORMAL is
+# the lowest rung that is worth a reader's attention; everything at or below
+# NO_FLOODING is the normal state of the world.
+_SEVERITY_RANK = {"NO_FLOODING": 0, "UNKNOWN": 0, "ABOVE_NORMAL": 1,
+                  "SEVERE": 2, "EXTREME": 3}
+
+
+@router.get("/stations/{slug}/river")
+def river(slug: str, limit: int = Query(3, ge=1, le=20)):
+    """The modelled river reaches near a station (docs/flood-roadmap.md).
+
+    Discharge forecasts from Google's Flood Forecasting API, which in this
+    valley means VIRTUAL HydroBASINS reaches — there is no physical gauge
+    here, and none of them is quality-verified. `modelled: true` and
+    `quality_verified: false` ride along on every row so the front end cannot
+    accidentally present this as a measurement.
+
+    `of_warning` is the point of the response: warning levels across one valley
+    span 17.7 to 1781 m3/s, so the raw discharge is not comparable between
+    reaches and the fraction of each reach's own threshold is.
+    """
+    with engine.connect() as conn:
+        st = conn.execute(text(
+            "SELECT lat, lon FROM stations WHERE slug = :s"), {"s": slug}).first()
+        if st is None:
+            raise HTTPException(404, "no such station")
+        if st.lat is None or st.lon is None:
+            return {"station": slug, "reaches": [], "reason": "station has no coordinates"}
+
+        # Nearest reaches, with each one's latest forecast run and the
+        # thresholds of the model that run was made under. The join on
+        # gauge_model_id is the whole point: comparing a value against another
+        # model's warning level is how this goes quietly wrong.
+        rows = conn.execute(text("""
+            WITH near AS (
+                SELECT g.gauge_id, g.lat, g.lon, g.river, g.source, g.quality_verified,
+                       6371 * 2 * asin(sqrt(
+                           power(sin(radians(g.lat - :lat) / 2), 2) +
+                           cos(radians(:lat)) * cos(radians(g.lat)) *
+                           power(sin(radians(g.lon - :lon) / 2), 2))) AS km
+                FROM flood_gauges g
+                WHERE g.has_model
+            ), latest AS (
+                SELECT DISTINCT ON (f.gauge_id) f.gauge_id, f.gauge_model_id, f.issued_time
+                FROM flood_forecasts f
+                JOIN near n ON n.gauge_id = f.gauge_id
+                ORDER BY f.gauge_id, f.issued_time DESC
+            )
+            SELECT n.gauge_id, n.km, n.river, n.source, n.quality_verified,
+                   l.issued_time, m.value_unit,
+                   m.warning_level, m.danger_level, m.extreme_level,
+                   s.severity, s.forecast_trend,
+                   (SELECT f.value FROM flood_forecasts f
+                     WHERE f.gauge_id = l.gauge_id AND f.gauge_model_id = l.gauge_model_id
+                       AND f.issued_time = l.issued_time
+                       AND f.valid_end > now() ORDER BY f.valid_start LIMIT 1) AS value_now,
+                   (SELECT max(f.value) FROM flood_forecasts f
+                     WHERE f.gauge_id = l.gauge_id AND f.gauge_model_id = l.gauge_model_id
+                       AND f.issued_time = l.issued_time
+                       AND f.valid_end > now()) AS value_peak
+            FROM near n
+            JOIN latest l ON l.gauge_id = n.gauge_id
+            LEFT JOIN flood_models m
+              ON m.gauge_id = l.gauge_id AND m.gauge_model_id = l.gauge_model_id
+            LEFT JOIN flood_status s ON s.gauge_id = n.gauge_id
+            WHERE n.km <= :near_km
+            ORDER BY n.km
+            LIMIT :limit
+        """), {"lat": st.lat, "lon": st.lon,
+               "near_km": settings.flood_near_km, "limit": limit}).mappings().all()
+
+    reaches = []
+    for r in rows:
+        warn = r["warning_level"]
+        now_v, peak = r["value_now"], r["value_peak"]
+        reaches.append({
+            "gauge_id": r["gauge_id"],
+            "km": round(r["km"], 1),
+            "river": r["river"],
+            "source": r["source"],
+            # Said twice on purpose: a virtual reach is a model's opinion about
+            # a place, not an instrument standing in it.
+            "modelled": True,
+            "quality_verified": bool(r["quality_verified"]),
+            "unit": r["value_unit"],
+            "value": round(now_v, 2) if now_v is not None else None,
+            "peak": round(peak, 2) if peak is not None else None,
+            "warning_level": warn,
+            "danger_level": r["danger_level"],
+            "extreme_level": r["extreme_level"],
+            # fraction of this reach's OWN warning level — the only number that
+            # means the same thing from one reach to the next
+            "of_warning": round(now_v / warn, 3) if (now_v is not None and warn) else None,
+            "of_warning_peak": round(peak / warn, 3) if (peak is not None and warn) else None,
+            "severity": r["severity"],
+            "trend": r["forecast_trend"],
+            "issued": r["issued_time"].isoformat() if r["issued_time"] else None,
+        })
+
+    worst = max((_SEVERITY_RANK.get(x["severity"] or "", 0) for x in reaches), default=0)
+    return {
+        "station": slug,
+        "reaches": reaches,
+        # The front end's one question: is any of this worth a reader's
+        # attention right now? Either Google call it above normal, or the
+        # forecast peak crosses the reach's own warning level.
+        "notable": bool(worst >= 1 or any(
+            (x["of_warning_peak"] or 0) >= 1 for x in reaches)),
+        "attribution": "Google Flood Hub",
+        "license": "CC BY 4.0",
+    }

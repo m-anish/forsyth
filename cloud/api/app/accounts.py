@@ -76,9 +76,15 @@ DEFAULT_LAYOUT = {
         # the forecast chart is the one thing here that genuinely wants width
         {"id": "wfc",  "type": "forecast", "x": 0, "y": 5,  "w": 12, "h": 7,
          "config": {"station": "@here", "hours": 48}},
-        {"id": "wmap", "type": "map",      "x": 0, "y": 12, "w": 12, "h": 6,
+        # The river, between the forecast and the map: one quiet line on a
+        # normal day, a card on a bad one (js/widgets.js river). It sits here
+        # rather than lower because the day it has something to say, it should
+        # already be above the fold — and on every other day it costs a line.
+        {"id": "wriv", "type": "river",    "x": 0, "y": 12, "w": 12, "h": 2,
+         "config": {"station": "@here"}},
+        {"id": "wmap", "type": "map",      "x": 0, "y": 14, "w": 12, "h": 6,
          "config": {}},
-        {"id": "wrep", "type": "reports",  "x": 0, "y": 18, "w": 12, "h": 4,
+        {"id": "wrep", "type": "reports",  "x": 0, "y": 20, "w": 12, "h": 4,
          "config": {"hours": 168}},
     ],
 }

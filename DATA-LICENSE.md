@@ -33,6 +33,7 @@ Link: <https://creativecommons.org/licenses/by/4.0/>; rel="license"
 | Camera frames and timelapses | **CC BY 4.0** |
 | Human weather reports | **CC BY 4.0** — locations are deliberately rounded to ~100 m before they are ever served |
 | Forecast rows from `/forecast` | **not ours.** [Open-Meteo](https://open-meteo.com)'s model output, under Open-Meteo's terms |
+| River reaches from `/stations/{slug}/river` | **not ours.** [Google Flood Hub](https://sites.research.google/floods/), also CC BY 4.0 — so you may reuse it, but the attribution you owe is Google's, not ours |
 | Verification numbers from `/skill` | **CC BY 4.0** — bias and error computed here, from our own readings |
 | Map tiles | whoever drew them; each is credited on the map |
 | The code in this repository | [MIT](LICENSE) |

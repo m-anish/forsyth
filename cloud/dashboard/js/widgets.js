@@ -550,6 +550,102 @@ const Widgets = (() => {
 
   /* ranges: one-tap presets rendered as chips in the widget header
      (board.js); defaultHours = what the renderer assumes when unset */
+  /* The river below, from Google's flood model (docs/flood-roadmap.md).
+
+     Two states on purpose. Eleven months a year the answer is "the stream is
+     at a ninth of its warning level", which deserves one line and not a card.
+     But it does NOT deserve nothing: a warning you have never seen while calm
+     is one nobody trusts the first time it appears, and an empty space cannot
+     be told apart from a broken feed. So: quiet, then loud.
+
+     Everything here says "modelled". There is no gauge in this valley — these
+     are virtual HydroBASINS reaches and Google decline to quality-verify them,
+     so presenting a number as though an instrument produced it would be the
+     most harmful thing this widget could do. */
+  function riverBar(r) {
+    /* Scale the bar to the reach's own thresholds, never to a shared axis:
+       warning levels here run from 17.7 to 1781 m3/s. */
+    const top = r.extreme_level || (r.danger_level ? r.danger_level * 1.35 : null);
+    if (!top || !r.warning_level) return '';
+    const at = v => Math.max(0, Math.min(100, (v / top) * 100));
+    const now = r.value !== null ? at(r.value) : null;
+    const peak = r.peak !== null ? at(r.peak) : null;
+    return `
+      <div class="rv-bar" role="img" aria-label="${fmt(r.value, 1)} of a warning level of ${fmt(r.warning_level, 0)}">
+        <span class="rv-zone warn" style="left:${at(r.warning_level)}%"></span>
+        <span class="rv-zone danger" style="left:${at(r.danger_level)}%"></span>
+        ${peak !== null ? `<span class="rv-peak" style="left:${peak}%"></span>` : ''}
+        ${now !== null ? `<span class="rv-now" style="left:${now}%"></span>` : ''}
+      </div>
+      <div class="rv-scale"><span>warning ${fmt(r.warning_level, 0)}</span>
+        <span>danger ${fmt(r.danger_level, 0)}</span>
+        <span>of ${fmt(top, 0)} ${r.unit === 'METERS' ? 'm' : 'm³/s'}</span></div>`;
+  }
+
+  async function river(el, config) {
+    const s = await pick(config, el);
+    if (!s) return;
+    let d;
+    try {
+      d = await getJSON(`/stations/${s.slug}/river?limit=3`);
+    } catch {
+      el.innerHTML = '<p class="wg-empty">No river model for this station.</p>';
+      return;
+    }
+    const rs = d.reaches || [];
+    if (!rs.length) {
+      /* Said plainly rather than hidden: "no modelled reach near here" is a
+         fact about coverage, and a reader who sees nothing cannot learn it. */
+      el.innerHTML = '<p class="wg-empty">No modelled river reach within '
+                   + 'range of this station.</p>';
+      el.dataset.quiet = '1';
+      return;
+    }
+    const r = rs[0];
+    const pct = r.of_warning !== null ? Math.round(r.of_warning * 100) : null;
+    const unit = r.unit === 'METERS' ? 'm' : 'm³/s';
+    const where = `${r.km} km away`;
+
+    if (!d.notable) {
+      /* The quiet line. Still names the number and the threshold, so the
+         reader has seen the units before the day they matter. */
+      el.dataset.quiet = '1';
+      el.innerHTML = `
+        <div class="rv-quiet">
+          <span class="rv-dot ok" aria-hidden="true"></span>
+          <span class="rv-q-text">The river ${where} is running normally${
+            r.value !== null && r.warning_level
+              ? ` — ${fmt(r.value, 1)} of ${fmt(r.warning_level, 0)} ${unit}` : ''}.</span>
+          <span class="rv-src">modelled · Google Flood Hub</span>
+        </div>`;
+      return;
+    }
+
+    delete el.dataset.quiet;
+    const sev = (r.severity || '').toLowerCase().replace('_', '-');
+    const trend = r.trend === 'RISE' ? 'rising' : r.trend === 'FALL' ? 'falling' : 'steady';
+    el.innerHTML = `
+      <div class="rv-loud ${sev}">
+        <div class="rv-head">
+          <span class="rv-dot ${sev}" aria-hidden="true"></span>
+          <span class="rv-sev">${(r.severity || 'above normal').replace(/_/g, ' ').toLowerCase()}</span>
+          <span class="rv-trend">${trend}</span>
+        </div>
+        <div class="wg-big">${fmt(r.value, 1)}<span class="u"> ${unit}</span></div>
+        <div class="wg-sub">${pct !== null ? `${pct}% of this reach's warning level` : ''}
+          · ${where}${r.river ? ' · ' + r.river : ''}</div>
+        ${riverBar(r)}
+        ${r.peak !== null && r.of_warning_peak !== null ? `<p class="rv-peakline">Forecast to
+          peak near ${fmt(r.peak, 1)} ${unit}
+          (${Math.round(r.of_warning_peak * 100)}% of warning) in the next few days.</p>` : ''}
+        <p class="rv-caveat">Modelled, not measured. There is no river gauge in
+          this valley — this is Google's estimate for a catchment ${where}, and
+          it is not quality-verified. Treat it as a hint to look at the water,
+          not as a reading.</p>
+        <div class="rv-src">Google Flood Hub · CC BY 4.0</div>
+      </div>`;
+  }
+
   const REGISTRY = {
     now:       { label: 'Current conditions', render: now,       w: 3, h: 4, fields: ['station'] },
     chart:     { label: 'Chart',              render: chart,     w: 6, h: 3, fields: ['station','metrics','hours','title'],
@@ -567,6 +663,11 @@ const Widgets = (() => {
                  ranges: [[24,'24h'],[72,'3d'],[168,'7d']], defaultHours: 24 },
     summary:   { label: 'Weather',            render: summary,   w: 12, h: 2, fields: ['stationOrAll'] },
     health:    { label: 'Mesh health',        render: health,    w: 4, h: 2, fields: [] },
+    /* sizeToContent, because the whole design is that it is one line on a calm
+       day and a card on a bad one — a fixed height would give back the space
+       the quiet state exists to save. */
+    river:     { label: 'River level',        render: river,     w: 4, h: 2, fields: ['station'],
+                 sizeToContent: true },
     /* sizeToContent: the sub-cards are content-sized, and the total differs a
        lot between one column and two — a fixed gs-h clipped one or padded the
        other, so the panel grows to whatever it needs (board.js) */

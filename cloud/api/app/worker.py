@@ -7,7 +7,8 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from .db import init_db
-from .jobs import backup, elevation, forecast, retention, timelapse, wunderground
+from .jobs import (backup, elevation, flood, forecast, retention, timelapse,
+                   wunderground)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("forsyth.worker")
@@ -32,6 +33,12 @@ def main() -> None:
     # so the archive still holds one row-set per actual run (jobs/forecast.py).
     sched.add_job(forecast.run, CronTrigger(minute=15), name="forecast")
     sched.add_job(forecast.run, "date", name="forecast-boot")
+    # Hourly, offset from the forecast job so the two are not fetching at once.
+    # Google's riverine product is a DAILY series issued about once a day, so
+    # hourly is already generous; it is hourly only so that a new issue is
+    # picked up within the hour rather than within the day.
+    sched.add_job(flood.run, CronTrigger(minute=35), name="flood")
+    sched.add_job(flood.run, "date", name="flood-boot")
     log.info("worker up; jobs scheduled")
     sched.start()
 

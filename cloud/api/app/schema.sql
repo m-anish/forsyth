@@ -156,3 +156,64 @@ CREATE TABLE IF NOT EXISTS timelapses (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (station_id, day)
 );
+
+-- Google Flood Forecasting (app/jobs/flood.py, docs/flood-roadmap.md). Riverine
+-- discharge forecasts for the HydroBASINS reaches around our stations.
+--
+-- Three things this schema is shaped by, all learned from probing the API:
+--   * there is no real gauge in this valley — every reach here is a VIRTUAL
+--     one and comes back quality_verified = false, which the UI must say out
+--     loud rather than quietly imply an instrument exists;
+--   * thresholds belong to a MODEL, not a gauge. Google replace a model and
+--     issue new thresholds under a new gauge_model_id, so a value compared
+--     against the wrong model's warning level is silently wrong. The model id
+--     is therefore part of the forecast key, not a lookup;
+--   * warning levels across one valley span 17.7 to 1781 m3/s, so only the
+--     fraction of a reach's OWN threshold is comparable between reaches.
+CREATE TABLE IF NOT EXISTS flood_gauges (
+    gauge_id         TEXT PRIMARY KEY,
+    lat              DOUBLE PRECISION NOT NULL,
+    lon              DOUBLE PRECISION NOT NULL,
+    river            TEXT,                 -- usually NULL for virtual reaches
+    source           TEXT,                 -- HYBAS for virtual, CWC/GRDC for real
+    country_code     TEXT,
+    quality_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    has_model        BOOLEAN NOT NULL DEFAULT FALSE,
+    first_seen       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    last_seen        TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS flood_models (
+    gauge_id         TEXT NOT NULL REFERENCES flood_gauges(gauge_id) ON DELETE CASCADE,
+    gauge_model_id   TEXT NOT NULL,
+    value_unit       TEXT,                 -- CUBIC_METERS_PER_SECOND | METERS
+    warning_level    REAL,
+    danger_level     REAL,
+    extreme_level    REAL,                 -- not always present
+    quality_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    seen_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (gauge_id, gauge_model_id)
+);
+
+CREATE TABLE IF NOT EXISTS flood_forecasts (
+    gauge_id        TEXT NOT NULL,
+    gauge_model_id  TEXT NOT NULL,
+    issued_time     TIMESTAMPTZ NOT NULL,
+    valid_start     TIMESTAMPTZ NOT NULL,
+    valid_end       TIMESTAMPTZ NOT NULL,
+    value           REAL,
+    fetched_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (gauge_id, gauge_model_id, issued_time, valid_start)
+);
+SELECT create_hypertable('flood_forecasts', 'valid_start', if_not_exists => TRUE);
+
+-- Latest status per reach. One row per reach, overwritten: the history that
+-- matters is in flood_forecasts, and severity is derivable from it.
+CREATE TABLE IF NOT EXISTS flood_status (
+    gauge_id         TEXT PRIMARY KEY REFERENCES flood_gauges(gauge_id) ON DELETE CASCADE,
+    issued_time      TIMESTAMPTZ,
+    severity         TEXT,                 -- EXTREME|SEVERE|ABOVE_NORMAL|NO_FLOODING|UNKNOWN
+    forecast_trend   TEXT,                 -- RISE|FALL|NO_CHANGE
+    quality_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    fetched_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);

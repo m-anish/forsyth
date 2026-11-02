@@ -8,13 +8,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/dash.css?v=106" />
+  <link rel="stylesheet" href="css/dash.css?v=107" />
   <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#0b0c0e" />
-  <script src="js/theme.js?v=106"></script>
+  <script src="js/theme.js?v=107"></script>
   <style>
     /* Page-local, like privacy.html's: nothing else on the site needs a code
        block or an endpoint table, and putting them in dash.css would make
@@ -204,6 +204,14 @@ curl -o week.csv "https://live.forsyth.starstucklab.com/api/v1/export/leaf-01.cs
         <tr><td><code>/api/v1/lightning</code></td>
             <td>Strikes across the mesh, <code>?hours=</code> and optional
                 <code>?slug=</code>. Distance in km, as the sensor estimated it.</td></tr>
+        <tr><td><code>/api/v1/stations/{slug}/river</code></td>
+            <td>Modelled river discharge for the nearest reaches, with each
+                reach's own warning and danger thresholds. <strong>Modelled, not
+                measured</strong> — there is no river gauge in this valley, so
+                these are Google's virtual HydroBASINS reaches and none of them
+                is quality-verified. <code>of_warning</code> is the only figure
+                comparable between reaches; raw discharge is not, because
+                warning levels here span 17.7 to 1781 m³/s.</td></tr>
         <tr><td><code>/api/v1/health</code></td>
             <td>Per station: last heard, battery, radio signal, and whether it has
                 gone stale. This is what you would poll to notice an outage.</td></tr>
@@ -375,7 +383,10 @@ https://live.forsyth.starstucklab.com — CC BY 4.0</pre></div>
     <p>Forecasts served from <code>/forecast</code> are
       <a href="https://open-meteo.com">Open-Meteo</a>'s model output, not ours, and
       carry their terms. Map tiles belong to whoever drew them — each is credited on
-      the map itself. Camera frames are ours and under the same CC BY 4.0 as the
+      the map itself. River reaches from <code>/stations/{slug}/river</code> are
+      <a href="https://sites.research.google/floods/">Google Flood Hub</a>'s —
+      also CC BY 4.0, so you may reuse them, but the attribution you owe for
+      those is Google's rather than ours. Camera frames are ours and under the same CC BY 4.0 as the
       readings, as are the verification numbers from <code>/skill</code> — those
       are computed here, from our own readings. The
       <a href="https://github.com/m-anish/forsyth">code is MIT</a>, separately.

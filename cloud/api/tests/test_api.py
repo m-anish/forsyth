@@ -76,9 +76,17 @@ def test_batch_backfill_and_series_bucketing(client, station):
     r = client.post("/api/v1/ingest", headers=auth(station), json={"readings": batch})
     assert r.status_code == 200 and r.json()["stored"] == 24
 
+    # The window picks the resolution (app/query.py): <=12 h reports at the
+    # cadence the stations actually send, longer windows roll up. This asserted
+    # "5 minutes" for 3 h from the first cloud commit until now, which stopped
+    # being true when the 1 h/6 h/12 h pills landed in 47b19b8 — the test was
+    # simply left behind. Both branches are checked now.
     s = client.get(f"/api/v1/stations/{SLUG}/series"
                    f"?metrics=temp_c,rain_mm&hours=3").json()
-    assert s["bucket"] == "5 minutes"
+    assert s["bucket"] == "1 minute"
+    day = client.get(f"/api/v1/stations/{SLUG}/series"
+                     f"?metrics=temp_c&hours=24").json()
+    assert day["bucket"] == "5 minutes"
     assert len(s["ts"]) >= 20
     assert set(s["series"]) == {"temp_c", "rain_mm"}
     # rain aggregates by sum: total must match what we sent (±float noise)

@@ -24,9 +24,11 @@ import time
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+from .config import settings
+
 WINDOW_S = 60
-GENERAL_MAX = 300
-EXPORT_MAX = 10
+GENERAL_MAX = settings.rate_limit_per_min
+EXPORT_MAX = settings.rate_limit_export_per_min
 EXPORT_PREFIX = "/api/v1/export/"
 # Said to whoever hit the wall. The general one points at the cheaper way to
 # get what they are probably polling for; the export one cannot, because the
@@ -85,7 +87,8 @@ def _prune(now: float) -> None:
 
 async def rate_limit(request: Request, call_next):
     path = request.url.path
-    if not path.startswith("/api/v1/") or _is_ingest(request):
+    if (not settings.rate_limit_enabled
+            or not path.startswith("/api/v1/") or _is_ingest(request)):
         return await call_next(request)
 
     now = time.time()
