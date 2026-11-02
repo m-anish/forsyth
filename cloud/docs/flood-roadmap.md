@@ -1,11 +1,55 @@
 # Google Flood Forecasting — what it offers and what we should do with it
 
 Written 2026-11-02, after the API was enabled on the project. Nothing here is
-built. §0 is the part to do first, and it may change everything below it.
+built. §0 was a list of questions to go and answer; they were answered the same
+day and the answers are in §0.1, which changes the ranking in §3 considerably.
 
 ---
 
-## 0. The question everything depends on
+## 0.1 What the probes actually found (2026-11-02)
+
+**There is no real gauge here.** A loop over the Kangra valley and the Beas from
+Mandi to Pong returns **zero** quality-verified gauges and **zero** gauges with a
+Google hydro model. No CWC instrument inside that box is in the API.
+
+**There are 67 virtual ones.** With `includeNonQualityVerified: true`, 67
+HydroBASINS reaches come back, every one of them `qualityVerified: false` —
+which Google flag as "use with caution" — and every one with a model. The
+nearest sits **7.1 km west of bir-colony** (32.056, 76.648), which is inside our
+catchment rather than down in the valley.
+
+**The unit is discharge, not level** — `CUBIC_METERS_PER_SECOND` on all of the
+nearest six. Two consequences, both of which kill ideas below: `forecastChange`
+(the "rise of 1.2 m" framing) is water-level-only and comes back null, and
+**there are no inundation maps** — `inundationMapSet` was absent on all six.
+
+**The thresholds are real and per-reach.** For that nearest reach: warning
+**33.1**, danger **48.5**, extreme **73.5** m³/s. Today it forecasts 3.7 m³/s,
+about a ninth of warning. That is what makes a number like this readable at all.
+
+**It is a daily product.** Forecast ranges are 00:00→00:00 UTC, eight of them, so
+about an **8-day horizon at daily resolution**, issued roughly once a day. A
+daily mean discharge cannot express a cloudburst. This is structurally a
+monsoon-scale instrument, and no amount of presentation will make it a flash
+flood warning.
+
+**The archive is usable today.** `queryGaugeForecasts` returned nothing for
+October 2023 on this gauge, but July 2025 and August 2025 both came back — and
+August 2025 peaked at **38.4 m³/s, above this reach's 33.1 warning level**. So
+the reach above Bir did cross warning last monsoon, and we can see the shape of
+that season right now without waiting for another one.
+
+**Flash floods do not come here.** Seven events were live in India at the time of
+checking. Fetching every event polygon and testing our two station coordinates
+against the geometry: Bengaluru, Chennai, and the coastal Andhra and Odisha
+belt — latitudes 12.8 to 19.4. Our stations are at 32.0 and 32.2. **Nothing
+within about 1,900 km.** That is one dry-season sample and does not prove
+Himachal is never covered, but read next to Google's own "initially, it covers
+only urban areas or areas with a history of flooding" it points the same way.
+
+---
+
+## 0. The questions these answered
 
 **Is there a gauge near us, and is this grid square covered for flash floods?**
 
@@ -268,18 +312,35 @@ What that requires of us:
 
 ---
 
-## 6. What I would actually do
+## 6. What I would actually do — revised after §0.1
 
-1. **§0.** Three calls, ten minutes. Everything else is conditional on them.
-2. **Idea 1**, as the thinnest possible version: one gauge, severity and trend,
-   on the station page. Enough to find out whether the data is any good here.
-3. **Idea 5** in the background from day one — store every forecast from the
-   start, because skill needs history and history cannot be backfilled past
-   2023-10-01, and only to the extent `queryGaugeForecasts` will still serve it.
-4. **Idea 2** once there are stored pairs to fit a lag against. This is the one
-   worth the effort.
-5. **Ideas 3 and 4** when a monsoon has shown whether flash-flood coverage
-   reaches this valley at all.
+The findings reorder this list and strike two items from it outright.
+
+1. **Backfill the archive.** Available today, no waiting: pull every stored
+   forecast since mid-2025 for the dozen nearest reaches. That alone answers
+   "what does the monsoon do to the stream above Bir" with numbers, and we
+   already know the answer is interesting — 38.4 against a warning of 33.1 last
+   August. One afternoon's work, and it makes everything after it concrete.
+2. **Idea 2, which has absorbed idea 5.** Our daily rain total against their
+   daily discharge forecast for the reach below us. At daily resolution the
+   travel-time lag I worried about mostly disappears, which makes this simpler
+   than proposed, not harder. And it is the only check on these gauges that
+   exists: they are unverified, there is no instrument in this catchment, so our
+   rain gauge is the only ground truth within 40 km. That is a genuinely
+   unusual position to be in and it is the reason to build this.
+3. **Idea 1, demoted.** Worth having, but be clear-eyed: eleven months a year
+   it reads "no flooding, 3.7 of 33 m³/s" from a gauge Google decline to
+   quality-verify. It earns its place during the monsoon and not before. If it
+   ships, it ships saying "modelled, unverified" on its face.
+
+**Struck.** Idea 3 (flash flood into the alert level) — the product does not
+reach this valley, and a daily-mean discharge cannot stand in for it. Idea 4
+(inundation layer) — discharge gauges carry no inundation maps, so there is
+nothing to draw.
+
+**Unchanged:** do not put a flood warning on the homepage of a village in a
+state where people have died in cloudbursts on the strength of an unverified
+virtual gauge, a daily average, and a pilot API.
 
 And the thing not to do: put a flood warning on the homepage of a village in a
 state where people have died in cloudbursts, on the strength of a 20 km grid
