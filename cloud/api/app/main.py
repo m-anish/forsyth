@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -17,6 +18,7 @@ from .config import settings
 from .db import init_db
 from .forecast import router as forecast_router
 from .ingest import router as ingest_router
+from .limits import rate_limit
 from .mqtt_bridge import start_bridge
 from .query import router as query_router
 from .reports import router as reports_router
@@ -65,6 +67,31 @@ async def cache_headers(request: Request, call_next):
         resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return resp
 
+
+# Order matters and reads backwards: add_middleware INSERTS, so the LAST one
+# added is the OUTERMOST. The limiter goes on first precisely so that CORS
+# wraps it — otherwise a 429 comes back without CORS headers and a browser
+# reports an opaque network failure instead of "you are being rate limited",
+# which is the difference between a developer fixing their loop and a
+# developer filing a bug against us. Tested, because I got it the wrong way
+# round first.
+app.middleware("http")(rate_limit)
+
+# Anyone may read this data from anywhere — that is rather the point of a
+# weather station on a public hill. GET and HEAD only, so the write surface is
+# never reachable cross-origin, and crucially allow_credentials=False: a
+# browser will not attach a forsyth session cookie to a request made from
+# somebody else's page, so "open to every origin" cannot be turned into
+# "acting as a signed-in reader". Authorization is left out of allow_headers
+# for the same reason — a station key has no business travelling from a web
+# page.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "HEAD"],
+    max_age=86400,
+)
 
 app.include_router(ingest_router)
 app.include_router(query_router)
