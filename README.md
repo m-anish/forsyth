@@ -61,7 +61,9 @@ out-model ECMWF, so it does four things models can't:
 **Outputs** — a one-sentence banner in four tenses (observed / expected / divergent /
 human-reported, EN + हिंदी, freshness-stamped), per-station forecast charts with
 ensemble uncertainty and the model's local track record, map layers (stations,
-lightning, reports), and open CSV/API for everything.
+lightning, reports), and open CSV/API for everything — no key, documented for
+humans at [/api](https://live.forsyth.starstucklab.com/api), readings published
+under [CC BY 4.0](DATA-LICENSE.md).
 
 **Next** (see the [insight](cloud/docs/insight-roadmap.md) and
 [engagement](cloud/docs/engagement-roadmap.md) roadmaps): MQTT divergence alerts,

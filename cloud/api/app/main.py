@@ -39,16 +39,26 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="forsyth cloud",
-    description="A scatter of quiet machines that know what the sky is planning.",
+    description=(
+        "A scatter of quiet machines that know what the sky is planning.\n\n"
+        "The readings are CC BY 4.0 — use them for anything, say where they came "
+        "from. Written for people at /api; this page is the generated schema. "
+        "Forecast rows are Open-Meteo's model output and carry their terms."
+    ),
     version="0.1.0",
+    license_info={"name": "CC BY 4.0 (the data)",
+                  "url": "https://creativecommons.org/licenses/by/4.0/"},
     docs_url="/api/docs",
     openapi_url="/api/openapi.json",
     lifespan=lifespan,
 )
 
+LICENSE_URL = "https://creativecommons.org/licenses/by/4.0/"
+
+
 @app.middleware("http")
-async def cache_headers(request: Request, call_next):
-    """Say out loud how long each thing may be reused.
+async def response_headers(request: Request, call_next):
+    """Say out loud how long each thing may be reused, and under what licence.
 
     Starlette's StaticFiles sends an ETag but no Cache-Control, which leaves
     browsers free to *heuristically* cache — typically a tenth of the file's
@@ -65,6 +75,13 @@ async def cache_headers(request: Request, call_next):
         resp.headers["Cache-Control"] = "no-cache"
     elif request.url.query.startswith("v=") or "&v=" in request.url.query:
         resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    # The licence, where a machine will find it. A CC BY term asking for
+    # attribution is worth very little if the only place it is written down is
+    # a prose page nobody fetching JSON will ever load, so every API response
+    # carries it the standard way (RFC 8288). Not on /forecast, which serves
+    # Open-Meteo's model output under Open-Meteo's terms, not ours.
+    if path.startswith("/api/v1/") and not path.endswith("/forecast"):
+        resp.headers["Link"] = f'<{LICENSE_URL}>; rel="license"'
     return resp
 
 

@@ -346,19 +346,51 @@ const points = d.ts.map((t, i) =&gt; ({
       will move up the list.</p>
 
     <h2 id="terms">Terms</h2>
-    <p>There are none, in the legal sense. The weather happens in public and the
-      readings belong to whoever wants them: use them, republish them, build a
-      business on them, train something on them. No attribution is required, though
-      a link back is kind and lets people find the stations.</p>
-    <p>What you should not do is pretend these are something they are not. They come
-      from homemade stations on a hillside, maintained by one person. Do not present
-      them as official observations, and do not use them where being wrong matters —
-      aviation, say, or anything load-bearing. Each station's
-      <code>/skill</code> endpoint will tell you honestly how far off its forecasts
-      have been; the sensors deserve the same scepticism.</p>
-    <p>The code is <a href="https://github.com/m-anish/forsyth">open source under the
-      MIT licence</a>. If something here is wrong or missing, the fastest fix is a
-      pull request.</p>
+    <p>The readings are published under
+      <a href="https://creativecommons.org/licenses/by/4.0/" rel="license">Creative
+      Commons Attribution 4.0</a>. Use them, republish them, sell what you build on
+      them, train something on them, change them — commercially or not. The one
+      condition is that you say where they came from.</p>
+
+    <h3>Saying where they came from</h3>
+    <p>Anything that credits the source, links back, and names the licence will do.
+      This, for instance:</p>
+    <div class="code"><pre>Weather data from the Forsyth mesh (Bir, Himachal Pradesh)
+https://live.forsyth.starstucklab.com — CC BY 4.0</pre></div>
+    <p>On a chart, a line of small print under it is plenty. In a dataset, a line in
+      the README. Machine-readable too: every API response carries a
+      <code>Link: &lt;…&gt;; rel="license"</code> header pointing at the same
+      licence.</p>
+
+    <div class="note">
+      <p>Worth knowing, since it cuts both ways: in much of the world a raw
+        measurement is a fact, and facts are not copyrightable. So over a single
+        reading this licence may have nothing to bite on, and over a whole database
+        it may — depending on where you are. Treat the attribution clause as what
+        is being asked of you rather than as a threat; it is here so that a chart
+        somewhere can be traced back to a hillside, not to generate correspondence.</p>
+    </div>
+
+    <h3>What it does not cover</h3>
+    <p>Forecasts served from <code>/forecast</code> are
+      <a href="https://open-meteo.com">Open-Meteo</a>'s model output, not ours, and
+      carry their terms. Map tiles belong to whoever drew them — each is credited on
+      the map itself. Camera frames are ours and under the same CC BY 4.0 as the
+      readings, as are the verification numbers from <code>/skill</code> — those
+      are computed here, from our own readings. The
+      <a href="https://github.com/m-anish/forsyth">code is MIT</a>, separately.
+      The full breakdown is in
+      <a href="https://github.com/m-anish/forsyth/blob/main/DATA-LICENSE.md">DATA-LICENSE.md</a>.</p>
+
+    <h3>And a request that is not a licence condition</h3>
+    <p>Do not pretend these are something they are not. They come from homemade
+      stations on a hillside, maintained by one person. Do not present them as
+      official observations, and do not use them where being wrong matters —
+      aviation, say, or anything load-bearing. Each station's <code>/skill</code>
+      endpoint will tell you honestly how far off its forecasts have been; the
+      sensors deserve the same scepticism. If something here is wrong or missing,
+      the fastest fix is a <a href="https://github.com/m-anish/forsyth">pull
+      request</a>.</p>
   </div>
 </main>
 
