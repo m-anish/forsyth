@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>forsyth · api</title>
+  <meta name="description" content="Every reading these stations have ever taken, free and without a key. Here is how to ask for it." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/dash.css?v=106" />
+  <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0b0c0e" />
+  <script src="js/theme.js?v=106"></script>
+  <style>
+    /* Page-local, like privacy.html's: nothing else on the site needs a code
+       block or an endpoint table, and putting them in dash.css would make
+       every visitor download documentation styling to look at the weather. */
+    .doc { max-width: 76ch; padding-bottom: 72px; }
+    .doc h2 { font-family: var(--serif); font-weight: 500; font-size: 22px;
+      margin: 38px 0 10px; scroll-margin-top: 80px; }
+    .doc h3 { font-size: 15px; font-weight: 600; margin: 24px 0 6px; }
+    .doc p, .doc li { color: var(--text-dim); font-size: 15.5px; }
+    .doc ul { padding-left: 22px; margin: 8px 0; }
+    .doc strong { color: var(--text); font-weight: 600; }
+
+    /* code: a block you are meant to copy, so it gets a button rather than a
+       "select the text carefully and hope" */
+    .code { position: relative; margin: 12px 0; }
+    .code pre {
+      margin: 0; padding: 13px 46px 13px 14px; overflow-x: auto;
+      background: var(--bg-elev); border: 1px solid var(--border-2); border-radius: 8px;
+      font-family: var(--mono); font-size: 12.5px; line-height: 1.65; color: var(--text);
+      white-space: pre; -webkit-overflow-scrolling: touch;
+    }
+    .code .cp {
+      position: absolute; top: 7px; right: 7px; min-width: 30px; min-height: 26px;
+      padding: 3px 7px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
+      text-transform: uppercase; cursor: pointer; border-radius: 5px;
+      background: var(--bg-card); color: var(--text-mute);
+      border: 1px solid var(--border); transition: color 120ms, border-color 120ms;
+    }
+    .code .cp:hover, .code .cp:focus-visible { color: var(--text); border-color: var(--accent); }
+    .code .cp.done { color: var(--good); border-color: var(--good); }
+    code:not(pre code) {
+      font-family: var(--mono); font-size: 0.88em; color: var(--text);
+      background: var(--bg-elev); border: 1px solid var(--border-2);
+      border-radius: 4px; padding: 1px 5px;
+    }
+
+    /* tables: the endpoint list and the field list */
+    .doc table { width: 100%; border-collapse: collapse; margin: 12px 0 4px; font-size: 13.5px; }
+    .doc th { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-mute); font-weight: 500;
+      text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--border); }
+    .doc td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--border-2);
+      color: var(--text-dim); vertical-align: top; }
+    .doc td:first-child { white-space: nowrap; }
+    .doc td code { white-space: nowrap; }
+    /* a table is a grid, and a phone is not — so each row becomes a block */
+    @media (max-width: 620px) {
+      .doc table, .doc tbody, .doc tr, .doc td { display: block; width: 100%; }
+      .doc thead { display: none; }
+      .doc tr { border-bottom: 1px solid var(--border); padding: 10px 0; }
+      .doc td { border: 0; padding: 2px 0; }
+      .doc td:first-child { white-space: normal; margin-bottom: 3px; }
+      .doc td code { white-space: normal; word-break: break-word; }
+    }
+
+    /* the live bits: this page talks to the API it documents, so it cannot
+       quietly go stale about which stations exist */
+    .live { border: 1px solid var(--border); border-radius: 9px; padding: 14px 16px;
+      background: var(--bg-card); margin: 14px 0; }
+    .live-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 8px; }
+    .live-head .k { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--text-mute); }
+    .live-out { font-family: var(--mono); font-size: 12px; line-height: 1.6;
+      color: var(--text-dim); margin: 0; white-space: pre-wrap; word-break: break-word; }
+    .slug-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 0; padding: 0; list-style: none; }
+    .slug-row li { border: 1px solid var(--border-2); border-radius: 6px; padding: 7px 10px; }
+    .slug-row .s { font-family: var(--mono); font-size: 12.5px; color: var(--text); }
+    .slug-row .n { font-size: 12px; color: var(--text-mute); display: block; }
+
+    .note { border-left: 3px solid var(--accent-2); padding: 2px 0 2px 13px; margin: 14px 0; }
+    .note p { margin: 0; font-size: 14.5px; }
+
+    /* a contents strip, because this page is long and a phone has no sidebar */
+    .toc { display: flex; gap: 6px 14px; flex-wrap: wrap; margin: 0 0 6px; padding: 0; list-style: none; }
+    .toc a { font-family: var(--mono); font-size: 11.5px; color: var(--text-mute);
+      text-decoration: none; border-bottom: 1px solid transparent; }
+    .toc a:hover, .toc a:focus-visible { color: var(--text); border-bottom-color: var(--accent); }
+  </style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to the weather</a>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="/" class="brand"><img src="assets/mark.svg" alt="" aria-hidden="true" />forsyth<sup class="beta">beta</sup></a>
+    <span class="crumb">/ api</span>
+    <nav class="right" aria-label="Site">
+      <a href="/api/docs" class="nav-chip">schema ↗</a>
+      <a href="/" class="nav-chip"><span class="hide-sm">back to the </span>weather →</a>
+      <button class="theme-btn" type="button" aria-label="switch color theme">◐ auto</button>
+    </nav>
+    <button class="nav-menu" type="button" aria-label="menu" aria-expanded="false">☰</button>
+  </div>
+</header>
+
+<main id="main" tabindex="-1" class="wrap">
+  <div class="pagehead">
+    <span class="kicker">Take the readings</span>
+    <h1 class="headline">The data is yours.</h1>
+    <p class="sub">Every reading these stations have taken, free, without a key and
+      without asking. Here is how to ask for it anyway.</p>
+  </div>
+
+  <div class="doc">
+    <ul class="toc">
+      <li><a href="#start">start here</a></li>
+      <li><a href="#stations">stations</a></li>
+      <li><a href="#endpoints">endpoints</a></li>
+      <li><a href="#fields">what the numbers mean</a></li>
+      <li><a href="#bulk">bulk history</a></li>
+      <li><a href="#limits">limits</a></li>
+      <li><a href="#browser">from a browser</a></li>
+      <li><a href="#push">live push</a></li>
+      <li><a href="#terms">terms</a></li>
+    </ul>
+
+    <h2 id="start">Start here</h2>
+    <p>One base URL, no key, no sign-up, no terms to accept. Everything below is a
+      plain <code>GET</code> that returns JSON.</p>
+
+    <div class="code"><pre>curl https://live.forsyth.starstucklab.com/api/v1/stations</pre></div>
+
+    <p>That lists every station with its latest reading. From there, the two calls
+      that do most of the work:</p>
+
+    <div class="code"><pre># the last six hours of temperature and humidity, as a time series
+curl "https://live.forsyth.starstucklab.com/api/v1/stations/leaf-01/series?metrics=temp_c,rh&amp;hours=6"
+
+# a week of everything, as a CSV you can open in a spreadsheet
+curl -o week.csv "https://live.forsyth.starstucklab.com/api/v1/export/leaf-01.csv?hours=168"</pre></div>
+
+    <div class="live">
+      <div class="live-head">
+        <span class="k">try it, from this page</span>
+        <button class="tool-btn" id="try-btn" type="button">run the first one</button>
+      </div>
+      <p class="live-out" id="try-out">The response appears here, fetched by your own browser from the same public API — no proxy, no key.</p>
+    </div>
+
+    <h2 id="stations">The stations</h2>
+    <p>A station is identified by its <strong>slug</strong>, which is what goes in a URL.
+      This list is read from the API when you load this page, so it is the real one:</p>
+    <ul class="slug-row" id="slugs">
+      <li><span class="s">…</span><span class="n">loading</span></li>
+    </ul>
+    <p>These are small solar-powered stations in the Dhauladhar foothills, reporting
+      every few minutes over LoRa. They are not a professional network: a station can
+      be offline for a day because it was cloudy, and a sensor can be wrong. The
+      <a href="/">dashboard</a> shows what each one is doing right now, and
+      <code>/api/v1/health</code> says the same thing in JSON.</p>
+
+    <h2 id="endpoints">Endpoints</h2>
+    <p>All of these are public. Anything not listed here needs a sign-in, and you
+      may ignore it. <code>{slug}</code> is a station slug from the list above.</p>
+
+    <table>
+      <thead><tr><th>path</th><th>what it gives you</th></tr></thead>
+      <tbody>
+        <tr><td><code>/api/v1/stations</code></td>
+            <td>Every station: name, coordinates, elevation, and its most recent reading.</td></tr>
+        <tr><td><code>/api/v1/stations/{slug}/latest</code></td>
+            <td>The single newest reading, every field, unaggregated.</td></tr>
+        <tr><td><code>/api/v1/stations/{slug}/series</code></td>
+            <td>A time series. <code>?metrics=</code> comma-separated field names,
+                <code>?hours=</code> up to 8784 (a year). Returns
+                <code>{ts: [...], series: {field: [...]}, bucket: "5 minutes"}</code> —
+                arrays line up by index, and <code>null</code> means no reading, not zero.</td></tr>
+        <tr><td><code>/api/v1/stations/{slug}/windrose</code></td>
+            <td>16 compass bins × 4 speed bands over <code>?hours=</code>, plus the
+                share of the time it was calm.</td></tr>
+        <tr><td><code>/api/v1/stations/{slug}/forecast</code></td>
+            <td>The latest model run for that station's exact coordinates,
+                <code>?hours=</code> up to 168. Includes ensemble spread where the
+                GEFS rows exist.</td></tr>
+        <tr><td><code>/api/v1/stations/{slug}/skill</code></td>
+            <td>How wrong those forecasts have been, verified against this station's
+                own readings, bucketed by lead time. <code>?days=</code> up to 365.</td></tr>
+        <tr><td><code>/api/v1/stations/{slug}/frames/latest</code></td>
+            <td>The newest camera frame, if that station has a camera:
+                <code>{ts, url}</code>. The URL is under <code>/media/</code>.</td></tr>
+        <tr><td><code>/api/v1/stations/{slug}/timelapses</code></td>
+            <td>Up to 60 days of daily timelapse videos.</td></tr>
+        <tr><td><code>/api/v1/lightning</code></td>
+            <td>Strikes across the mesh, <code>?hours=</code> and optional
+                <code>?slug=</code>. Distance in km, as the sensor estimated it.</td></tr>
+        <tr><td><code>/api/v1/health</code></td>
+            <td>Per station: last heard, battery, radio signal, and whether it has
+                gone stale. This is what you would poll to notice an outage.</td></tr>
+        <tr><td><code>/api/v1/reports</code></td>
+            <td>Weather reported by people rather than sensors, <code>?hours=</code>.
+                Locations are rounded to roughly 100 m on purpose.</td></tr>
+        <tr><td><code>/api/v1/alerts</code></td>
+            <td>Current alert level per station and for the mesh as a whole.</td></tr>
+        <tr><td><code>/api/v1/summary</code></td>
+            <td>The plain-English banner the dashboard shows, and the events behind it.</td></tr>
+        <tr><td><code>/api/v1/export/{slug}.csv</code></td>
+            <td>Bulk history — see below.</td></tr>
+      </tbody>
+    </table>
+
+    <p>The machine-readable schema for all of it, with every parameter and response
+      shape, is at <a href="/api/docs">/api/docs</a>
+      (<a href="/api/openapi.json">openapi.json</a>). It is generated from the code,
+      so it is never out of date — it also lists the write endpoints, which will
+      refuse you.</p>
+
+    <h2 id="fields">What the numbers mean</h2>
+    <p>Field names are the same everywhere — in <code>/latest</code>, in
+      <code>?metrics=</code>, and as CSV column headers.</p>
+
+    <table>
+      <thead><tr><th>field</th><th>unit — and the catch, where there is one</th></tr></thead>
+      <tbody>
+        <tr><td><code>temp_c</code></td><td>°C</td></tr>
+        <tr><td><code>rh</code></td><td>% relative humidity</td></tr>
+        <tr><td><code>pressure_pa</code></td>
+            <td><strong>Pascals, as measured at the station</strong> — not reduced to
+                sea level. At 1676 m that reads around 83,800 Pa, which is not a
+                broken barometer. The dashboard reduces it before display; if you
+                want a number comparable with a weather report, you must do the same,
+                and you will need the station's <code>elevation_m</code> from
+                <code>/stations</code>.</td></tr>
+        <tr><td><code>wind_avg_ms</code></td><td>m/s, averaged over the reporting interval</td></tr>
+        <tr><td><code>wind_gust_ms</code></td><td>m/s, the peak in that interval</td></tr>
+        <tr><td><code>wind_dir_deg</code></td>
+            <td>degrees, 0 = north, clockwise. Below about 0.5 m/s a stationary vane
+                points wherever it was last pushed, so treat the direction as
+                meaningless when the speed is near zero — the wind rose discards
+                those samples rather than counting them.</td></tr>
+        <tr><td><code>rain_mm</code></td>
+            <td>mm <strong>in that interval</strong>, not a running total. Summing is
+                correct; averaging is not. <code>/series</code> sums it per bucket
+                while averaging everything else.</td></tr>
+        <tr><td><code>pm1</code>, <code>pm25</code>, <code>pm10</code></td>
+            <td>µg/m³. Sampled far less often than the rest — roughly every half
+                hour — so expect long runs of <code>null</code> between real values.</td></tr>
+        <tr><td><code>batt_v</code></td><td>volts, LiFePO4, rested</td></tr>
+        <tr><td><code>rssi_dbm</code></td><td>dBm, the LoRa link as the gateway heard it</td></tr>
+        <tr><td><code>solar_state</code></td><td>a string, not a number — so it cannot be asked for in <code>?metrics=</code></td></tr>
+      </tbody>
+    </table>
+
+    <div class="note">
+      <p>Timestamps are UTC throughout. <code>/series</code> returns them as epoch
+        seconds; everything else uses ISO 8601. The stations are in India
+        (UTC+05:30), so a "day" in the data is not a local day unless you shift it.</p>
+    </div>
+
+    <h3>How <code>/series</code> buckets</h3>
+    <p>The window decides the resolution, because a year at one-minute resolution
+      helps nobody:</p>
+    <table>
+      <thead><tr><th>?hours=</th><th>bucket</th></tr></thead>
+      <tbody>
+        <tr><td>up to 12</td><td>1 minute — as fine as the stations actually report</td></tr>
+        <tr><td>up to 48</td><td>5 minutes</td></tr>
+        <tr><td>up to 336 (14 days)</td><td>1 hour, from the hourly rollup</td></tr>
+        <tr><td>beyond that</td><td>1 day</td></tr>
+      </tbody>
+    </table>
+    <p>The response tells you which you got, in <code>bucket</code>. If you want
+      full resolution over a long window, use the CSV instead — it is not bucketed.</p>
+
+    <h2 id="bulk">Bulk history</h2>
+    <p>One row per report, every field, no aggregation. Either a window back from now,
+      or explicit dates. <code>all</code> in place of a slug gives every station in one
+      file with a <code>station</code> column.</p>
+
+    <div class="code"><pre># thirty days from one station
+curl -o leaf.csv "https://live.forsyth.starstucklab.com/api/v1/export/leaf-01.csv?hours=720"
+
+# a named range, every station
+curl -o all.csv "https://live.forsyth.starstucklab.com/api/v1/export/all.csv?start=2026-09-01&amp;end=2026-10-01"</pre></div>
+
+    <p>Ranges are capped at 366 days. If you want more than that, make several calls —
+      or ask, and you can have a database dump instead of hammering this one.</p>
+
+    <h2 id="limits">Limits</h2>
+    <p>No key, but not unlimited: this runs on a single small virtual machine in
+      Bangalore, and one script in a retry loop can take the site away from everybody
+      else.</p>
+    <ul>
+      <li><strong>300 requests a minute</strong> per address for everything.</li>
+      <li><strong>10 a minute</strong> for CSV exports, which are the expensive ones.</li>
+    </ul>
+    <p>Over either, you get <code>429</code> with a <code>Retry-After</code> header
+      saying how many seconds to wait. Honour it and you will never see another one.
+      Those numbers are set where they are because the dashboard itself costs 38 calls
+      to load a page — if you need more than a person browsing, say so rather than
+      working around it.</p>
+    <p>Two things that will keep you well inside them: readings arrive every few
+      minutes, so <strong>polling faster than once a minute only burns your
+      budget</strong>; and if you want history, <strong>one CSV beats a thousand calls
+      to <code>/series</code></strong>.</p>
+
+    <h2 id="browser">From a browser</h2>
+    <p>Reads are open to every origin, so you can fetch this directly from a page of
+      your own — no proxy, no server in the middle. <code>GET</code> and
+      <code>HEAD</code> only, and no credentials, which is how it stays safe to leave
+      open.</p>
+
+    <div class="code"><pre>const BASE = 'https://live.forsyth.starstucklab.com/api/v1';
+
+const { stations } = await (await fetch(`${BASE}/stations`)).json();
+console.log(stations.map(s =&gt; `${s.name}: ${s.temp_c}°C`));
+
+// a time series, arrays aligned by index
+const d = await (await fetch(
+  `${BASE}/stations/leaf-01/series?metrics=temp_c&amp;hours=24`)).json();
+const points = d.ts.map((t, i) =&gt; ({
+  at: new Date(t * 1000),
+  tempC: d.series.temp_c[i],          // null where there is no reading
+})).filter(p =&gt; p.tempC !== null);</pre></div>
+
+    <h2 id="push">Live push</h2>
+    <p>There is an MQTT broker behind this — it is how the hardware reports — but it
+      is <strong>not open for subscription</strong>, and saying otherwise would be
+      doing you a disservice: it has no per-topic access control yet, so a credential
+      that can read can also publish, and a credential that can publish can rewrite
+      any station's position. Opening it properly means ACLs, TLS and a websockets
+      listener, and until that exists the honest answer is "poll the API".</p>
+    <p>Once a minute is plenty — readings do not arrive faster than that. If you are
+      building something that genuinely needs push,
+      <a href="https://github.com/m-anish/forsyth/issues">open an issue</a> and it
+      will move up the list.</p>
+
+    <h2 id="terms">Terms</h2>
+    <p>There are none, in the legal sense. The weather happens in public and the
+      readings belong to whoever wants them: use them, republish them, build a
+      business on them, train something on them. No attribution is required, though
+      a link back is kind and lets people find the stations.</p>
+    <p>What you should not do is pretend these are something they are not. They come
+      from homemade stations on a hillside, maintained by one person. Do not present
+      them as official observations, and do not use them where being wrong matters —
+      aviation, say, or anything load-bearing. Each station's
+      <code>/skill</code> endpoint will tell you honestly how far off its forecasts
+      have been; the sensors deserve the same scepticism.</p>
+    <p>The code is <a href="https://github.com/m-anish/forsyth">open source under the
+      MIT licence</a>. If something here is wrong or missing, the fastest fix is a
+      pull request.</p>
+  </div>
+</main>
+
+<footer class="sl-footer">
+  <div class="wrap">
+    <div class="sl-signoff">
+      <span>⛅ forsyth / take the readings</span>
+      <span><a href="/">overview</a> · <a href="map.html">map</a> · <a href="/api/docs">schema ↗</a> · <a href="privacy.html">privacy</a> · <a href="https://github.com/m-anish/forsyth">github ↗</a></span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  const BASE = '/api/v1';
+
+  /* Copy buttons, added to each block rather than written into the markup, so
+     a block is one <pre> and nothing else when scripting is off. */
+  for (const block of document.querySelectorAll('.code')) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cp';
+    btn.textContent = 'copy';
+    btn.setAttribute('aria-label', 'copy this to the clipboard');
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(block.querySelector('pre').textContent);
+        btn.textContent = 'copied'; btn.classList.add('done');
+      } catch { btn.textContent = 'select it'; }
+      setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('done'); }, 1600);
+    });
+    block.appendChild(btn);
+  }
+
+  /* The station list is fetched, not typed. A documentation page that names
+     stations in its own markup is a page that lies the first time one is added
+     or renamed, and this one already outlived a rename. */
+  (async () => {
+    const ul = document.getElementById('slugs');
+    try {
+      const { stations } = await (await fetch(`${BASE}/stations`,
+        { signal: AbortSignal.timeout(8000) })).json();
+      if (!stations.length) throw new Error('none');
+      ul.innerHTML = stations.map(s => `<li><span class="s">${s.slug}</span>
+        <span class="n">${s.name}${s.elevation_m ? ' · ' + Math.round(s.elevation_m) + ' m' : ''}</span></li>`).join('');
+    } catch {
+      ul.innerHTML = '<li><span class="s">leaf-01</span><span class="n">'
+        + 'could not reach the API just now — try /api/v1/stations yourself</span></li>';
+    }
+  })();
+
+  /* "Run it" does exactly what the curl above does, from the reader's own
+     browser — which is also the demonstration that cross-origin reads work. */
+  const btn = document.getElementById('try-btn');
+  const out = document.getElementById('try-out');
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    out.textContent = 'fetching…';
+    try {
+      /* a deadline, so a slow answer cannot leave the button disabled and the
+         box saying "fetching…" for the rest of the visit */
+      const r = await fetch(`${BASE}/stations`, { signal: AbortSignal.timeout(8000) });
+      const body = JSON.stringify(await r.json(), null, 1);
+      /* enough to see the shape; the whole thing belongs in a terminal */
+      out.textContent = `HTTP ${r.status}\n\n`
+        + (body.length > 900 ? body.slice(0, 900) + '\n…' : body);
+    } catch (e) {
+      out.textContent = e.name === 'TimeoutError'
+        ? 'No answer in 8 seconds. The API is probably having a moment — try again.'
+        : 'That failed: ' + e.message;
+    }
+    btn.disabled = false;
+  });
+</script>
+</body>
+</html>

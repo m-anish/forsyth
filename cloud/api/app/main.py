@@ -61,7 +61,7 @@ async def cache_headers(request: Request, call_next):
     """
     resp = await call_next(request)
     path = request.url.path
-    if path == "/" or path.endswith((".html", "/sw.js", ".webmanifest")):
+    if path in ("/", "/api") or path.endswith((".html", "/sw.js", ".webmanifest")):
         resp.headers["Cache-Control"] = "no-cache"
     elif request.url.query.startswith("v=") or "&v=" in request.url.query:
         resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
@@ -134,6 +134,17 @@ _dash = Path(__file__).resolve().parent.parent / "dashboard"
 @app.get("/", include_in_schema=False)
 def homepage():
     return FileResponse(_dash / "board.html")
+
+
+# The API's own front door, for people rather than for machines. /api/docs is
+# the generated schema and tells you every parameter; it does not tell you that
+# pressure_pa is not reduced to sea level, or that polling faster than a minute
+# only burns your rate budget. Served by an explicit route, like the homepage
+# above, so the static mount is not asked to invent a directory for it — and so
+# the URL is one anybody can say out loud.
+@app.get("/api", include_in_schema=False)
+def api_page():
+    return FileResponse(_dash / "api.html")
 
 
 app.mount("/", StaticFiles(directory=str(_dash), html=True), name="dashboard")
