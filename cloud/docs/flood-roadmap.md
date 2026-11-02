@@ -227,14 +227,42 @@ this part of the valley in the next 24 hours" than to "flooding expected".
 Blocked on §0(c) — and realistically on a monsoon, since the only honest test is
 whether a polygon ever lands here.
 
-### 4. Inundation maps as a map layer
+### 4. A map layer — yes, but the geometry does not come from this API
 
-`map.js` already has a layer switcher (terrain, satellite, RainViewer). KML
-polygons from `serializedPolygons` fit straight into it as another toggle,
-`PROBABILITY` or `DEPTH`, three nested levels.
+Checked properly on 2026-11-02: of the 67 reaches here, **0 carry an
+`inundationMapSet` and 0 carry a `serializedNotificationPolygonId`**. The API
+gives us a single point per reach and nothing else. So there is no polygon to
+shade and no inundation to draw — not "not near Bir", but not at all, for
+discharge gauges.
 
-Genuinely useful — for the Kangra valley and the Pong floodplain, not for Bir.
-Worth doing once idea 1 shows there is anything to draw.
+That leaves two honest options.
+
+**Points, and the problem with them.** We could put 67 dots on the map coloured
+by severity. The trap is that `map.js` already draws our stations as coloured
+circles, and those circles mean *there is an instrument here*. There is no
+instrument at any of these 67 places. Drawing model output in the same visual
+language as measurement would quietly tell a reader something false, and it is
+the kind of false thing that only becomes load-bearing in an emergency. If dots
+ever ship they need a different mark — a ring or a diamond, not a disc — and
+they should probably only appear when something is above normal, so that on a
+calm day the layer is empty rather than 67 reassuring dots nobody should be
+reassured by.
+
+**Catchments, which is the version actually worth building.** A reach is not a
+point, it is a basin, and the right picture is a choropleth: each catchment
+shaded by how close it is to its own warning level. Google do not serve that
+geometry — but they do not need to, because the gauge ID *is* the HydroBASINS
+identifier (`hybas_4121412480` → HYBAS_ID 4121412480). The level-12 HydroBASINS
+polygons for Asia are a public HydroSHEDS download; we need 67 of them, once,
+extracted and simplified offline into a small static GeoJSON that ships with the
+dashboard and never changes. Then the live API supplies only a number per
+polygon, which is exactly the shape of data a choropleth wants.
+
+One caveat that governs the colouring either way: **warning levels across these
+67 reaches range from 17.7 to 1781.3 m³/s**, a hundredfold spread, because a
+headwater stream and the Beas itself are both in this box. A map coloured by
+raw discharge would say nothing except "which river is bigger". The only
+mappable quantity is the fraction of each reach's own threshold.
 
 ### 5. Verify their forecasts the way we verify Open-Meteo
 
@@ -333,10 +361,14 @@ The findings reorder this list and strike two items from it outright.
    quality-verify. It earns its place during the monsoon and not before. If it
    ships, it ships saying "modelled, unverified" on its face.
 
+4. **Idea 4, the catchment choropleth**, as the eventual right answer for the
+   map — once there is a monsoon's worth of numbers to put on it, and after the
+   one-time HydroBASINS extraction. Not dots.
+
 **Struck.** Idea 3 (flash flood into the alert level) — the product does not
-reach this valley, and a daily-mean discharge cannot stand in for it. Idea 4
-(inundation layer) — discharge gauges carry no inundation maps, so there is
-nothing to draw.
+reach this valley, and a daily-mean discharge cannot stand in for it. The
+*inundation* layer specifically — discharge gauges carry no inundation maps and
+no notification polygons, so there is nothing of Google's to draw.
 
 **Unchanged:** do not put a flood warning on the homepage of a village in a
 state where people have died in cloudbursts on the strength of an unverified
