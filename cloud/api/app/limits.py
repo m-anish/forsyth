@@ -28,6 +28,14 @@ WINDOW_S = 60
 GENERAL_MAX = 300
 EXPORT_MAX = 10
 EXPORT_PREFIX = "/api/v1/export/"
+# Said to whoever hit the wall. The general one points at the cheaper way to
+# get what they are probably polling for; the export one cannot, because the
+# export IS the cheaper way — so it just says wait.
+TOO_MANY = ("Too many requests. The data is open; the droplet is small. "
+            "If you want history, one call to /api/v1/export/{slug}.csv beats "
+            "polling /series.")
+TOO_MANY_EXPORT = ("Too many exports. A full CSV is the expensive one — "
+                   "ten a minute, and the window resets shortly.")
 _MAX_KEYS = 20_000          # ~1 MB of dict; prune rather than grow unbounded
 
 # key -> (window index, count in that window)
@@ -85,16 +93,15 @@ async def rate_limit(request: Request, call_next):
         _prune(now)
 
     ip = client_ip(request)
-    budgets = [(("gen", ip), GENERAL_MAX)]
+    budgets = [(("gen", ip), GENERAL_MAX, TOO_MANY)]
     if path.startswith(EXPORT_PREFIX):
-        budgets.append((("exp", ip), EXPORT_MAX))
+        budgets.append((("exp", ip), EXPORT_MAX, TOO_MANY_EXPORT))
 
-    for key, limit in budgets:
+    for key, limit, said in budgets:
         wait = _over(key, limit, now)
         if wait is not None:
             return JSONResponse(
-                {"detail": "Too many requests. The data is open; the droplet is small. "
-                           "Bulk history is one call away at /api/v1/export/{slug}.csv."},
+                {"detail": said},
                 status_code=429,
                 headers={"Retry-After": str(wait), "Cache-Control": "no-store"},
             )
