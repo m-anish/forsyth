@@ -78,8 +78,11 @@
       margin-bottom: 8px; }
     .live-head .k { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em;
       text-transform: uppercase; color: var(--text-mute); }
+    /* capped: a real response is forty lines of JSON, and letting it shove the
+       rest of the page down the screen punishes you for pressing the button */
     .live-out { font-family: var(--mono); font-size: 12px; line-height: 1.6;
-      color: var(--text-dim); margin: 0; white-space: pre-wrap; word-break: break-word; }
+      color: var(--text-dim); margin: 0; white-space: pre-wrap; word-break: break-word;
+      max-height: 230px; overflow-y: auto; }
     .slug-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 0; padding: 0; list-style: none; }
     .slug-row li { border: 1px solid var(--border-2); border-radius: 6px; padding: 7px 10px; }
     .slug-row .s { font-family: var(--mono); font-size: 12.5px; color: var(--text); }
