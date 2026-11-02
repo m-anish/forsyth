@@ -142,7 +142,11 @@ def homepage():
 # only burns your rate budget. Served by an explicit route, like the homepage
 # above, so the static mount is not asked to invent a directory for it — and so
 # the URL is one anybody can say out loud.
+# Both spellings: the static mount swallows "/api/" before Starlette's own
+# slash-redirect gets a look at it, so a trailing slash 404s unless it is
+# declared. People type the slash.
 @app.get("/api", include_in_schema=False)
+@app.get("/api/", include_in_schema=False)
 def api_page():
     return FileResponse(_dash / "api.html")
 
