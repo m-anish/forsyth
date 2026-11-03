@@ -429,6 +429,35 @@ on the tile height. Worth reaching for before any test that sleeps.
 fires in a hidden pane — the same trap `ui-audit.js` carries a comment about
 avoiding, walked into one file later and one day after. `setTimeout` now.
 
+### What came after, on request
+
+Sun **rays** in the clear and partly scenes, leaning by the sun's real azimuth,
+and the hero's temperature casting a **shadow** the other way — both from
+`Sky.shadow()`, so the two halves of the lighting cannot disagree. Length is
+`1/tan(altitude)`, clamped, so shadows stretch as the sun drops. Only `clear`
+and `partly` are lit: under an overcast sky nothing casts a shadow, which is
+also what finally made `cloud` read as a different sky rather than a sunny one
+with the sun removed (four overlapping forms, and `.wx-cloud` asking the same
+token for more weight).
+
+Three sign-and-counting errors, all silent, all caught by checking rather than
+by looking — worth keeping as a list because each one *looked* right:
+
+- the shadow fell east when the sun was in the east. The east-west component of
+  a bearing is east-positive, but `sunX` puts east at the LEFT of the card, so
+  the sign flips back.
+- the beams leaned **towards** the sun. SVG's positive rotation is clockwise,
+  and a downward fan rotated clockwise swings left. For one revision the beams
+  and the shadow disagreed about the light on the same card.
+- `:nth-of-type(-n+2)`, meant to pick the first two clouds, counts every `<g>`
+  **sibling** — so the beams group and the moon were counted as clouds and a
+  partly-cloudy night had nothing moving at all. Clouds now name their drift
+  track instead of being chosen by position.
+
+And the viewBox lesson, for the third time: a hero card is 60px tall and up to
+the full width of the board, so `slice` crops the **vertical** axis, and at
+10:1 only the middle two thirds survives. Ink lives in y 10..50.
+
 ### Phase 5, which is all that is left
 
 Whether `sky` becomes the default theme mode. Deliberately not decided here:
