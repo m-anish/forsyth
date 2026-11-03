@@ -1100,7 +1100,7 @@ function wxSceneBeams(n = 5) {
 /* The six states. `sunX` is 0..1 across the card and comes from the sun's real
    azimuth (Sky.sunX), so the light sits where the light is and drifts across
    the card over a day instead of sitting in a corner like a logo. */
-function wxScene(kind, night, sunX) {
+function wxScene(kind, night, sunX, lowSun) {
   const id = 'wxs' + (++WX_SCENE_N);
   const cx = Math.round(Math.min(0.9, Math.max(0.1, sunX ?? 0.5)) * 100);
   /* Beams lean AWAY from the sun's side: a sun on the left throws its light
@@ -1159,9 +1159,13 @@ function wxScene(kind, night, sunX) {
   }
   /* aria-hidden: the hero's own glyph already says what the sky is doing, in
      words, to a screen reader. Saying it twice is noise. */
-  /* the state rides on the element: css should be able to say "overcast is
-     heavier" without js having to encode what heavier means */
-  return `<svg class="wx-scene wx-${kind}${night ? ' wx-night' : ''}"`
+  /* The state rides on the element: css should be able to say "overcast is
+     heavier", or "a low sun is a warmer one", without js having to encode
+     what heavier or warmer mean. wx-low is the hour either side of sunrise
+     and sunset — keyed to the sun's real altitude rather than to the palette
+     step, because steps only exist for readers who chose the sky theme and
+     the scene is drawn for everyone. */
+  return `<svg class="wx-scene wx-${kind}${night ? ' wx-night' : ''}${lowSun ? ' wx-low' : ''}"`
        + ` viewBox="0 0 400 60" preserveAspectRatio="xMidYMid slice"`
        + ` aria-hidden="true" focusable="false">${body}</svg>`;
 }

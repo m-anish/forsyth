@@ -124,6 +124,18 @@ const Sky = (() => {
              dy: +(len * 1.1 + 0.6).toFixed(2) };
   }
 
+  /* How high the sun is right now, in degrees, or null with no place. The
+     scene uses it for the one thing the four palette STEPS cannot answer:
+     how warm the light is. Steps only exist in 'sky' theme mode, and the
+     scene is drawn for everyone, so a low-sun colour keyed to [data-sky]
+     would simply never appear for most readers. */
+  function sunAlt(atMs) {
+    const p = coords();
+    if (!p) return null;
+    const a = sunPosition(atMs === undefined ? Date.now() : atMs, p.lat, p.lon).altitude;
+    return Number.isFinite(a) ? a : null;
+  }
+
   /* Where the sun sits across the sky as a fraction: 0 due east, 0.5 due
      south, 1 due west. The scene uses it to put its light where the light
      actually is, so the glow drifts across the card over a day instead of
@@ -245,7 +257,7 @@ const Sky = (() => {
   }
   hidden();
 
-  return { place, coords, step, base, sunX, shadow, forecast, state, kind: () => kind };
+  return { place, coords, step, base, sunX, sunAlt, shadow, forecast, state, kind: () => kind };
 })();
 
 /* Where the sun is, at an instant and a place — the standard NOAA/SunCalc
