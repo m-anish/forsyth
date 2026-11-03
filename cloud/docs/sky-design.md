@@ -1,9 +1,9 @@
 # The site should feel like the sky it is reporting on
 
-Written 2026-11-02 as a plan. **Phases 1–3 built 2026-11-03**; 1 and 2 are
-deployed, 3 is not. Phases 4–5 are still a plan. Fall back with
-`git checkout v2` (the palette work, live) or `git checkout v1` (before any of
-it). What the built phases changed against the plan is in §8, §9 and §10.
+Written 2026-11-02 as a plan. **Phases 1–4 are built**; 1–3 are deployed, 4 is
+not. Phase 5 is still a plan. Fall back with `git checkout v2` (the palette
+work, before any scene) or `git checkout v1` (before any of it). What the built
+phases changed against the plan is in §8–§11.
 
 Asked for: the three-or-four fixed palettes from [v2-design.md](v2-design.md)
 §9.2, extended so that **weather** and not only time of day shapes the page —
@@ -183,7 +183,7 @@ palette work, on one page, where it can be looked at and thrown away.
 3. **The scene, static.** Hero only, no motion, all six states.
    **Done** — `6db1b04`, but not as described here; §10.
 4. **The motion.** Three elements at most, reduced-motion honoured, paused when
-   hidden.
+   hidden. **Done** — `bc254d6`; §11.
 5. **Decide whether `sky` becomes the default.** Only after living with it.
 
 Stop after any phase and the site is coherent. Phase 1 reverts cleanly on its
@@ -394,3 +394,42 @@ asked for less decoration, whatever the ratios say.
   `prefers-reduced-motion` — unchanged from §4 and still right.
 - The hero re-renders on `skychange` already (coalesced with `themechange` in
   board.js), so a moving scene will not disagree with the glyph above it.
+
+## 11. Phase 4, and the two things that only showed up in motion
+
+Built as `bc254d6`. Rain falls, snow falls slower, clouds drift; a clear sky
+does not move, because that is what a clear sky does.
+
+**Tiling, not translating.** §4 said to translate the rain group "by exactly
+its own tile height on a ~2 s linear loop so it reads as continuous". A single
+row translated by its own height does **not** loop: halfway through, the row
+has left the top of the band and nothing has arrived behind it, so the rain
+thins and then snaps. The falling groups are drawn as rows exactly `WX_TILE`
+apart covering one row above the band and one past the bottom, and then the
+translate returns the figure to itself. `WX_TILE` in `js/common.js` and the
+`20px` in the keyframe are one number living in two files.
+
+**A CSS transform replaces an SVG transform attribute** rather than composing
+with it, so animating `.cl` directly would have discarded the translate and
+scale that place each cloud. Hence `.cl-d`, a wrapper that the drift owns and
+nothing else touches. Three periods — 48s, 71s, 97s, none a multiple of
+another — so the overcast sky's three clouds never start moving as one object.
+
+Budget held: `transform` and `opacity` only, at most three moving groups in any
+state, nothing faster than a 2.2s loop, paused on `data-hidden` (set by
+`js/sky.js`), gone under `prefers-reduced-motion`.
+
+**Verified by driving the animation, not waiting on it.** The pane runs hidden
+pages as background pages, so animations are paused exactly when a test would
+want to watch them. Setting `animation.currentTime` and reading the computed
+transform sidesteps that entirely: rain is linear 0 → 19.98 over 2.2s, landing
+on the tile height. Worth reaching for before any test that sleeps.
+
+`tools/scene-audit.js` used `requestAnimationFrame` in its sweep, which never
+fires in a hidden pane — the same trap `ui-audit.js` carries a comment about
+avoiding, walked into one file later and one day after. `setTimeout` now.
+
+### Phase 5, which is all that is left
+
+Whether `sky` becomes the default theme mode. Deliberately not decided here:
+it is a judgement to make after living with it, not a line of code to write.
