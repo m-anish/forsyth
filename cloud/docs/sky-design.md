@@ -1,9 +1,9 @@
 # The site should feel like the sky it is reporting on
 
-Written 2026-11-02 as a plan. **Phases 1 and 2 shipped 2026-11-03**; phases
-3–5 are still a plan. The fall-back if it goes wrong is the `v1` tag
-(`git checkout v1`). What the built phases changed against the plan is in §8
-and §9.
+Written 2026-11-02 as a plan. **Phases 1–3 built 2026-11-03**; 1 and 2 are
+deployed, 3 is not. Phases 4–5 are still a plan. Fall back with
+`git checkout v2` (the palette work, live) or `git checkout v1` (before any of
+it). What the built phases changed against the plan is in §8, §9 and §10.
 
 Asked for: the three-or-four fixed palettes from [v2-design.md](v2-design.md)
 §9.2, extended so that **weather** and not only time of day shapes the page —
@@ -116,6 +116,11 @@ confined to it can never interfere with a chart.
 A band across the upper part of the hero, roughly 120–160 px, masked so it
 fades out before it reaches any text.
 
+> **This is the part that was wrong.** "Behind the text, masked" caps the
+> scene at whatever the smallest thing over it can survive, which measured out
+> at an alpha of 0.04 on the dark palette — invisible. The scene was given a
+> band of its own instead, with the hero pushed below it. §10 has the numbers.
+
 ### What it is made of
 
 The same drawn vocabulary as the icon set, at wallpaper scale and much lower
@@ -176,6 +181,7 @@ palette work, on one page, where it can be looked at and thrown away.
    no visual change at all — which makes it a safe, boring commit.
    **Done** — `a203e4f`. The saving was larger than this line assumed; §9.
 3. **The scene, static.** Hero only, no motion, all six states.
+   **Done** — `6db1b04`, but not as described here; §10.
 4. **The motion.** Three elements at most, reduced-motion honoured, paused when
    hidden.
 5. **Decide whether `sky` becomes the default.** Only after living with it.
@@ -299,3 +305,92 @@ themselves; a shared cache for those is a separate job and is **not** done.
 - `Sky.state()` with no argument answers for the primary station, which is
   whichever one called `Sky.place()` with a slug. That is the right station for
   a scene that is about "here".
+
+## 10. Phase 3, and the assumption it broke
+
+Built as `6db1b04`. Not deployed at the time of writing.
+
+### Behind the text was the wrong place, and the measurement said so
+
+§4 said to put the scene behind the hero's content and mask it. Built that
+way, the scene's strength is capped by the least forgiving thing drawn over
+it. The guess was that dark would tolerate more, since its `--text` sits at
+14.7:1. That is true of `--text` and of nothing else: `--text-mute` is 4.84:1
+on the dark card, so **any** lightening breaks it. Solving for the ceiling:
+
+| palette | max `--sky-a` behind text | first token to break |
+|---|---|---|
+| light | 0.155 | `--text-mute` over `--wx-moon` |
+| golden | 0.185 | `--good` over `--wx-moon` |
+| dusk | 0.085 | `--text-mute` over `--wx-sun` |
+| **dark** | **0.040** | `--text-mute` over `--wx-sun` |
+
+0.04 is invisible. And it is not a tuning problem: a tint always moves the
+background toward mid-grey, which is where mid-tone text lives, so there is no
+palette where this is cheap and no alpha that is both safe and visible. A
+picture dimmed until it cannot hurt the text is not a picture.
+
+**So the scene got the space instead.** `.hero-sky` is absolutely positioned
+(an absolute child resolves against the padding box, so it reaches the card's
+inner edges without restating `.wg-body`'s padding) and `.hero-sky + .hero`
+takes a `padding-top` of the same height. The adjacent-sibling selector is the
+point: no scene element, no padding, so a station with no forecast gets its old
+layout back with nothing to configure. No text is read against the scene, the
+ceiling disappears, and the alpha became a question of taste.
+
+### Three defects the pixel audit found that arithmetic had not
+
+The first audit composited the real SVG under the real mask over the real card
+and read the pixels under every glyph. It paid for itself immediately:
+
+- **stars with no alpha ceiling** — `.wx-scene .st` set `fill` and nothing
+  else, so they drew at their own 0.35–0.85 opacity. Near-opaque light dots on
+  a dark card: **1.06:1** under the trend chip.
+- **the moon at the sun's azimuth**, which put it on that same chip at 3.3:1.
+  It is fixed in the corner now. Nothing here computes a lunar ephemeris, and
+  an illustration placed precisely wrong is worse than one that makes no claim.
+- **a viewBox that did not match the band.** 400x80 sliced into a 54px band
+  crops 40% of the height; the clouds lost their bumps and read as grey pills.
+  The viewBox is 400x60 now, sized so a hero card's real aspect range
+  (about 5.7:1 to 7.6:1) lands either side of it, and the drawing keeps inside
+  y 4..52.
+
+A fourth, from reading rather than measuring: `wxSceneCloud` took a raw
+translate, but the cloud's ink begins at y=6.7 inside its 24-box, so
+`translate(40 18)` put its top at y=50. It takes the visible corner now, so
+the number in the call is the number on the screen.
+
+### What checks what
+
+- `tools/palette-contrast.js` — the token table, no browser. It briefly carried
+  a table of audited alphas; that is gone, because there is no composite left
+  to audit.
+- `tools/scene-audit.js` — asserts the stronger property: **no text box
+  intersects the band**, at every palette step and sky state. It cannot go
+  stale when someone moves a cloud.
+
+`prefers-contrast: more` hides the scene and collapses the band. That reader
+asked for less decoration, whatever the ratios say.
+
+### Two bugs found on the way, neither about the sky
+
+- **The dev proxy spoke HTTP/1.0.** Every local check was taking minutes, with
+  the browser reporting 25,000 ms API calls, while the same proxy answered
+  fifteen parallel calls in 0.54 s from a shell. 1.0 closes the connection
+  after each response. With keep-alive the slowest call on a board load went
+  from 25,000 ms to 431 ms.
+- **The service worker was registering on localhost**, serving an edit-old
+  `common.js` from cache while the proxy answered `no-store`. Three debugging
+  detours in one afternoon before the cause was obvious. It no longer registers
+  there, and tears down anything an earlier session left.
+
+### For phase 4
+
+- The groups are the units to move: `.cl .mn .st .rn .sn`. `wxSceneRain` draws
+  one tile-height row, so translating the group by that row and looping reads
+  as continuous.
+- `transform` and `opacity` only, at most three moving elements, nothing faster
+  than about 2 s, paused when hidden, and static under
+  `prefers-reduced-motion` — unchanged from §4 and still right.
+- The hero re-renders on `skychange` already (coalesced with `themechange` in
+  board.js), so a moving scene will not disagree with the glyph above it.
