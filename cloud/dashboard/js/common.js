@@ -1106,13 +1106,51 @@ function wxSceneBeamFade(id) {
        + `<stop offset="1" class="b2"/></radialGradient>`;
 }
 
-function wxSceneBeams(n = 5, fade = '') {
+/* How wide the fan opens, from the sun's HEIGHT rather than its bearing.
+
+   Overhead light spreads: at noon the rays go everywhere, vertical among
+   them, which is what a midday sky looks like. Low light does not — it
+   arrives as a narrow steep sheaf, and a vertical ray in it would be a ray
+   coming from a sun that is not there. 15 degrees at the horizon to 46
+   overhead, continuous, so it opens and closes across the day rather than
+   switching between two looks. */
+function wxBeamSpread(alt) {
+  const a = Math.max(0, Math.min(50, Number.isFinite(alt) ? alt : 35));
+  return 15 + (a / 50) * 31;
+}
+
+/* Which way the whole fan leans, from BOTH halves of where the sun is.
+
+   The side comes from the azimuth, as a fraction rather than a sign so it
+   passes smoothly through solar noon instead of flipping: at noon the sun is
+   due south, dead centre in the card's left-right projection, and the light
+   has no side to come from.
+
+   The steepness comes from the altitude, because that is what the first
+   version missed. Leaning only by azimuth, a 17:00 sun six degrees off the
+   horizon still drew a ray five degrees off vertical — light from a sun that
+   is not up there. The angle light actually makes with the vertical is
+   90 minus its altitude, scaled to the range a 60-unit band can show: a truly
+   horizontal shaft would never cross the card at all.
+
+   Both terms are continuous in time, so the fan swings and steepens through
+   the day rather than stepping between poses. */
+function wxBeamSlant(sunX, alt) {
+  const side = Math.max(-1, Math.min(1, ((sunX ?? 0.5) - 0.5) * 2));
+  const a = Number.isFinite(alt) ? Math.max(0, Math.min(90, alt)) : 35;
+  return +(side * Math.min(55, (90 - a) * 0.62)).toFixed(1);
+}
+
+function wxSceneBeams(n = 5, fade = '', spread = 46) {
   const R = WX_BEAM_R, rad = Math.PI / 180;
   let out = '';
   for (let i = 0; i < n; i++) {
-    /* uneven spacing: evenly fanned beams read as a logo, not as weather */
-    const t = (-46 + i * (92 / (n - 1)) + (i % 2 ? 5 : -3));
-    const w = 2.1 + (i % 3) * 0.9;
+    /* Uneven spacing: evenly fanned beams read as a logo, not as weather.
+       The jitter scales with the spread, or at a narrow fan it would be
+       most of the angle and the sheaf would look scattered instead. */
+    const j = (i % 2 ? 5 : -3) * (spread / 46);
+    const t = -spread + i * (2 * spread / (n - 1)) + j;
+    const w = (2.1 + (i % 3) * 0.9) * (0.6 + 0.4 * spread / 46);
     const p1 = [R * Math.sin((t - w) * rad), R * Math.cos((t - w) * rad)];
     const p2 = [R * Math.sin((t + w) * rad), R * Math.cos((t + w) * rad)];
     out += `<polygon points="0,0 ${p1[0].toFixed(1)},${p1[1].toFixed(1)}`
@@ -1138,34 +1176,47 @@ function wxSceneCloudGrad(id) {
    one, but replacing the node restarts every animation inside it, which is
    exactly what used to make the clouds jump. So the two things that depend on
    where the sun is are written into the DOM that is already there. */
-function wxSceneSun(sceneEl, sunX, lowSun) {
+function wxSceneSun(sceneEl, sunX, sunAlt) {
   const svg = sceneEl.querySelector('svg');
   if (!svg) return;
   const cx = Math.round(Math.min(0.9, Math.max(0.1, sunX ?? 0.5)) * 100);
-  const slant = (((sunX ?? 0.5) - 0.5) * 2 * 34).toFixed(1);
+  const slant = wxBeamSlant(sunX, sunAlt);
   const g = svg.querySelector('radialGradient');
   if (g) g.setAttribute('cx', cx + '%');
   const bo = svg.querySelector('.bm-o');
   if (bo) bo.setAttribute('transform', `translate(${cx * 4} -16) rotate(${slant})`);
-  svg.classList.toggle('wx-low', !!lowSun);
+  /* The fan's WIDTH moves with the sun too, so the wedges are redrawn — the
+     .bm element itself is left in place, because the rock animation lives on
+     it and replacing it would restart the rock once a minute. Its children
+     are not animated and can be swapped freely. */
+  const bm = svg.querySelector('.bm');
+  if (bm) {
+    const fade = /url\(#([^)]+)\)/.exec(bm.getAttribute('fill') || '');
+    const next = wxSceneBeams(5, fade ? fade[1] : '', wxBeamSpread(sunAlt));
+    bm.innerHTML = next.replace(/^<g[^>]*>/, '').replace(/<\/g>$/, '');
+  }
+  svg.classList.toggle('wx-low',
+    Number.isFinite(sunAlt) && sunAlt < 12 && sunAlt > -2);
 }
 
 /* The six states. `sunX` is 0..1 across the card and comes from the sun's real
    azimuth (Sky.sunX), so the light sits where the light is and drifts across
    the card over a day instead of sitting in a corner like a logo. */
-function wxScene(kind, night, sunX, lowSun) {
+function wxScene(kind, night, sunX, sunAlt) {
+  /* the altitude, not a flag: it decides both how warm the light is and how
+     wide the fan opens, and those have to agree with each other */
+  const lowSun = Number.isFinite(sunAlt) && sunAlt < 12 && sunAlt > -2;
   const id = 'wxs' + (++WX_SCENE_N);
   const cx = Math.round(Math.min(0.9, Math.max(0.1, sunX ?? 0.5)) * 100);
   /* Beams lean AWAY from the sun's side: a sun on the left throws its light
-     down and to the right. 34° at the extremes is about as far as the fan can
-     lean before it starts leaving the band through the side.
+     down and to the right, and the lower it is the steeper that lean.
 
      Negative for a sun on the left, because SVG's positive rotation is
-     CLOCKWISE and a downward fan rotated clockwise swings to the left — the
-     first version had it the other way and the beams leaned back towards the
+     CLOCKWISE and a downward fan rotated clockwise swings to the left — an
+     early version had it the other way and the beams leaned back towards the
      sun while the temperature's shadow fell correctly away from it, the two
      halves of the same lighting disagreeing on the same card. */
-  const slant = (((sunX ?? 0.5) - 0.5) * 2 * 34).toFixed(1);
+  const slant = wxBeamSlant(sunX, sunAlt);
   /* A disc at this size reads as a logo, so a clear sky is light and no disc.
      The drawn sun stays in the hero's own glyph, small enough to be an icon. */
   const cg = id + 'c', bg = id + 'b';
@@ -1189,7 +1240,7 @@ function wxScene(kind, night, sunX, lowSun) {
   const lit = needsGlow
     ? `<rect width="400" height="60" fill="url(#${id})"/>`
       + `<g class="bm-o" transform="translate(${cx * 4} -16) rotate(${slant})">`
-      + `${wxSceneBeams(5, bg)}</g>`
+      + `${wxSceneBeams(5, bg, wxBeamSpread(sunAlt))}</g>`
     : '';
 
   let body;

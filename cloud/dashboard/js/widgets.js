@@ -113,12 +113,11 @@ const Widgets = (() => {
         /* The scene says the same thing as the glyph, at wallpaper scale. If
            there is no kind there is no scene either: better an empty card than
            a guessed sky (docs/sky-design.md §4). */
-        /* below 12 degrees the light is visibly warm — the hour or so either
-           side of sunrise and sunset, which is when a ray should be amber
-           rather than brass */
-        const alt = Sky.sunAlt();
-        const low = alt !== null && alt < 12 && alt > -2;
-        scene = { kind, night, low };
+        /* The altitude carries two things at once: below about 12 degrees
+           the light is visibly warm, and the lower the sun the narrower and
+           steeper the fan of rays. Passed as a number so the scene can decide
+           both, rather than as a flag that has already thrown one away. */
+        scene = { kind, night, alt: Sky.sunAlt() };
         /* Light the card from where the sun is: the temperature throws a soft
            shadow away from it, long in the morning and short at noon, on the
            same side the beams lean. Only when there IS direct light — under
@@ -191,11 +190,11 @@ const Widgets = (() => {
       const next = document.createElement('div');
       next.className = 'hero-sky';
       next.dataset.sig = sig;
-      next.innerHTML = wxScene(scene.kind, scene.night, Sky.sunX(), scene.low);
+      next.innerHTML = wxScene(scene.kind, scene.night, Sky.sunX(), scene.alt);
       if (sky) sky.replaceWith(next); else el.insertBefore(next, hero);
       sky = next;
     } else {
-      wxSceneSun(sky, Sky.sunX(), scene.low);
+      wxSceneSun(sky, Sky.sunX(), scene.alt);
     }
 
     hero.innerHTML = `
