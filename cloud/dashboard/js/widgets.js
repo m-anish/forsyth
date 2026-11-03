@@ -140,8 +140,18 @@ const Widgets = (() => {
         ? `${base}<span class="hero-sub2"> · gusting ${Math.round(g)} km/h</span>` : base;
     })();
 
+    /* Whose weather is this? The card said "Current conditions" and buried the
+       answer at the foot of a sentence under the sparkline — on a mesh with
+       more than one station that is a real question to leave unanswered, and
+       there was nowhere to click through to the station itself.
+       `where: false` for the local panel, whose own header already names the
+       station and links it; the same discipline windrose uses for `label`. */
+    const where = config.where === false ? '' :
+      `<a class="hero-where" href="station.html?slug=${s.slug}">${s.name}<span class="arr"> →</span></a>`;
+
     el.innerHTML = scene + `
       <div class="hero">
+      ${where}
       <div class="hero-top">
         ${glyph ? `<span class="hero-glyph">${glyph}</span>` : ''}
         <span class="hero-temp">${fmt(s.temp_c, 1)}<span class="u">°C</span></span>
@@ -149,7 +159,7 @@ const Widgets = (() => {
       </div>
       <p class="hero-say">${says.join(' ')}</p>
       ${spark}
-      <div class="hero-meta">${hiLo ? hiLo + ' · ' : ''}measured at ${s.name}, ${agoLabel(s.last_seen)}</div>
+      <div class="hero-meta">${hiLo ? hiLo + ' · ' : ''}${where ? '' : `measured at ${s.name}, `}${agoLabel(s.last_seen)}</div>
       <div class="hero-stats">
         <div><span class="k">Humidity</span><span class="v">${fmt(s.rh, 0, '%')}</span></div>
         <div><span class="k">Wind</span><span class="v">${windCell}</span></div>
@@ -564,7 +574,7 @@ const Widgets = (() => {
        so the sub-widgets render without their own captions */
     await Promise.allSettled([
       forecast(body('forecast'), { ...cfg, hours: 48 }),
-      now(body('now'), cfg),
+      now(body('now'), { ...cfg, where: false }),
       windrose(body('wind'), { ...cfg, hours: 24, label: false }),
       chart(body('chart'), { ...cfg, metrics: 'temp_c,rh', hours: 24 }),
     ]);

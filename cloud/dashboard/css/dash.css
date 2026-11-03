@@ -1086,6 +1086,19 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
 
 /* the hero's content sits above its sky */
 .hero { position: relative; z-index: 1; }
+
+/* Whose weather this is, above the number rather than under the sparkline,
+   and a way through to the station itself. Mono and small so it reads as a
+   label on the reading rather than as a headline competing with it. */
+.hero-where {
+  display: inline-block; align-self: flex-start;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text-dim);
+  border-bottom: 1px solid transparent; margin-bottom: 4px;
+}
+.hero-where:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.hero-where .arr { color: var(--text-mute); }
+.hero-where:hover .arr { color: var(--accent); }
 .hero-temp { font-family: var(--mono); line-height: 1; letter-spacing: -0.03em;
   font-size: clamp(2.5rem, 8vw, 3.4rem); }
 .hero-temp .u { font-size: .38em; color: var(--text-mute); margin-left: 2px; }
