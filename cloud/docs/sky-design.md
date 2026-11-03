@@ -458,10 +458,48 @@ And the viewBox lesson, for the third time: a hero card is 60px tall and up to
 the full width of the board, so `slice` crops the **vertical** axis, and at
 10:1 only the middle two thirds survives. Ink lives in y 10..50.
 
-### Phase 5, which is all that is left
+# 13. Phase 5: `sky` is the default, and the button stays
 
-Whether `sky` becomes the default theme mode. Deliberately not decided here:
-it is a judgement to make after living with it, not a line of code to write.
+Decided 2026-11-03, after living with it.
+
+**`sky` is now the default**, and the cycle is `sky → dark → light → auto`,
+ordered by where someone leaving it is most likely headed: anyone who dislikes
+a sun-driven palette almost certainly had their system set to dark, so dark is
+one tap and not three.
+
+**The button stays, and that is not clutter — it is what makes the default
+defensible.** The two are one decision, not two.
+
+§3 argued that `sky` should not be the default because a lot of people set
+dark permanently and mean it, and answering that with "but it is noon in Bir"
+overrides a stated preference. That argument was right, and it has not gone
+away; what it actually argues for is an **override**, not a timid default. A
+weather page whose subject is the sky should follow the sky by default. The
+people it does not suit need one tap that persists — and they are precisely
+the people least able to work around its absence: a dark-mode preference is
+often photophobia, astigmatism or an OLED screen, none of which a clever
+default can detect.
+
+Three things already protect the people most at risk, and all three predate
+this change:
+
+- `prefers-contrast: more` pins to the plain light/dark pair, bypassing the
+  sky steps entirely.
+- All four steps were swept against WCAG AA before they shipped, so no step is
+  a legibility risk; this is about preference, not readability.
+- The choice is stored, so it is made once.
+
+What a reader loses by the button going away is a setting nothing else can
+express. What they gain is one fewer chip in a topbar that already has five.
+That is not a trade worth making.
+
+**One honest cost.** A first-ever visit has no cached coordinates, so the page
+paints from `prefers-color-scheme` and corrects when the station list lands.
+It is only visible when the system and the local sun disagree — a dark system
+at noon, a light one at night — it is a 250ms crossfade rather than a snap,
+and it happens once per browser because the place is cached from then on.
+Baking the home station's coordinates into the served HTML would remove even
+that; it is not worth a server change yet.
 
 ---
 

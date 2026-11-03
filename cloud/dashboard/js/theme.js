@@ -1,17 +1,25 @@
-/* forsyth live — theme manager. Pref cycles auto → light → dark → sky
-   (localStorage); 'auto' follows prefers-color-scheme live, 'sky' follows the
-   sun, which js/sky.js works out. Emits 'themechange' on <window>.
-   See docs/sky-design.md.
+/* forsyth live — theme manager. Pref cycles sky → dark → light → auto
+   (localStorage); 'sky' follows the sun over the station, which js/sky.js
+   works out, 'auto' follows prefers-color-scheme live. Emits 'themechange'
+   on <window>. See docs/sky-design.md §13.
 
-   'sky' is a FOURTH mode and not a redefinition of 'auto', on purpose. A lot
-   of people set dark permanently and mean it; answering that with "but it is
-   noon in Bir" overrides a stated preference. Nobody gets this who has not
-   asked for it. */
+   'sky' is the DEFAULT as of 2026-11-03, which it was not when it was built.
+   The argument then was that a lot of people set dark permanently and mean
+   it, and answering that with "but it is noon in Bir" overrides a stated
+   preference. That is still true, and it is why the BUTTON stays: a default
+   that overrides a system preference has to be one tap from undone, and that
+   tap has to persist. What changed is only which way the default points — on
+   a page whose subject is the sky, following the sky is the better first
+   answer, and one tap reaches dark for anyone it does not suit.
+
+   The cycle is ordered by where people are most likely to be going. Anyone
+   who dislikes a sun-driven palette almost certainly had their system set to
+   dark, so dark is the first stop and not the third. */
 'use strict';
 
 const Theme = (() => {
   const KEY = 'forsyth-theme';
-  const MODES = ['auto', 'light', 'dark', 'sky'];
+  const MODES = ['sky', 'dark', 'light', 'auto'];
   const media = matchMedia('(prefers-color-scheme: dark)');
   /* More contrast pins the palette to the plain light/dark pair, which are the
      two with the most headroom. prefers-reduced-motion deliberately does NOT:
@@ -27,18 +35,27 @@ const Theme = (() => {
   function ls(k) { try { return localStorage.getItem(k); } catch { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } }
 
+  /* An unreadable or unset value falls to the head of the cycle, which is
+     now 'sky'. A reader who had explicitly chosen 'auto' keeps it: it is
+     still in MODES, so it still validates. */
   function pref() {
     const p = ls(KEY);
-    return MODES.indexOf(p) >= 0 ? p : 'auto';
+    return MODES.indexOf(p) >= 0 ? p : MODES[0];
   }
 
   /* --- what the sky is doing -------------------------------------------- */
 
   /* js/sky.js owns the sun. This file only decides whether to paint it: null
-     means the reader did not ask for a sky palette, or asked for more contrast
-     and should get the two palettes with the most headroom, or there are no
-     coordinates yet (a first-ever visit, which falls back to 'auto' rather
-     than guessing a hemisphere). */
+     means the reader turned the sky palette off, or asked their system for
+     more contrast and should get the two palettes with the most headroom, or
+     there are no coordinates yet.
+
+     That last case is every first-ever visit, and it is why the first load
+     can correct itself: with no cached place there is nothing to put the sun
+     in, so the page paints from prefers-color-scheme and switches when the
+     station list lands. It only SHOWS when the system and the local sun
+     disagree — a dark system at noon, a light one at night — and only once,
+     because the place is cached from then on. */
   function step() {
     if (pref() !== 'sky' || contrast.matches) return null;
     return Sky.step();
