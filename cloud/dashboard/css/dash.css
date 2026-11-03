@@ -54,8 +54,13 @@
                              failed at 4.13 on the darker --bg-elev panels. */
   --accent:    #3f6c96;
   --accent-2:  #8a6f38;
-  --good:      #3e7d4f;
-  --warn:      #96702c;
+  /* #3e7d4f and #96702c were 4.03:1 and 3.68:1 on --bg-elev, which is where
+     .trend.up and .rv-sev actually sit — the same --bg-elev oversight recorded
+     against --text-mute above, caught by tools/palette-contrast.js. Now
+     4.82 and 4.86. --ch-gust keeps the old brass: it is a 3:1 chart line, it
+     passes there, and changing it would restyle every wind chart. */
+  --good:      #357045;
+  --warn:      #7f5e23;
   --bad:       #a04848;
   --border:    #cfcdc4;
   --border-2:  #dedcd3;
@@ -70,7 +75,7 @@
   --ch-rain: #3f6c96;  --ch-rain-fill: rgba(63,108,150,0.18);
   --ch-pm25: #c2621a;  --ch-pm10: #1f6f9c;  --ch-batt: #3e7d4f;
   --ch-pm25-fill: rgba(194,98,26,0.16); --ch-pm10-fill: rgba(31,111,156,0.12);
-  --wx-sun: #a8812f;  --wx-moon: #5a6472;  --wx-cloud: #7d8590;
+  --wx-sun: #9b762a;  --wx-moon: #5a6472;  --wx-cloud: #7d8590;  /* sun was 2.93:1, under the 3:1 a meaningful graphic needs */
 }
 
 * { box-sizing: border-box; }
