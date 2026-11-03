@@ -117,7 +117,8 @@ const Widgets = (() => {
            the light is visibly warm, and the lower the sun the narrower and
            steeper the fan of rays. Passed as a number so the scene can decide
            both, rather than as a flag that has already thrown one away. */
-        scene = { kind, night, alt: Sky.sunAlt() };
+        scene = { kind, night, alt: Sky.sunAlt(), az: Sky.sunAz(),
+                  moon: night ? Sky.moon() : null };
         /* Light the card from where the sun is: the temperature throws a soft
            shadow away from it, long in the morning and short at noon, on the
            same side the beams lean. Only when there IS direct light — under
@@ -190,11 +191,12 @@ const Widgets = (() => {
       const next = document.createElement('div');
       next.className = 'hero-sky';
       next.dataset.sig = sig;
-      next.innerHTML = wxScene(scene.kind, scene.night, Sky.sunX(), scene.alt);
+      next.innerHTML = wxScene(scene.kind, scene.night, Sky.sunX(), scene.az,
+                               scene.alt, scene.moon);
       if (sky) sky.replaceWith(next); else el.insertBefore(next, hero);
       sky = next;
     } else {
-      wxSceneSun(sky, Sky.sunX(), scene.alt);
+      wxSceneLive(sky, Sky.sunX(), scene.az, scene.alt, scene.moon);
     }
 
     hero.innerHTML = `

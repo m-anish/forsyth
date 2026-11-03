@@ -1101,7 +1101,17 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
 .wx-scene .cl { opacity: calc(var(--sky-a) * 0.9); }
 .wx-scene .c0 { stop-color: var(--wx-cloud-lit); }
 .wx-scene .c1 { stop-color: var(--wx-cloud); }
-.wx-scene .mn { fill: var(--wx-moon); opacity: calc(var(--sky-a) * 1.5); }
+/* Brighter than the washes around it. --sky-a is a ceiling on how much of
+   the card a tint may cover, and the moon covers almost none of it — it is a
+   small bright object, not a veil, and at the wash's own strength it reads as
+   a smudge. */
+.wx-scene .mn { opacity: calc(var(--sky-a) * 3); }
+.wx-scene .mn-lit { fill: var(--wx-moon); }
+/* The maria are the moon's own shading, not a second colour painted on: the
+   card's background punched through the lit disc at low opacity, which keeps
+   them right in both palettes and through the warm low-sun shift. Soft,
+   because at this size a hard-edged mare reads as a chip out of the disc. */
+.wx-scene .mn-mare { fill: var(--bg); opacity: 0.32; }
 .wx-scene .st { fill: var(--wx-moon); opacity: calc(var(--sky-a) * 1.4); }
 .wx-scene .rn { stroke: var(--ch-rain); stroke-width: 2.2; stroke-linecap: round;
   fill: none; opacity: calc(var(--sky-a) * 0.85); }

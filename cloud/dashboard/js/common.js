@@ -1106,6 +1106,55 @@ function wxSceneBeamFade(id) {
        + `<stop offset="1" class="b2"/></radialGradient>`;
 }
 
+/* The moon, where it is and as it is.
+
+   The lit shape is one path: a semicircle for the bright limb, then an
+   ellipse back to the poles for the terminator. The ellipse's x-radius is
+   r*|2f-1| — r at full, where the arc completes the circle; zero at the
+   quarters, where it is a straight edge; most of r at a thin crescent. The
+   sweep flag turns over at half, which is what makes the terminator bulge
+   away from the light when gibbous and into it when crescent.
+
+   Only the terminator mirrors for a waning moon. The MARIA do not: the moon
+   keeps one face to us, so the dark patches sit in the same place every night
+   whichever limb is lit, and flipping them would draw a moon nobody has seen.
+   They are clipped to the lit shape instead. */
+const WX_MARIA = [[-0.34, -0.36, 0.30], [0.12, -0.30, 0.19], [0.32, -0.04, 0.22],
+                  [-0.56, 0.08, 0.26], [-0.22, 0.42, 0.20], [-0.02, 0.58, 0.11]];
+
+function wxSceneMoon(m, id) {
+  if (!m) return '';
+  const r = 10;
+  const x = (8 + Math.min(1, Math.max(0, m.x)) * 384).toFixed(1);
+  /* Higher moon, higher in the band — but the CENTRE has to stay a radius
+     inside the ink window (y 10..50), or `slice` crops the top off the disc.
+     The first version mapped straight onto that window and a moon near the
+     zenith came out with two thirds of itself above the card. */
+  const y = (38 - Math.min(60, Math.max(0, m.alt)) / 60 * 18).toFixed(1);
+  const rx = (r * Math.abs(2 * m.fraction - 1)).toFixed(2);
+  /* Sweep, and this is the one line worth deriving rather than guessing.
+     SVG's y axis points down, so sweep=1 draws what LOOKS clockwise. The
+     first arc runs top -> bottom with sweep=1, which is the right limb. The
+     terminator then runs bottom -> top: sweep=1 takes it round the LEFT
+     (completing the disc, which is what a gibbous and a full moon want) and
+     sweep=0 brings it back up the right side (cutting in, which is what a
+     crescent wants). Guessed the other way round first, and it drew a full
+     moon as a half disc and a 10% crescent as a gibbous. */
+  const sweep = m.fraction < 0.5 ? 0 : 1;
+  const lit = `M 0 ${-r} A ${r} ${r} 0 0 1 0 ${r} A ${rx} ${r} 0 0 ${sweep} 0 ${-r} Z`;
+  const flip = m.waxing ? 1 : -1;
+  const cid = id + 'm';
+  return `<g class="mn" transform="translate(${x} ${y})">`
+       + `<defs><clipPath id="${cid}">`
+       + `<path transform="scale(${flip} 1)" d="${lit}"/></clipPath></defs>`
+       + `<path class="mn-lit" transform="scale(${flip} 1)" d="${lit}"/>`
+       + `<g class="mn-mare" clip-path="url(#${cid})">`
+       + WX_MARIA.map(([mx, my, mr]) =>
+           `<circle cx="${(mx * r).toFixed(1)}" cy="${(my * r).toFixed(1)}"`
+         + ` r="${(mr * r).toFixed(1)}"/>`).join('')
+       + `</g></g>`;
+}
+
 /* How wide the fan opens, from the sun's HEIGHT rather than its bearing.
 
    Overhead light spreads: at noon the rays go everywhere, vertical among
@@ -1135,8 +1184,13 @@ function wxBeamSpread(alt) {
 
    Both terms are continuous in time, so the fan swings and steepens through
    the day rather than stepping between poses. */
-function wxBeamSlant(sunX, alt) {
-  const side = Math.max(-1, Math.min(1, ((sunX ?? 0.5) - 0.5) * 2));
+function wxBeamSlant(sunAz, alt) {
+  /* -sin(bearing) is the east-west component of where the sun is, +1 due
+     west and -1 due east, zero due south. The same term the cast shadow is
+     built from, so the rays and the shadow cannot drift apart — and taken
+     from the bearing rather than from the drawing position, so re-windowing
+     the card does not quietly re-aim the light. */
+  const side = -Math.sin((Number.isFinite(sunAz) ? sunAz : 180) * Math.PI / 180);
   const a = Number.isFinite(alt) ? Math.max(0, Math.min(90, alt)) : 35;
   return +(side * Math.min(55, (90 - a) * 0.62)).toFixed(1);
 }
@@ -1176,11 +1230,11 @@ function wxSceneCloudGrad(id) {
    one, but replacing the node restarts every animation inside it, which is
    exactly what used to make the clouds jump. So the two things that depend on
    where the sun is are written into the DOM that is already there. */
-function wxSceneSun(sceneEl, sunX, sunAlt) {
+function wxSceneLive(sceneEl, sunX, sunAz, sunAlt, moon) {
   const svg = sceneEl.querySelector('svg');
   if (!svg) return;
   const cx = Math.round(Math.min(0.9, Math.max(0.1, sunX ?? 0.5)) * 100);
-  const slant = wxBeamSlant(sunX, sunAlt);
+  const slant = wxBeamSlant(sunAz, sunAlt);
   const g = svg.querySelector('radialGradient');
   if (g) g.setAttribute('cx', cx + '%');
   const bo = svg.querySelector('.bm-o');
@@ -1197,12 +1251,22 @@ function wxSceneSun(sceneEl, sunX, sunAlt) {
   }
   svg.classList.toggle('wx-low',
     Number.isFinite(sunAlt) && sunAlt < 12 && sunAlt > -2);
+  /* The moon crosses about half a degree of sky an hour and this node lives
+     for hours, so it is moved here rather than frozen where it was when the
+     node was built. Replacing the <g> outright is safe — nothing on it is
+     animated — and it has to be, because the moon also sets. */
+  const mn = svg.querySelector('.mn');
+  const sid = (svg.querySelector('[id]')?.id || 'wxs').replace(/[bcm]$/, '');
+  const want = wxSceneMoon(moon, sid);
+  if (mn && want) mn.outerHTML = want;
+  else if (mn) mn.remove();
+  else if (want) svg.insertAdjacentHTML('beforeend', want);
 }
 
 /* The six states. `sunX` is 0..1 across the card and comes from the sun's real
    azimuth (Sky.sunX), so the light sits where the light is and drifts across
    the card over a day instead of sitting in a corner like a logo. */
-function wxScene(kind, night, sunX, sunAlt) {
+function wxScene(kind, night, sunX, sunAz, sunAlt, moon) {
   /* the altitude, not a flag: it decides both how warm the light is and how
      wide the fan opens, and those have to agree with each other */
   const lowSun = Number.isFinite(sunAlt) && sunAlt < 12 && sunAlt > -2;
@@ -1216,20 +1280,18 @@ function wxScene(kind, night, sunX, sunAlt) {
      early version had it the other way and the beams leaned back towards the
      sun while the temperature's shadow fell correctly away from it, the two
      halves of the same lighting disagreeing on the same card. */
-  const slant = wxBeamSlant(sunX, sunAlt);
-  /* A disc at this size reads as a logo, so a clear sky is light and no disc.
-     The drawn sun stays in the hero's own glyph, small enough to be an icon. */
+  const slant = wxBeamSlant(sunAz, sunAlt);
   const cg = id + 'c', bg = id + 'b';
   /* A disc at this size reads as a logo, so a clear sky is light and no disc.
      The drawn sun stays in the hero's own glyph, small enough to be an icon. */
   const glow = `<radialGradient id="${id}" cx="${cx}%" cy="8%" r="72%">`
              + `<stop offset="0" class="g0"/><stop offset="1" class="g1"/>`
              + `</radialGradient>`;
-  /* A crescent, small and high. Fixed, and NOT at sunX: the moon is not where
-     the sun is, nothing here computes a lunar ephemeris, and an illustration
-     put in a precise wrong place is worse than one that does not claim. */
-  const moon = `<g class="mn" transform="translate(308 7) scale(1.3)">`
-             + `<path d="${WX_MOON}"/></g>`;
+  /* This was a crescent in the corner, with a comment saying that nothing
+     here computes a lunar ephemeris so nothing here should imply one. It
+     computes one now (js/sky.js), so the claim is honest: real bearing, real
+     height, real phase — and nothing at all on the nights the moon is down. */
+  const theMoon = wxSceneMoon(moon, id);
 
   /* One defs per scene: the cloud shading always, the glow only when there is
      light to draw. `lit` is the glow and the rays together, since neither
@@ -1246,10 +1308,10 @@ function wxScene(kind, night, sunX, sunAlt) {
   let body;
   switch (kind) {
     case 'clear':
-      body = night ? wxSceneStars(11) + moon : lit; break;
+      body = night ? wxSceneStars(11) + theMoon : lit; break;
     case 'partly':
       /* a big near one and a smaller far one, on different tracks */
-      body = (night ? wxSceneStars(7) + moon : lit)
+      body = (night ? wxSceneStars(7) + theMoon : lit)
            + wxSceneCloud(26, 13, 3.4, 0.95, 1, cg)
            + wxSceneCloud(224, 16, 2.3, 0.72, 2, cg); break;
     case 'cloud':

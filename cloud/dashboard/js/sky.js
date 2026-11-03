@@ -136,20 +136,58 @@ const Sky = (() => {
     return Number.isFinite(a) ? a : null;
   }
 
-  /* Where the sun sits across the sky as a fraction: 0 due east, 0.5 due
-     south, 1 due west. The scene uses it to put its light where the light
-     actually is, so the glow drifts across the card over a day instead of
-     sitting in a fixed corner like a logo.
+  /* Where the moon is and what it looks like, or null when there is nothing
+     to draw — no coordinates, below the horizon, or so near new that there is
+     no lit limb to see. A moon is NOT up all night: it rises about fifty
+     minutes later each day, so for much of the month the small hours have no
+     moon in them at all, and drawing one anyway would be the most visible
+     possible way of being wrong. */
+  function moon(atMs) {
+    const p = coords();
+    if (!p) return null;
+    const t = atMs === undefined ? Date.now() : atMs;
+    const pos = moonPosition(t, p.lat, p.lon);
+    if (!(pos.altitude > 1)) return null;
+    const ill = moonIllumination(t);
+    if (ill.fraction < 0.03) return null;        // new: nothing lit to draw
+    return {
+      x: across(pos.azimuth),
+      alt: pos.altitude,
+      fraction: ill.fraction,
+      waxing: ill.waxing,
+    };
+  }
 
-     Clamped to the 90..270 half because that is the half a scene can show:
-     before sunrise and after sunset the sun is behind the viewer, and an
-     unclamped azimuth would snap the glow from one edge to the other at
-     midnight. Returns 0.5 with no place, which is the least wrong guess. */
+  /* A compass bearing as a position across the card: 0 at the left, 1 at the
+     right, east to west.
+
+     The window is 60..300, not 90..270. The narrower one assumed nothing
+     rises north of due east, which is false for both bodies here: a
+     high-declination full moon rises around 60 degrees and set around 300,
+     and it spent the first four hours of a November night pinned motionless
+     against the left edge before the clamp let go. The midsummer sun does the
+     same thing. The clamp still has to exist — something behind the viewer
+     has no place on a card showing the southern sky — but it should bite at
+     the horizon, not in the middle of the evening. */
+  const across = az => Math.min(1, Math.max(0, (az - 60) / 240));
+
+  /* Where the sun is across the card. The scene puts its light here, so the
+     glow drifts over the day instead of sitting in a corner like a logo.
+     0.5 with no place, which is the least wrong guess. */
   function sunX(atMs) {
     const p = coords();
     if (!p) return 0.5;
-    const a = sunPosition(atMs === undefined ? Date.now() : atMs, p.lat, p.lon).azimuth;
-    return Math.min(1, Math.max(0, (a - 90) / 180));
+    return across(sunPosition(atMs === undefined ? Date.now() : atMs, p.lat, p.lon).azimuth);
+  }
+
+  /* The sun's bearing itself, which is what the ray angle needs. Drawing
+     position and lighting direction are different questions: `across` is
+     clamped and windowed for the card, and a slant built on it would change
+     every time the window did. */
+  function sunAz(atMs) {
+    const p = coords();
+    if (!p) return 180;
+    return sunPosition(atMs === undefined ? Date.now() : atMs, p.lat, p.lon).azimuth;
   }
 
   /* ----------------------------------------------------------- the weather */
@@ -257,7 +295,8 @@ const Sky = (() => {
   }
   hidden();
 
-  return { place, coords, step, base, sunX, sunAlt, shadow, forecast, state, kind: () => kind };
+  return { place, coords, step, base, sunX, sunAz, sunAlt, shadow, moon,
+           forecast, state, kind: () => kind };
 })();
 
 /* Where the sun is, at an instant and a place — the standard NOAA/SunCalc
@@ -271,25 +310,101 @@ const Sky = (() => {
 
    One shared body: azimuth is the same series as altitude with one more line
    at the end, and computing them apart would be two chances to drift. */
-function sunPosition(dateMs, lat, lon) {
-  const rad = Math.PI / 180, J1970 = 2440588, J2000 = 2451545;
-  const d = dateMs / 86400000 - 0.5 + J1970 - J2000;
-  const M = rad * (357.5291 + 0.98560028 * d);
-  const C = rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
-  const L = M + C + rad * 102.9372 + Math.PI;
-  const e = rad * 23.4397;
-  const dec = Math.asin(Math.sin(L) * Math.sin(e));
-  const ra = Math.atan2(Math.sin(L) * Math.cos(e), Math.cos(L));
-  const H = rad * (280.16 + 360.9856235 * d) - rad * -lon - ra;
-  const phi = rad * lat;
-  return {
-    altitude: Math.asin(Math.sin(phi) * Math.sin(dec) +
-                        Math.cos(phi) * Math.cos(dec) * Math.cos(H)) / rad,
+/* Shared celestial plumbing. The sun series was here first and the moon needs
+   the same three steps — days since J2000, ecliptic to equatorial, and then
+   equatorial to the local horizon — so they are written once. The obliquity,
+   the sidereal-time constant and the sign convention are the kind of thing
+   that drift apart if two copies exist. */
+const CEL = {
+  rad: Math.PI / 180,
+  e: (Math.PI / 180) * 23.4397,          // obliquity of the ecliptic
+  /* days since J2000.0, the epoch every series below is written against */
+  days: ms => ms / 86400000 - 0.5 + 2440588 - 2451545,
+  /* ecliptic longitude l and latitude b -> right ascension and declination */
+  ra: (l, b) => Math.atan2(Math.sin(l) * Math.cos(CEL.e)
+                         - Math.tan(b) * Math.sin(CEL.e), Math.cos(l)),
+  dec: (l, b) => Math.asin(Math.sin(b) * Math.cos(CEL.e)
+                         + Math.cos(b) * Math.sin(CEL.e) * Math.sin(l)),
+  /* Greenwich mean sidereal time, as an hour angle at this longitude */
+  sidereal: (d, lon) => CEL.rad * (280.16 + 360.9856235 * d) - CEL.rad * -lon,
+  /* hour angle + latitude + declination -> where it is in the local sky */
+  horizon: (H, phi, dec) => ({
+    altitude: Math.asin(Math.sin(phi) * Math.sin(dec)
+                      + Math.cos(phi) * Math.cos(dec) * Math.cos(H)) / CEL.rad,
     /* measured from south in this formulation; +180 puts it clockwise from
        north, which is how a compass bearing is read */
     azimuth: (Math.atan2(Math.sin(H),
-              Math.cos(H) * Math.sin(phi) - Math.tan(dec) * Math.cos(phi)) / rad + 180) % 360,
+              Math.cos(H) * Math.sin(phi) - Math.tan(dec) * Math.cos(phi))
+              / CEL.rad + 360 + 180) % 360,
+  }),
+};
+
+/* The sun's ecliptic longitude, and its mean anomaly, which the moon's
+   illumination needs as well as its own position. */
+function sunEcliptic(d) {
+  const rad = CEL.rad;
+  const M = rad * (357.5291 + 0.98560028 * d);
+  const C = rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
+  return { M, L: M + C + rad * 102.9372 + Math.PI };
+}
+
+function sunPosition(dateMs, lat, lon) {
+  const d = CEL.days(dateMs);
+  const { L } = sunEcliptic(d);
+  const dec = Math.asin(Math.sin(L) * Math.sin(CEL.e));
+  const ra = Math.atan2(Math.sin(L) * Math.cos(CEL.e), Math.cos(L));
+  return CEL.horizon(CEL.sidereal(d, lon) - ra, CEL.rad * lat, dec);
+}
+
+/* The moon's geocentric ecliptic position and its distance, to the precision
+   the Astronomical Almanac calls "low" — a few arcminutes, which at the size
+   this is drawn is several orders of magnitude more than is needed. */
+function moonEcliptic(d) {
+  const rad = CEL.rad;
+  const L = rad * (218.316 + 13.176396 * d);   // mean longitude
+  const M = rad * (134.963 + 13.064993 * d);   // mean anomaly
+  const F = rad * (93.272 + 13.229350 * d);    // argument of latitude
+  return {
+    l: L + rad * 6.289 * Math.sin(M),          // ecliptic longitude
+    b: rad * 5.128 * Math.sin(F),              // ecliptic latitude
+    dist: 385001 - 20905 * Math.cos(M),        // km
   };
+}
+
+function moonPosition(dateMs, lat, lon) {
+  const d = CEL.days(dateMs), c = moonEcliptic(d);
+  const ra = CEL.ra(c.l, c.b), dec = CEL.dec(c.l, c.b);
+  const p = CEL.horizon(CEL.sidereal(d, lon) - ra, CEL.rad * lat, dec);
+  /* Refraction lifts a low moon visibly — about half a degree at the horizon,
+     which is the moon's own width, so it decides whether it has risen. */
+  const h = p.altitude * CEL.rad;
+  p.altitude += (0.017 / Math.tan(h + 0.0017 / (h + 0.089))) / CEL.rad * (h > -0.05 ? 1 : 0);
+  return p;
+}
+
+/* How much of the moon is lit, and which side.
+
+   `fraction` is 0 at new and 1 at full. `waxing` says which limb carries the
+   light: growing moons are lit on the right from the northern hemisphere,
+   shrinking ones on the left, and getting that backwards draws a moon that
+   is three days out of date in a way anyone who looks up would notice. */
+function moonIllumination(dateMs) {
+  const d = CEL.days(dateMs);
+  const { L } = sunEcliptic(d);
+  const sdec = Math.asin(Math.sin(L) * Math.sin(CEL.e));
+  const sra = Math.atan2(Math.sin(L) * Math.cos(CEL.e), Math.cos(L));
+  const m = moonEcliptic(d);
+  const mra = CEL.ra(m.l, m.b), mdec = CEL.dec(m.l, m.b);
+  const SUN_KM = 149598000;
+  /* elongation: the sun-earth-moon angle */
+  const phi = Math.acos(Math.sin(sdec) * Math.sin(mdec)
+            + Math.cos(sdec) * Math.cos(mdec) * Math.cos(sra - mra));
+  /* phase angle: sun-moon-earth, which is what the terminator follows */
+  const inc = Math.atan2(SUN_KM * Math.sin(phi), m.dist - SUN_KM * Math.cos(phi));
+  const angle = Math.atan2(Math.cos(sdec) * Math.sin(sra - mra),
+                           Math.sin(sdec) * Math.cos(mdec)
+                         - Math.cos(sdec) * Math.sin(mdec) * Math.cos(sra - mra));
+  return { fraction: (1 + Math.cos(inc)) / 2, waxing: angle < 0 };
 }
 
 function sunAltitude(dateMs, lat, lon) {
