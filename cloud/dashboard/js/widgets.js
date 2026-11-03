@@ -149,7 +149,7 @@ const Widgets = (() => {
       const gustWorthSaying = g !== null && (s.wind_gust_ms >= WIND_CALM_MS) &&
                               Math.round(g) > Math.round(k);
       return gustWorthSaying
-        ? `${base}<span class="hero-sub2"> · gusting ${Math.round(g)} km/h</span>` : base;
+        ? `${base}<span class="hero-sub2">gusting ${Math.round(g)} km/h</span>` : base;
     })();
 
     /* Whose weather is this? The card said "Current conditions" and buried the

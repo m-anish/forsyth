@@ -11,7 +11,7 @@
    next visit rather than whenever a year-long immutable cache expires; v3
    itself dropped v2, whose navigation fallback could answer any page with the
    homepage — see the fetch handler below. */
-const CACHE = 'forsyth-v63';
+const CACHE = 'forsyth-v67';
 
 self.addEventListener('install', e => {
   self.skipWaiting();

@@ -1051,8 +1051,17 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
 
    Getting this wrong is not subtle: an earlier 400x80 viewBox in a 54px band
    cropped 40% of the height, and the clouds lost their bumps and rendered as
-   grey pills that read as loading skeletons. */
-:root { --sky-band: clamp(60px, 10vw, 92px); }
+   grey pills that read as loading skeletons.
+
+   The HEIGHT is capped low on purpose. vw is the window, not the card: at a
+   1024px window the hero card is only about 650px wide, so a 10vw band took
+   92px out of a card that had nowhere to find it, the sparkline hit its floor
+   and the wind cell was clipped off the bottom. A card-relative unit is what
+   this actually wants (cqw, behind a container query); until then the cap is
+   set so the content fits at the hero's default five rows, which is also the
+   air card's height. If the hero's content ever grows again, this number and
+   .hero .spark's floor are the two places that pay for it. */
+:root { --sky-band: clamp(56px, 6.5vw, 74px); }
 .hero-sky {
   position: absolute; inset: 0 0 auto 0; height: var(--sky-band);
   pointer-events: none; z-index: 0; overflow: hidden;
@@ -1285,9 +1294,52 @@ html[data-hidden] .wx-scene * { animation-play-state: paused; }
    ribbon absorbs the difference, within bounds that keep it a sparkline
    rather than a chart. */
 .hero { display: flex; flex-direction: column; height: 100%; }
-.hero .spark { flex: 1 1 auto; min-height: 34px; max-height: 110px; }
+/* The ribbon is the hero's shock absorber, so its floor is what decides
+   whether a long line wraps gracefully or gets cut off. 34px left nothing to
+   give once the sky band arrived: a wind reading of "calm, gusting 2 km/h"
+   wrapped to two lines and the card clipped it. 22px is still legibly a
+   trend, and only ever reached when something below it has grown. */
+.hero .spark { flex: 1 1 auto; min-height: 22px; max-height: 110px; }
 .hero-stats { margin-top: auto; }       /* stats sit at the foot of the card */
-.hero-sub2 { color: var(--text-dim); }
+
+/* On a grid the hero's height is fixed, so the stats row has to be a known
+   height — and auto-fit does not give one. At a 790px window the hero card is
+   495px wide, auto-fit dropped to three columns, the four readings became TWO
+   rows, and the card clipped 38px off its own bottom. Below 768px cards size
+   to their content and none of this matters; between 768 and about 1000 it
+   mattered a lot, and that band of widths is every small laptop.
+
+   So above the phone breakpoint the row is exactly four columns, always, and
+   the tighter gap buys each cell the width it needs to hold a reading. The
+   cells may still wrap to two lines; what they may not do is become two rows. */
+@media (min-width: 768px) {
+  .hero-stats { gap: 10px 16px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* One row of four is not a preference, it is the only layout that fits. Two
+   rows overflow a five-row card at EVERY desktop width — measured at 1024px,
+   three columns and two columns both land 23px past the bottom, while four in
+   a row clears by 13. So the row stays, and the type gives way instead.
+
+   Between the phone breakpoint and about 1000px the cells are near 105px, and
+   at 15px mono "satisfactory" does not fit one. `overflow-wrap: anywhere`
+   above then breaks it mid-word, which is worse than either wrapping or
+   overflowing — "satisfactor / y" is not a thing anyone should read on a
+   weather card. A smaller face fits the words whole. */
+@media (min-width: 768px) and (max-width: 1000px) {
+  .hero-stats .v { font-size: 13px; }
+  .hero-stats .k { font-size: 10px; letter-spacing: 0.08em; }
+  .hero-sub2 { font-size: 11.5px; }
+}
+/* The gust is a second fact, so it gets a second line rather than running on
+   after the first. Inline, "18 km/h NNE · gusting 34 km/h" is 31 characters of
+   mono in a stats cell that is about 130px wide at a 900px window — it wrapped
+   to THREE lines there and pushed the stats row 24px out through the bottom of
+   a fixed-height card. A block is two lines at any width, which is a height the
+   card can be built around. The separator goes with it: a line beginning with
+   a lone middot reads as a typo. */
+.hero-sub2 { display: block; color: var(--text-dim); font-size: 12.5px;
+  line-height: 1.35; }
 
 /* ---- phones: cards size to their content --------------------------------
    GridStack gives every card a height of gs-h x cellHeight, which is right on
