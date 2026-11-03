@@ -1,9 +1,12 @@
 /* js/location.js — the homepage's "active location": which station the
    location-bound widgets (forecast, current conditions, wind rose, temp/RH)
-   follow. Resolved, in order: a saved choice, else the nearest sited station
-   to an ALREADY-GRANTED geolocation (never prompts on load), else null — in
-   which case those widgets show a "pick a location" placeholder and the rest of
-   the page (map, reports, lightning, health) stays fully live.
+   follow. Resolved most-specific-first: a saved choice, else the nearest sited
+   station to an ALREADY-GRANTED geolocation (never prompts on load), else the
+   operator's home station, else the one most recently heard from. The ORDER is
+   the point — a default must not overrule a reader who has said where they
+   are — and only an empty mesh leaves it null, in which case those widgets
+   show a "pick a location" placeholder and the rest of the page (map, reports,
+   lightning, health) stays fully live.
 
    Widgets read this via the '@here' sentinel in their config.station; the
    sticky banner (board.js) lets the reader switch or use their location. */
@@ -48,15 +51,13 @@ const ForsythLoc = (() => {
     catch { sited = []; }
     if (!sited.length) { activeSlug = null; return; }
 
-    /* 0) the operator's designated home station, if it is sited. Every rule
-          a fallback can invent is arbitrary — "most recently heard" flipped
-          between stations reporting a minute apart, alphabetical is stable
-          but meaningless — so the honest answer is to let someone say. */
-    try {
-      await _cfgReady;
-      const home = _cfg && _cfg.homeStation;
-      if (home && sited.some(s => s.slug === home)) { activeSlug = home; return; }
-    } catch { /* no config: fall through to the guesses below */ }
+    /* Most specific to this reader first, least specific last. The home
+       station used to be checked BEFORE these two, and returned, so a reader
+       who had picked a station or granted their location was overruled on
+       every single load — the branch below marked "a remembered choice wins"
+       could never run, and neither could the geolocation one. A default is
+       for someone the site knows nothing about; it has no business outranking
+       someone who has said where they are. */
 
     /* 1) a remembered choice wins */
     const saved = localStorage.getItem(KEY);
@@ -73,9 +74,21 @@ const ForsythLoc = (() => {
           if (s) { activeSlug = s.slug; return; }   /* auto-detected: don't persist, re-detect each visit */
         }
       }
-    } catch { /* fall through to placeholder */ }
+    } catch { /* fall through to the default below */ }
 
-    /* 3) nothing known → answer anyway. A weather site whose first words are
+    /* 3) the operator's designated home station, if it is sited. Every rule a
+          fallback can invent is arbitrary — "most recently heard" flipped
+          between stations reporting a minute apart, alphabetical is stable but
+          meaningless — so the honest answer is to let someone say. Awaited
+          here rather than at the top, so a reader who has already answered the
+          question never waits on /config to find that out. */
+    try {
+      await _cfgReady;
+      const home = _cfg && _cfg.homeStation;
+      if (home && sited.some(s => s.slug === home)) { activeSlug = home; return; }
+    } catch { /* no config: fall through to the guesses below */ }
+
+    /* 4) nothing known → answer anyway. A weather site whose first words are
           "pick a location" has asked the reader to work before telling them
           anything (docs/v2-design.md §3.3). Default to the first sited station
           — where there is only one, that IS the answer — and deliberately do
