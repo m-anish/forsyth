@@ -1,7 +1,8 @@
 # The site should feel like the sky it is reporting on
 
-Written 2026-11-02, as a plan only — nothing here is built. The fall-back if it
-goes wrong is the `v1` tag (`git checkout v1`).
+Written 2026-11-02 as a plan. **Phase 1 shipped 2026-11-03**; phases 2–5 are
+still a plan. The fall-back if it goes wrong is the `v1` tag
+(`git checkout v1`). What phase 1 changed against the plan is in §8.
 
 Asked for: the three-or-four fixed palettes from [v2-design.md](v2-design.md)
 §9.2, extended so that **weather** and not only time of day shapes the page —
@@ -91,8 +92,14 @@ has not asked for this gets it. Whether `sky` should later become the default
 is a separate decision, taken after we have looked at it for a while — not
 baked in now.
 
-`prefers-reduced-motion` and `prefers-contrast: more` pin the palette to the
-plain light/dark pair.
+`prefers-contrast: more` pins the palette to the plain light/dark pair, which
+are the two with the most headroom.
+
+`prefers-reduced-motion` deliberately does **not**, which is a change of mind
+from the first draft. The palette turns four times a day behind a 250 ms
+crossfade. That is not motion in the sense that setting is about, and honouring
+it there would deny the whole feature to anyone who merely dislikes animation.
+It still governs the scene layer in §4, where it belongs.
 
 ## 4. The scene layer
 
@@ -160,7 +167,8 @@ palette work, on one page, where it can be looked at and thrown away.
 0. **`v1` tagged.** Done.
 1. **Two palettes and the `sky` mode.** Opt-in, no scene. Includes the
    localStorage pre-paint cache, and the contrast sweep across all four steps.
-   Smallest change that proves the hard part.
+   Smallest change that proves the hard part. **Done** — `4cd8d58`, with the
+   pre-existing AA fixes it turned up in `e7bab84`.
 2. **A `Sky` module.** Owns sun step and weather state, fetches the forecast
    once, exposes `Sky.state()` and emits `skychange`; the hero consumes it
    instead of fetching its own copy. Net effect is **one fewer request**, and
@@ -189,3 +197,59 @@ own; so does each one after it.
 - **Contrast is the thing that fails.** `--text-mute` on `--bg-elev` is already
   the tightest pair in the set at 4.65:1. The golden and dusk palettes must be
   swept before they ship, not after.
+
+## 8. What phase 1 actually cost, and what it corrected
+
+Shipped as `4cd8d58`, preceded by `e7bab84`. Four things the plan had wrong or
+had not thought of, recorded because the later phases rest on them.
+
+**The step cache was unnecessary.** §3 said to cache the last resolved step
+*and* the coordinates. Only the coordinates are cached. `sunAltitude` is pure
+arithmetic, so a cached place yields the exact current step at parse time for
+free, and a cached step would have been a second thing to keep honest.
+
+**`data-sky`, not a redefinition of `data-theme`.** The plan did not say how
+the four steps would be expressed. They are an overlay: `data-theme` still
+carries light-or-dark, and `[data-sky="golden"]` / `[data-sky="dusk"]` restate
+only what they change. Nothing else in the codebase had to learn about them —
+`color-scheme`, every `[data-theme="light"]` rule, the chart rebuild and the
+map tiles all kept working untouched. Phase 3's scene can read `data-sky` from
+CSS alone.
+
+**The overlay is safe because of luminance, and that is now checked.** Each of
+golden's three backgrounds is at least as light as light's; each of dusk's at
+least as dark as dark's. So any foreground either palette inherits can only
+land at a better ratio than the one it already passed. The first cut held this
+for `--bg-elev` only, shipped a `--bg-card` a shade too dark, and dropped
+`.tool-btn` text to 4.50:1 — found by the page audit, not the token table.
+`tools/palette-contrast.js` now checks the invariant rather than a comment
+asserting it, and exits non-zero on a break.
+
+**§1's claim that day and night were "already checked against WCAG AA" was
+false.** The sweep written to vet the *new* palettes found three failures in
+the existing light palette (`--good` 4.03, `--warn` 3.68, `--wx-sun` 2.93),
+plus `--accent-2` at 4.21 under the `<sup class="beta">` tag and a hard-coded
+white on `--accent` at 2.67 in dark. All five were live before any of this
+work. Two tools came out of it, and both earn their keep:
+
+- `tools/palette-contrast.js` sweeps all six palettes from the CSS with no
+  browser, checks every foreground against all three painted backgrounds, and
+  refuses to silently skip a token it has no threshold for.
+- `tools/ui-audit.js` gained `sup, sub, small, code, strong, em, b, i, time,
+  dt, dd, figcaption, legend`. The beta tag had been failing in plain sight
+  because `<sup>` was not on its list.
+
+They answer different questions and neither replaces the other: the token sweep
+checks the table, the page audit checks the pixels. Golden's `--bg-card` was
+caught only by the page audit; the beta tag only by the token sweep.
+
+### For phase 2
+
+- `Theme.step()` already returns `day|golden|dusk|night` or `null`, and
+  `Theme.place(lat, lon)` is the one way coordinates get in. `Sky` can wrap
+  these rather than restate them.
+- `themechange` now fires only on a real change, so a `skychange` event can
+  follow the same discipline. The five-minute re-check depends on it.
+- The hero still caches its icon per model hour, so it does **not** follow a
+  step change mid-session. Harmless now; phase 3 must fix it, or a scene will
+  disagree with the glyph above it.
