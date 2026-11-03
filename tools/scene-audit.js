@@ -100,8 +100,11 @@
           d.className = 'hero-sky';
           d.innerHTML = wxScene(kind, night, Sky.sunX());
           body.insertBefore(d, body.firstChild);
-          await new Promise(r => requestAnimationFrame
-            ? requestAnimationFrame(() => r()) : setTimeout(r, 16));
+          /* setTimeout, never requestAnimationFrame: the desktop app's browser
+             pane runs a hidden page as a background page and rAF simply does
+             not fire there, so a sweep that waits on it hangs forever. This
+             is the same reason ui-audit.js is rAF-free. */
+          await new Promise(r => setTimeout(r, 20));
           const a = sceneAudit();
           out[sky][kind] = a.clean && a.matches ? `ok (band ${a.bandH}px)`
             : (a.overlaps || []).map(h => `${h.el}/${h.text} by ${h.overlapPx}px`)

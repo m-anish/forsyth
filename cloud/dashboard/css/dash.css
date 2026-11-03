@@ -1084,6 +1084,40 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
   .hero-sky + .hero { padding-top: 0; }
 }
 
+/* ---- the scene, moving (docs/sky-design.md §4, phase 4) -----------------
+   Three groups at the most, transform and opacity only, nothing faster than
+   a 2.2 s loop. A clear sky does not move, which is not a shortcut: it is
+   what a clear sky does.
+
+   20px is WX_TILE in js/common.js, and the two numbers are one number. The
+   falling groups are drawn as rows a tile apart, covering one row above the
+   band and one past the bottom, so translating by exactly a tile returns the
+   figure to itself and the seam has nothing to show. Translating a single
+   row by its own height instead leaves the top of the band empty halfway
+   through every cycle, which reads as rain that stutters. */
+@keyframes wx-fall  { to { transform: translateY(20px); } }
+@keyframes wx-drift { to { transform: translateX(14px); } }
+
+.wx-scene .rn { animation: wx-fall 2.2s linear infinite; }
+.wx-scene .sn { animation: wx-fall 7s linear infinite; }
+/* alternate, so a cloud drifts back rather than teleporting home. Three
+   different periods, none a multiple of another, so the overcast sky's three
+   clouds never line up and start moving as one object. */
+.wx-scene .cl-d { animation: wx-drift 48s ease-in-out infinite alternate; }
+.wx-scene .cl-d:nth-of-type(2) { animation-duration: 71s; animation-direction: alternate-reverse; }
+.wx-scene .cl-d:nth-of-type(3) { animation-duration: 97s; }
+
+/* Paused while the tab is hidden. Browsers throttle background animation but
+   do not reliably stop it, and the desktop app's browser pane runs a hidden
+   page as a background page — js/sky.js sets this. */
+html[data-hidden] .wx-scene * { animation-play-state: paused; }
+
+/* Reduced motion means none of it. The scene was composed static in phase 3
+   and still is: there is nothing here that only makes sense once it moves. */
+@media (prefers-reduced-motion: reduce) {
+  .wx-scene * { animation: none !important; }
+}
+
 /* the hero's content sits above its sky */
 .hero { position: relative; z-index: 1; }
 

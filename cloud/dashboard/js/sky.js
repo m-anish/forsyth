@@ -205,8 +205,19 @@ const Sky = (() => {
      laptop-reopened-at-dusk case. */
   setInterval(() => { if (!document.hidden) announce(); }, 300000);
   document.addEventListener('visibilitychange', () => {
+    hidden();
     if (!document.hidden) announce();
   });
+
+  /* The scene's animations pause on this (css/dash.css). Browsers throttle
+     background animation but do not reliably stop it, and the desktop app's
+     browser pane runs a hidden page as a background page, so a board left
+     open behind another window would otherwise keep compositing rain. */
+  function hidden() {
+    const de = document.documentElement;
+    if (document.hidden) de.dataset.hidden = ''; else delete de.dataset.hidden;
+  }
+  hidden();
 
   return { place, coords, step, base, sunX, forecast, state, kind: () => kind };
 })();

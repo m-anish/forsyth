@@ -981,8 +981,13 @@ function wxGlyph(rainMm, prob, cloud, tempC, night) {
    of its height and turned every cloud into a grey pill.
 
    One <svg> in the DOM at a time, no images, no library, nothing on the
-   critical path, around 300-700 bytes of markup. Static as of phase 3; the
-   groups are the units phase 4 will move. */
+   critical path, around 300-1,800 bytes of markup.
+
+   Motion (phase 4) is CSS on the groups and lives in css/dash.css: rain and
+   snow fall, clouds drift, and nothing else moves — a clear sky does not, for
+   the good reason that it does not. transform and opacity only, three moving
+   groups at the most, nothing faster than a 2.2 s loop, paused while the tab
+   is hidden, and gone entirely under prefers-reduced-motion. */
 
 /* gradients need document-unique ids: a board may hold two `now` widgets, and
    two <defs> sharing an id means the second one silently wins for both. */
@@ -999,8 +1004,12 @@ const WX_CLOUD_INK = { x: 4.7, y: 6.7, w: 15.2, h: 10.9 };
 function wxSceneCloud(left, top, k, o) {
   const tx = (left - WX_CLOUD_INK.x * k).toFixed(1);
   const ty = (top - WX_CLOUD_INK.y * k).toFixed(1);
-  return `<g class="cl" transform="translate(${tx} ${ty}) scale(${k})"`
-       + ` opacity="${o}">${WX_CLOUD}</g>`;
+  /* Two groups, not one. A CSS `transform` REPLACES an element's transform
+     attribute rather than composing with it, so animating .cl directly would
+     throw away the translate and scale that place it. The outer group is the
+     only thing the drift animation touches. */
+  return `<g class="cl-d"><g class="cl" transform="translate(${tx} ${ty}) scale(${k})"`
+       + ` opacity="${o}">${WX_CLOUD}</g></g>`;
 }
 
 /* Deterministic scatter: the same card draws the same stars every render, so a
@@ -1016,25 +1025,38 @@ function wxSceneStars(n) {
   return `<g class="st">${out}</g>`;
 }
 
-/* Slanted strokes, spaced so they read as rain rather than as hatching. The
-   group is a tile one row tall: phase 4 translates it by exactly that row and
-   loops, which is what makes continuous fall out of a 2 s animation. */
-function wxSceneRain() {
+/* Falling things are drawn as TILES, stacked, so the group can be translated
+   by exactly one tile height and loop with nothing to see at the seam.
+
+   Translating a single row by its own height does not work: at the halfway
+   point the row has left the top of the band and nothing has arrived to take
+   its place, so the rain visibly thins and then snaps. Rows a tile apart,
+   covering one tile above the band and one below, leave no frame uncovered.
+   WX_TILE is that height, and the animation in css/dash.css must translate by
+   exactly it — they are two halves of one number. */
+const WX_TILE = 20;
+
+function wxSceneFall(kind, perRow, draw) {
   let out = '';
-  for (let i = 0; i < 10; i++) {
-    const x = 26 + i * 40, y = 30 + (i % 3) * 6;
-    out += `<line x1="${x}" y1="${y}" x2="${x - 4}" y2="${y + 11}"/>`;
+  /* -1 is the row waiting above the band; 3 carries it past the bottom */
+  for (let row = -1; row <= 3; row++) {
+    const base = row * WX_TILE;
+    for (let i = 0; i < perRow; i++) {
+      /* a third of a tile of jitter, so a row does not read as a ruled line */
+      out += draw(18 + i * (376 / perRow) + (i % 2) * 9, base + (i % 3) * 6);
+    }
   }
-  return `<g class="rn">${out}</g>`;
+  return `<g class="${kind}">${out}</g>`;
+}
+
+/* Slanted strokes, spaced so they read as rain rather than as hatching. */
+function wxSceneRain() {
+  return wxSceneFall('rn', 7,
+    (x, y) => `<line x1="${x.toFixed(0)}" y1="${y}" x2="${(x - 4).toFixed(0)}" y2="${y + 11}"/>`);
 }
 
 function wxSceneSnow() {
-  let out = '';
-  for (let i = 0; i < 12; i++) {
-    const x = 16 + i * 33, y = 30 + (i % 4) * 5;
-    out += `<circle cx="${x}" cy="${y}" r="2"/>`;
-  }
-  return `<g class="sn">${out}</g>`;
+  return wxSceneFall('sn', 6, (x, y) => `<circle cx="${x.toFixed(0)}" cy="${y}" r="2"/>`);
 }
 
 /* The six states. `sunX` is 0..1 across the card and comes from the sun's real
