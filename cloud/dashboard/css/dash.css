@@ -1016,6 +1016,76 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
 .wx-ico .cloud { fill: var(--wx-cloud); }
 .wx-ico .drop  { stroke: var(--ch-rain); stroke-width: 1.9; stroke-linecap: round; }
 .wx-ico .flake { fill: var(--wx-moon); }
+
+/* ---- the hero's sky (js/common.js wxScene, docs/sky-design.md §4) -------
+   A band of its own at the top of the hero card.
+
+   OF ITS OWN is the whole design. The first cut put the scene behind the
+   hero's existing content and then spent its effort holding the tint faint
+   enough that the temperature stayed legible over it — which capped the dark
+   palette at an alpha of 0.04, invisible, because --text-mute is 4.84:1 on
+   that card and ANY lightening breaks it. Dimming a picture until it cannot
+   hurt the text is not a picture.
+
+   So the scene gets the space instead. .hero-sky is absolutely positioned, so
+   it bleeds to the card's inner edges (an absolute child resolves against the
+   PADDING box, which is what reaches them without restating .wg-body's
+   padding), and the hero is pushed down by exactly the same height. No text
+   is ever read against the scene, the legibility ceiling disappears, and the
+   alpha below is a question of taste rather than of arithmetic.
+
+   The adjacent-sibling selector is the point: no scene element, no padding.
+   A station with no forecast gets its old layout back with nothing to
+   configure — js/widgets.js emits the band or it does not. */
+/* The band's height, and with it the scene's aspect. 400x60 is the viewBox
+   (js/common.js wxScene); a hero card runs about 343px wide on a phone to
+   560px in a wide board column, so the band's aspect lands between 5.7:1 and
+   7.6:1 and the viewBox's 6.7:1 sits in the middle of that. `slice` then
+   crops a little off whichever axis is long, never more than about an eighth
+   of the height — which is why the drawing keeps clear of y<4 and y>52.
+
+   Getting this wrong is not subtle: an earlier 400x80 viewBox in a 54px band
+   cropped 40% of the height, and the clouds lost their bumps and rendered as
+   grey pills that read as loading skeletons. */
+:root { --sky-band: clamp(60px, 10vw, 92px); }
+.hero-sky {
+  position: absolute; inset: 0 0 auto 0; height: var(--sky-band);
+  pointer-events: none; z-index: 0; overflow: hidden;
+  /* a soft bottom edge so the band does not end on a hard line. Legibility no
+     longer depends on this; it is only there to stop the scene looking like a
+     pasted-in rectangle. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
+          mask-image: linear-gradient(to bottom, #000 0%, #000 62%, transparent 100%);
+}
+.hero-sky + .hero { padding-top: var(--sky-band); }
+.hero-sky .wx-scene { display: block; width: 100%; height: 100%; }
+
+/* Strength. Nothing here is read against text any more, so these are set by
+   eye for presence — enough to register as weather, well short of a poster.
+   Dark gets less: the same alpha reads far stronger against a near-black card
+   than against near-white paper. */
+.wx-scene { --sky-a: 0.26; }
+[data-theme="dark"] .wx-scene { --sky-a: 0.22; }
+.wx-scene .g0 { stop-color: var(--wx-sun); stop-opacity: var(--sky-a); }
+.wx-scene .g1 { stop-color: var(--wx-sun); stop-opacity: 0; }
+.wx-scene .cl { fill: var(--wx-cloud); opacity: calc(var(--sky-a) * 0.9); }
+.wx-scene .mn { fill: var(--wx-moon); opacity: calc(var(--sky-a) * 1.5); }
+.wx-scene .st { fill: var(--wx-moon); opacity: calc(var(--sky-a) * 1.4); }
+.wx-scene .rn { stroke: var(--ch-rain); stroke-width: 2.2; stroke-linecap: round;
+  fill: none; opacity: calc(var(--sky-a) * 0.85); }
+.wx-scene .sn { fill: var(--wx-moon); opacity: calc(var(--sky-a) * 0.85); }
+
+/* Someone who has asked their system for more contrast has asked for less
+   decoration, whatever the arithmetic says. The scene sits over nothing, so
+   it costs no ratio — it is simply not what they asked the page to be. The
+   band collapses with it, so the hero returns to its plain layout. */
+@media (prefers-contrast: more) {
+  .hero-sky { display: none; }
+  .hero-sky + .hero { padding-top: 0; }
+}
+
+/* the hero's content sits above its sky */
+.hero { position: relative; z-index: 1; }
 .hero-temp { font-family: var(--mono); line-height: 1; letter-spacing: -0.03em;
   font-size: clamp(2.5rem, 8vw, 3.4rem); }
 .hero-temp .u { font-size: .38em; color: var(--text-mute); margin-left: 2px; }

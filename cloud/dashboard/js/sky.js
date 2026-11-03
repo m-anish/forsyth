@@ -98,6 +98,22 @@ const Sky = (() => {
      charts have light and dark and nothing else, so this is what they get. */
   function base(s) { return BASE[s] || null; }
 
+  /* Where the sun sits across the sky as a fraction: 0 due east, 0.5 due
+     south, 1 due west. The scene uses it to put its light where the light
+     actually is, so the glow drifts across the card over a day instead of
+     sitting in a fixed corner like a logo.
+
+     Clamped to the 90..270 half because that is the half a scene can show:
+     before sunrise and after sunset the sun is behind the viewer, and an
+     unclamped azimuth would snap the glow from one edge to the other at
+     midnight. Returns 0.5 with no place, which is the least wrong guess. */
+  function sunX(atMs) {
+    const p = coords();
+    if (!p) return 0.5;
+    const a = sunPosition(atMs === undefined ? Date.now() : atMs, p.lat, p.lon).azimuth;
+    return Math.min(1, Math.max(0, (a - 90) / 180));
+  }
+
   /* ----------------------------------------------------------- the weather */
 
   let primary = null;
@@ -192,17 +208,21 @@ const Sky = (() => {
     if (!document.hidden) announce();
   });
 
-  return { place, coords, step, base, forecast, state, kind: () => kind };
+  return { place, coords, step, base, sunX, forecast, state, kind: () => kind };
 })();
 
-/* How high the sun is, in degrees, at an instant and a place — the standard
-   NOAA/SunCalc approximation, good to about a minute at these latitudes.
+/* Where the sun is, at an instant and a place — the standard NOAA/SunCalc
+   approximation, good to about a minute at these latitudes. Altitude in
+   degrees above the horizon, azimuth in degrees clockwise from north.
 
-   A global rather than a member of Sky because common.js's sunTimes() and
-   nightBands() use it for the charts' night shading, and because the step has
-   to be computable in <head>, before common.js has loaded at the end of
-   <body>. Every page that loads common.js loads this file first. */
-function sunAltitude(dateMs, lat, lon) {
+   Globals rather than members of Sky because common.js's sunTimes() and
+   nightBands() use the altitude for the charts' night shading, and because the
+   step has to be computable in <head>, before common.js has loaded at the end
+   of <body>. Every page that loads common.js loads this file first.
+
+   One shared body: azimuth is the same series as altitude with one more line
+   at the end, and computing them apart would be two chances to drift. */
+function sunPosition(dateMs, lat, lon) {
   const rad = Math.PI / 180, J1970 = 2440588, J2000 = 2451545;
   const d = dateMs / 86400000 - 0.5 + J1970 - J2000;
   const M = rad * (357.5291 + 0.98560028 * d);
@@ -212,6 +232,17 @@ function sunAltitude(dateMs, lat, lon) {
   const dec = Math.asin(Math.sin(L) * Math.sin(e));
   const ra = Math.atan2(Math.sin(L) * Math.cos(e), Math.cos(L));
   const H = rad * (280.16 + 360.9856235 * d) - rad * -lon - ra;
-  return Math.asin(Math.sin(rad * lat) * Math.sin(dec) +
-                   Math.cos(rad * lat) * Math.cos(dec) * Math.cos(H)) / rad;
+  const phi = rad * lat;
+  return {
+    altitude: Math.asin(Math.sin(phi) * Math.sin(dec) +
+                        Math.cos(phi) * Math.cos(dec) * Math.cos(H)) / rad,
+    /* measured from south in this formulation; +180 puts it clockwise from
+       north, which is how a compass bearing is read */
+    azimuth: (Math.atan2(Math.sin(H),
+              Math.cos(H) * Math.sin(phi) - Math.tan(dec) * Math.cos(phi)) / rad + 180) % 360,
+  };
+}
+
+function sunAltitude(dateMs, lat, lon) {
+  return sunPosition(dateMs, lat, lon).altitude;
 }

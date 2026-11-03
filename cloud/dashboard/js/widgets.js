@@ -101,14 +101,21 @@ const Widgets = (() => {
        shared with the forecast widget — this used to fetch its own 6 h copy
        beside the forecast widget's 48 h one, and the API answers both from the
        same hour, so the short one was a second request for a subset. */
-    let glyph = '';
+    let glyph = '', scene = '';
     try {
       const { kind } = await Sky.state(s.slug);
       /* Whether there is a sun in it or a moon is settled on every render, so
          the icon turns over near enough to sunset instead of at the top of the
          following hour. */
-      if (kind) glyph = wxIcon(kind, isNight(Date.now() / 1000, s.lat, s.lon));
-    } catch { /* no forecast: no glyph, rather than a guessed one */ }
+      const night = isNight(Date.now() / 1000, s.lat, s.lon);
+      if (kind) {
+        glyph = wxIcon(kind, night);
+        /* The scene says the same thing as the glyph, at wallpaper scale. If
+           there is no kind there is no scene either: better an empty card than
+           a guessed sky (docs/sky-design.md §4). */
+        scene = `<div class="hero-sky">${wxScene(kind, night, Sky.sunX())}</div>`;
+      }
+    } catch { /* no forecast: no glyph and no scene, rather than a guessed one */ }
     /* rain measured here always beats the model's opinion of the sky */
     if ((s.rain_mm ?? 0) > 0.3) glyph = wxIcon('rain');
 
@@ -133,7 +140,7 @@ const Widgets = (() => {
         ? `${base}<span class="hero-sub2"> · gusting ${Math.round(g)} km/h</span>` : base;
     })();
 
-    el.innerHTML = `
+    el.innerHTML = scene + `
       <div class="hero">
       <div class="hero-top">
         ${glyph ? `<span class="hero-glyph">${glyph}</span>` : ''}

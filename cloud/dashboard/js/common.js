@@ -959,6 +959,127 @@ function wxGlyph(rainMm, prob, cloud, tempC, night) {
   return wxIcon(wxKind(rainMm, prob, cloud, tempC), night);
 }
 
+/* ---------- the scene (docs/sky-design.md §4) ----------------------------
+
+   The same vocabulary as wxIcon above, enlarged to wallpaper scale: a sun's
+   glow where the sun actually is, a crescent, clouds as three circles over a
+   rounded rect, rain as slanted strokes, snow as dots. Reusing that vocabulary
+   is the strongest argument for the whole idea — the page already has a visual
+   language for weather, and this is that language at a different size rather
+   than a second one competing with it.
+
+   It draws into a band of its own at the top of the hero card (css/dash.css,
+   .hero-sky), never behind the hero's text. That is not a detail: a scene
+   behind text has to be dimmed until it clears AA against the smallest thing
+   over it, which on the dark palette meant an alpha of 0.04 — a picture dimmed
+   out of existence. Given its own space it can simply be drawn.
+
+   The viewBox is 400x60 and the band is `slice`d from it, so a little is
+   cropped off whichever axis is long. Everything therefore keeps inside
+   y 4..52, with the margin sized to the worst aspect a hero card reaches
+   (css/dash.css, --sky-band). An earlier 400x80 box in a 54px band lost 40%
+   of its height and turned every cloud into a grey pill.
+
+   One <svg> in the DOM at a time, no images, no library, nothing on the
+   critical path, around 300-700 bytes of markup. Static as of phase 3; the
+   groups are the units phase 4 will move. */
+
+/* gradients need document-unique ids: a board may hold two `now` widgets, and
+   two <defs> sharing an id means the second one silently wins for both. */
+let WX_SCENE_N = 0;
+
+/* A cloud form at wallpaper scale, placed by the corner you can actually see.
+
+   The icon's cloud does not start at its own origin: inside the 24-box its ink
+   runs x 4.7..19.9 and y 6.7..17.6, so a bare translate(40 18) put the top of
+   the shape at y=50 rather than 18. Taking the ink's left and top and solving
+   for the transform means the number in the call is the number on the screen,
+   which is the only way the composition above is checkable by reading it. */
+const WX_CLOUD_INK = { x: 4.7, y: 6.7, w: 15.2, h: 10.9 };
+function wxSceneCloud(left, top, k, o) {
+  const tx = (left - WX_CLOUD_INK.x * k).toFixed(1);
+  const ty = (top - WX_CLOUD_INK.y * k).toFixed(1);
+  return `<g class="cl" transform="translate(${tx} ${ty}) scale(${k})"`
+       + ` opacity="${o}">${WX_CLOUD}</g>`;
+}
+
+/* Deterministic scatter: the same card draws the same stars every render, so a
+   refresh does not reshuffle the sky. A hash, not Math.random. */
+function wxSceneStars(n) {
+  let out = '';
+  for (let i = 0; i < n; i++) {
+    const h = Math.sin(i * 12.9898) * 43758.5453, f = h - Math.floor(h);
+    const g = Math.sin(i * 78.233) * 12345.6789, f2 = g - Math.floor(g);
+    out += `<circle cx="${(f * 384 + 8).toFixed(1)}" cy="${(f2 * 30 + 7).toFixed(1)}"`
+         + ` r="${(1 + f2 * 1.2).toFixed(2)}" opacity="${(0.4 + f * 0.6).toFixed(2)}"/>`;
+  }
+  return `<g class="st">${out}</g>`;
+}
+
+/* Slanted strokes, spaced so they read as rain rather than as hatching. The
+   group is a tile one row tall: phase 4 translates it by exactly that row and
+   loops, which is what makes continuous fall out of a 2 s animation. */
+function wxSceneRain() {
+  let out = '';
+  for (let i = 0; i < 10; i++) {
+    const x = 26 + i * 40, y = 30 + (i % 3) * 6;
+    out += `<line x1="${x}" y1="${y}" x2="${x - 4}" y2="${y + 11}"/>`;
+  }
+  return `<g class="rn">${out}</g>`;
+}
+
+function wxSceneSnow() {
+  let out = '';
+  for (let i = 0; i < 12; i++) {
+    const x = 16 + i * 33, y = 30 + (i % 4) * 5;
+    out += `<circle cx="${x}" cy="${y}" r="2"/>`;
+  }
+  return `<g class="sn">${out}</g>`;
+}
+
+/* The six states. `sunX` is 0..1 across the card and comes from the sun's real
+   azimuth (Sky.sunX), so the light sits where the light is and drifts across
+   the card over a day instead of sitting in a corner like a logo. */
+function wxScene(kind, night, sunX) {
+  const id = 'wxs' + (++WX_SCENE_N);
+  const cx = Math.round(Math.min(0.9, Math.max(0.1, sunX ?? 0.5)) * 100);
+  /* A disc at this size reads as a logo, so a clear sky is light and no disc.
+     The drawn sun stays in the hero's own glyph, small enough to be an icon. */
+  const glow = `<defs><radialGradient id="${id}" cx="${cx}%" cy="8%" r="72%">`
+             + `<stop offset="0" class="g0"/><stop offset="1" class="g1"/>`
+             + `</radialGradient></defs>`
+             + `<rect width="400" height="60" fill="url(#${id})"/>`;
+  /* A crescent, small and high. Fixed, and NOT at sunX: the moon is not where
+     the sun is, nothing here computes a lunar ephemeris, and an illustration
+     put in a precise wrong place is worse than one that does not claim. */
+  const moon = `<g class="mn" transform="translate(306 5) scale(1.45)">`
+             + `<path d="${WX_MOON}"/></g>`;
+
+  let body;
+  switch (kind) {
+    case 'clear':
+      body = night ? wxSceneStars(11) + moon : glow; break;
+    case 'partly':
+      body = (night ? wxSceneStars(7) + moon : glow)
+           + wxSceneCloud(30, 12, 2.9, 0.95) + wxSceneCloud(216, 6, 3.4, 0.7); break;
+    case 'cloud':
+      /* no glow: an overcast sky is the one state with no light in it */
+      body = wxSceneCloud(8, 9, 3.1, 0.9) + wxSceneCloud(152, 4, 3.6, 0.75)
+           + wxSceneCloud(300, 13, 2.7, 0.6); break;
+    case 'rain':
+      body = wxSceneCloud(20, 5, 3.0, 0.9) + wxSceneCloud(230, 4, 3.2, 0.7)
+           + wxSceneRain(); break;
+    case 'snow':
+      body = wxSceneCloud(20, 5, 3.0, 0.9) + wxSceneCloud(230, 4, 3.2, 0.7)
+           + wxSceneSnow(); break;
+    default: return '';
+  }
+  /* aria-hidden: the hero's own glyph already says what the sky is doing, in
+     words, to a screen reader. Saying it twice is noise. */
+  return `<svg class="wx-scene" viewBox="0 0 400 60" preserveAspectRatio="xMidYMid slice"`
+       + ` aria-hidden="true" focusable="false">${body}</svg>`;
+}
+
 /* Renders the 6-hour strip + temp/precip chart into el (which is emptied).
    Returns the uPlot instance, or null (no chart / no forecast yet).
 

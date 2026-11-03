@@ -439,7 +439,18 @@ async function boot() {
      panel (whose title carries the selector) picks up the new station */
   if (isHome && window.ForsythLoc) ForsythLoc.onChange(renderAll);
 
-  window.addEventListener('themechange', renderAll);
+  /* Both events, coalesced to one render. In sky mode a step change fires
+     skychange (Sky noticed) and then themechange (Theme repainted), which
+     would otherwise rebuild every widget twice for one sunset. Out of sky
+     mode only skychange fires, and that is what keeps the hero's glyph and
+     its scene honest at dusk instead of waiting for the next minute tick. */
+  let skyT = null;
+  const rerender = () => {
+    if (skyT) return;
+    skyT = setTimeout(() => { skyT = null; renderAll(); }, 0);
+  };
+  window.addEventListener('themechange', rerender);
+  window.addEventListener('skychange', rerender);
   /* crossing the one-column breakpoint restacks the sub-cards, so a
      grow-to-fit widget needs its height measured again */
   let fitT;

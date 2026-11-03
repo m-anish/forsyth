@@ -80,7 +80,7 @@ const ROLES = {
 /* Tokens that are deliberately low-contrast and must NOT be swept: hairlines,
    fills under a stroke, shadows, and the rose's pale petals, which are read as
    a group against each other rather than against the paper. */
-const SKIP = /^--(border|border-2|ch-grid|night-band|topbar-bg|shadow|rose-1|rose-2|.*-fill)$/;
+const SKIP = /^--(border|border-2|ch-grid|night-band|topbar-bg|shadow|rose-1|rose-2|sky-a|.*-fill)$/;
 
 /* ------------------------------------------------------------------ parsing */
 
@@ -233,6 +233,19 @@ function inheritance() {
   return bad;
 }
 
+/* The hero scene used to tint the ground the temperature was read against,
+   and this file carried a table of the alphas a pixel audit had blessed.
+
+   It does not any more. The scene was given a band of its own at the top of
+   the card and the hero is pushed below it, so no text overlaps it at all and
+   there is no composite to check — which is a better answer than a verified
+   number, because a verified number has to be re-verified every time anyone
+   moves a cloud. The check that replaced it is in tools/scene-audit.js and it
+   asserts the stronger property: that no text box intersects the band.
+
+   Left here as a pointer rather than deleted, because "why is there no scene
+   check in the palette sweep" is a reasonable question to have an answer to. */
+
 let fails = 0, tight = 0;
 for (const name of order) {
   const p = all.get(name);
@@ -258,6 +271,9 @@ if (inh.length) {
   console.log('\n\x1b[1minheritance\x1b[0m  (a sky overlay must not move its base the wrong way)');
   inh.forEach(l => console.log(l));
 }
+
+console.log('\n\x1b[90mthe hero scene has a band of its own and no text over it;'
+  + ' tools/scene-audit.js checks that\x1b[0m');
 
 console.log(`\n${order.length} palette(s): ${fails} failing, ${tight} within 0.35 of the limit`
   + `, ${inh.length} inheritance break(s).`);
