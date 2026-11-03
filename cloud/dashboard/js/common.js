@@ -949,7 +949,10 @@ async function renderForecast(el, slug, opts = {}) {
   const hours = opts.hours || 48;
   let d;
   try {
-    d = await getJSON(`/stations/${slug}/forecast?hours=${hours}`);
+    /* through Sky, not straight to the API: it dedupes the requests a board's
+       parallel widgets would otherwise each open, and the response it caches
+       is the one the hero's glyph reads. */
+    d = await Sky.forecast(slug, hours);
   } catch {
     el.innerHTML = '<p class="wg-empty">No forecast yet. The worker asks the models every three hours.</p>';
     return null;

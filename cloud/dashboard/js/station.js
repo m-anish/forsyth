@@ -60,7 +60,7 @@ async function refreshNow() {
   renderStnav(stations);
   if (!st) { document.getElementById('head-name').textContent = 'Unknown station.'; return; }
   S.station = st;   /* the report dialog falls back to these coords */
-  Theme.place(st.lat, st.lon);   /* 'sky' needs a place for the sun's altitude */
+  Sky.place(st.lat, st.lon, st.slug);   /* the sun's altitude, and whose weather */
 
   /* "Station · leaf-01" told a visitor nothing: the slug is a database key.
      The name is already the headline below (docs/v2-design.md §3.4). */

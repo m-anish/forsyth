@@ -6,19 +6,29 @@
 const Widgets = (() => {
 
   let stationsCache = null;
-  async function stations() {
-    if (!stationsCache) {
-      stationsCache = (await getJSON('/stations')).stations;
-      /* The board has no single station, but the 'sky' palette needs one place
-         to put the sun in. The reader's chosen location if they have one, else
-         the first station with coordinates — in one valley the difference is
-         under a minute of sunset either way. */
-      const here = window.ForsythLoc && ForsythLoc.active();
-      const s = stationsCache.find(x => x.slug === here && x.lat != null)
-             || stationsCache.find(x => x.lat != null);
-      if (s) Theme.place(s.lat, s.lon);
-    }
-    return stationsCache;
+  let stationsInflight = null;
+  function stations() {
+    if (stationsCache) return Promise.resolve(stationsCache);
+    /* Hold the PROMISE, not just the result. Every widget on the board calls
+       this as it renders, and they render in parallel, so a cache filled only
+       after the await let a five-widget board open five identical requests for
+       the same list. Handing out the one in flight makes it one. */
+    if (stationsInflight) return stationsInflight;
+    stationsInflight = getJSON('/stations')
+      .then(d => {
+        stationsCache = d.stations;
+        /* The board has no single station, but the 'sky' palette needs one
+           place to put the sun in. The reader's chosen location if they have
+           one, else the first station with coordinates — in one valley the
+           difference is under a minute of sunset either way. */
+        const here = window.ForsythLoc && ForsythLoc.active();
+        const s = stationsCache.find(x => x.slug === here && x.lat != null)
+               || stationsCache.find(x => x.lat != null);
+        if (s) Sky.place(s.lat, s.lon, s.slug);
+        return stationsCache;
+      })
+      .finally(() => { stationsInflight = null; });
+    return stationsInflight;
   }
   function invalidate() { stationsCache = null; }
 
@@ -87,22 +97,17 @@ const Widgets = (() => {
     } catch { /* no history yet — the hero still works without it */ }
 
     /* The glyph needs cloud cover, which only the model has; the station
-       cannot see the sky. Cached per model hour — it changes every 3 h and
-       this widget refreshes every minute. */
+       cannot see the sky. js/sky.js holds that state, cached per model run and
+       shared with the forecast widget — this used to fetch its own 6 h copy
+       beside the forecast widget's 48 h one, and the API answers both from the
+       same hour, so the short one was a second request for a subset. */
     let glyph = '';
     try {
-      const fsig = `${s.slug}|${new Date().getUTCHours()}`;
-      if (el._fcSig2 !== fsig || !el._sky) {
-        const f = await getJSON(`/stations/${s.slug}/forecast?hours=6`);
-        const F = f.series || {};
-        el._sky = wxKind((F.precip_mm || [])[0], (F.precip_prob || [])[0],
-                         (F.cloud_cover_pct || [])[0], (F.temp_c || [])[0]);
-        el._fcSig2 = fsig;
-      }
-      /* The sky state is cached per model hour; whether there is a sun in it
-         or a moon is settled on every render, so the icon turns over near
-         enough to sunset instead of at the top of the following hour. */
-      glyph = el._sky ? wxIcon(el._sky, isNight(Date.now() / 1000, s.lat, s.lon)) : '';
+      const { kind } = await Sky.state(s.slug);
+      /* Whether there is a sun in it or a moon is settled on every render, so
+         the icon turns over near enough to sunset instead of at the top of the
+         following hour. */
+      if (kind) glyph = wxIcon(kind, isNight(Date.now() / 1000, s.lat, s.lon));
     } catch { /* no forecast: no glyph, rather than a guessed one */ }
     /* rain measured here always beats the model's opinion of the sky */
     if ((s.rain_mm ?? 0) > 0.3) glyph = wxIcon('rain');
