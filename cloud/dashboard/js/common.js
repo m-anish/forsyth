@@ -10,9 +10,29 @@ addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.app-ver').forEach(el => { el.textContent = 'v' + APP_VERSION; });
 });
 
-/* PWA: install the service worker (network-first for anything live; see sw.js) */
+/* PWA: install the service worker (network-first for anything live; see sw.js).
+
+   Never on localhost. The worker's stale-while-revalidate is safe in
+   production because ?v=N makes a new asset a new URL, but in development the
+   version does not move between edits — so it kept serving an edit-old copy
+   of this very file from cache while tools/dev-proxy.py was answering every
+   request with `cache-control: no-store`, and the page looked unchanged for
+   reasons that had nothing to do with the change. It cost three debugging
+   detours in one afternoon before the cause was obvious.
+
+   A worker already registered from an earlier session is torn down too, or
+   the first load after this lands would still be served by it. */
+const SW_LOCAL = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)
+              || location.hostname.endsWith('.localhost');
 if ('serviceWorker' in navigator) {
-  addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+  if (SW_LOCAL) {
+    navigator.serviceWorker.getRegistrations()
+      .then(rs => rs.forEach(r => r.unregister()))
+      .then(() => caches.keys().then(ks => ks.forEach(k => caches.delete(k))))
+      .catch(() => {});
+  } else {
+    addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+  }
 }
 
 async function getJSON(path) {
