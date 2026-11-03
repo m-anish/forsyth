@@ -7,7 +7,17 @@ const Widgets = (() => {
 
   let stationsCache = null;
   async function stations() {
-    if (!stationsCache) stationsCache = (await getJSON('/stations')).stations;
+    if (!stationsCache) {
+      stationsCache = (await getJSON('/stations')).stations;
+      /* The board has no single station, but the 'sky' palette needs one place
+         to put the sun in. The reader's chosen location if they have one, else
+         the first station with coordinates — in one valley the difference is
+         under a minute of sunset either way. */
+      const here = window.ForsythLoc && ForsythLoc.active();
+      const s = stationsCache.find(x => x.slug === here && x.lat != null)
+             || stationsCache.find(x => x.lat != null);
+      if (s) Theme.place(s.lat, s.lon);
+    }
     return stationsCache;
   }
   function invalidate() { stationsCache = null; }

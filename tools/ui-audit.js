@@ -123,8 +123,14 @@
     return b ? b.rgb : [0, 0, 0];
   };
   const seen = new Set();
+  /* sup/small/code/strong/em/b/i/time were missing until 2026-11-03, and the
+     gap was not theoretical: the <sup class="beta"> tag in the brand had been
+     sitting at 4.21:1 in the light theme the whole time, invisible to this
+     check because <sup> was not on the list. Inline tags are exactly where
+     small print lives, which is exactly where contrast fails. */
   for (const el of document.querySelectorAll(
-    'p, span, div, h1, h2, h3, h4, a, button, td, th, li, label, option')) {
+    'p, span, div, h1, h2, h3, h4, a, button, td, th, li, label, option, '
+    + 'sup, sub, small, code, strong, em, b, i, time, dt, dd, figcaption, legend')) {
     if (!vis(el) || el.children.length) continue;
     const txt = (el.textContent || '').trim();
     if (txt.length < 2) continue;

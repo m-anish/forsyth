@@ -485,22 +485,12 @@ function sunTimes(dateMs, lat, lon) {
   return { sunrise: toEpoch(Jtransit - w), sunset: toEpoch(Jtransit + w) };
 }
 
-/* How high the sun is, in degrees, at an instant and a place. The same series
-   as sunTimes above, stopped a step earlier: where that solves for the time of
-   a crossing, this asks where the sun is right now. */
-function sunAltitude(dateMs, lat, lon) {
-  const rad = Math.PI / 180, J1970 = 2440588, J2000 = 2451545;
-  const d = dateMs / 86400000 - 0.5 + J1970 - J2000;
-  const M = rad * (357.5291 + 0.98560028 * d);
-  const C = rad * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
-  const L = M + C + rad * 102.9372 + Math.PI;
-  const e = rad * 23.4397;
-  const dec = Math.asin(Math.sin(L) * Math.sin(e));
-  const ra = Math.atan2(Math.sin(L) * Math.cos(e), Math.cos(L));
-  const H = rad * (280.16 + 360.9856235 * d) - rad * -lon - ra;
-  return Math.asin(Math.sin(rad * lat) * Math.sin(dec) +
-                   Math.cos(rad * lat) * Math.cos(dec) * Math.cos(H)) / rad;
-}
+/* sunAltitude() — how high the sun is, in degrees — is the same series as
+   sunTimes above stopped a step earlier: where that solves for the time of a
+   crossing, this asks where the sun is right now. It MOVED to js/theme.js,
+   which the sky palette needs before first paint and which therefore loads in
+   <head> while this file loads at the end of <body>. Every page that loads
+   common.js loads theme.js first, so calling it from here is safe. */
 
 /* Night shaded behind the series. The diurnal cycle is the dominant pattern in
    nearly every metric here, so marking it turns a chart into something you can

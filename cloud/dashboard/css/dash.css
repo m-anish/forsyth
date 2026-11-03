@@ -1,6 +1,8 @@
 /* forsyth live — dashboard theme. Same voice as site/styles.css, self-contained.
-   Two palettes: dark (default) and light, switched by [data-theme] on <html>
-   (js/theme.js resolves 'auto' against prefers-color-scheme). */
+   Two base palettes, dark (default) and light, switched by [data-theme] on
+   <html> (js/theme.js resolves 'auto' against prefers-color-scheme), plus two
+   overlays on [data-sky] for the hour either side of sunrise and sunset. Sweep
+   all of them with `node tools/palette-contrast.js` after any colour change. */
 
 /* the hidden attribute must always win — author display rules (.nav-chip,
    .tool-btn, …) silently override the UA's [hidden] otherwise, which is how
@@ -53,7 +55,10 @@
                              pass solved only against --bg-card and so still
                              failed at 4.13 on the darker --bg-elev panels. */
   --accent:    #3f6c96;
-  --accent-2:  #8a6f38;
+  /* #8a6f38 was 4.21:1 on --bg, and .brand .beta is 8.5px of it sitting right
+     on the page background. Now 4.97. The brass goes a half-step deeper in
+     light; --ch-pres and --rose-4 keep the old value, being 3:1 chart marks. */
+  --accent-2:  #7d6431;
   /* #3e7d4f and #96702c were 4.03:1 and 3.68:1 on --bg-elev, which is where
      .trend.up and .rv-sev actually sit — the same --bg-elev oversight recorded
      against --text-mute above, caught by tools/palette-contrast.js. Now
@@ -76,6 +81,60 @@
   --ch-pm25: #c2621a;  --ch-pm10: #1f6f9c;  --ch-batt: #3e7d4f;
   --ch-pm25-fill: rgba(194,98,26,0.16); --ch-pm10-fill: rgba(31,111,156,0.12);
   --wx-sun: #9b762a;  --wx-moon: #5a6472;  --wx-cloud: #7d8590;  /* sun was 2.93:1, under the 3:1 a meaningful graphic needs */
+}
+
+/* ---------------------------------------------------------- the sky palettes
+   Two more steps, for the hour either side of sunrise and sunset, used only
+   when the theme preference is 'sky' (js/theme.js). They are OVERLAYS: golden
+   sits on top of light, dusk on top of dark, so each only restates what it
+   changes and inherits the rest. data-theme still carries the base, which is
+   what keeps every [data-theme="light"] rule, color-scheme, the map tiles and
+   the charts working without knowing these exist.
+
+   The thing that makes the overlay safe is luminance, not hue. Every one of
+   golden's three backgrounds is at least as LIGHT as light's, and every one of
+   dusk's at least as DARK as dark's, so a foreground either palette inherits
+   can only land at a ratio better than the one it already passed. Warmth and
+   coolness come from hue alone.
+
+   That invariant is not decoration, and it is not a thing to take on trust:
+   `node tools/palette-contrast.js` checks it directly and sweeps all six
+   palettes. A first cut of golden held it for --bg-elev only; --bg-card came
+   out a shade darker than light's and dropped .tool-btn text to 4.50:1,
+   which the page audit found and the token table had not. */
+
+[data-sky="golden"] {
+  --bg:        #f9f1e2;   /* paper with the sun low on it */
+  --bg-elev:   #f1e8d6;
+  --bg-card:   #fefaf2;
+  --text:      #272117;   /* warm near-black, not light's cool one */
+  --text-dim:  #544b3d;
+  --text-mute: #635a4b;
+  --accent:    #3f6c96;   /* links stay recognisably blue — a warm link reads
+                             as visited, which is a different statement */
+  --border:    #ddd1b9;
+  --border-2:  #e8dfca;
+  --topbar-bg: rgba(249,241,226,0.82);
+  --shadow:    rgba(90,70,35,0.18);
+  --ch-grid:   #e8ddc8;
+  --ch-axis:   #7e7868;
+}
+
+[data-sky="dusk"] {
+  --bg:        #080b11;   /* the blue hour: dark's depth, none of its warmth */
+  --bg-elev:   #0d121d;
+  --bg-card:   #0f1623;
+  --text:      #e2e6ee;
+  --text-dim:  #99a2b0;
+  --text-mute: #828b9b;
+  --accent:    #8ab0d6;
+  /* --accent-2 stays brass on purpose. Warm lamps against a blue sky is what
+     this hour actually looks like, and the chips are the only warm thing left. */
+  --border:    #212b3d;
+  --border-2:  #18202e;
+  --topbar-bg: rgba(8,11,17,0.74);
+  --ch-grid:   #1a2230;
+  --ch-axis:   #697487;
 }
 
 * { box-sizing: border-box; }
@@ -576,7 +635,12 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
   border-right: 1px solid var(--ch-grid, rgba(128,128,128,.25));
 }
 .wx-modes button:last-child, .wx-tools button:last-child { border-right: none; }
-.wx-modes button.on, .wx-tools button.on { background: var(--accent); color: #fff; }
+/* --bg, not #fff. White on the dark palettes' --accent was 2.67:1 (and 2.27
+   once dusk lightened --accent), because a hard-coded white cannot follow a
+   token that moves. --bg always contrasts with --accent by construction, which
+   is the same trick .tool-btn.danger:hover already uses: 4.89 light, 4.93
+   golden, 7.33 night, 8.69 dusk. */
+.wx-modes button.on, .wx-tools button.on { background: var(--accent); color: var(--bg); }
 .wx-modes button:hover, .wx-tools button:hover { filter: brightness(1.15); }
 /* the tools row is emoji glyphs — they read ~20% smaller than the text in the
    modes row at the same size, so bump them up to match visual weight */
@@ -711,7 +775,7 @@ video { width: 100%; margin-top: 10px; border: 1px solid var(--border-2); }
     width: 100%; justify-content: flex-start; text-align: left;
     border-radius: 8px; padding: 9px 12px; letter-spacing: 0.1em;
   }
-  .topbar .right .theme-btn .tl { display: inline; }   /* full "auto/light/dark" */
+  .topbar .right .theme-btn .tl { display: inline; }   /* full "auto/light/dark/sky" */
   .topbar .right .hide-sm { display: inline; }          /* "my board", not "board" */
   .topbar .right .dot { display: none; }                /* a pulse dot reads oddly in a list */
   .topbar .right #mesh-status, .topbar .right #seen {

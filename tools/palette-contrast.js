@@ -36,13 +36,27 @@ const CSS = path.join(__dirname, '..', 'cloud', 'dashboard', 'css', 'dash.css');
 const BACKGROUNDS = ['--bg', '--bg-elev', '--bg-card'];
 
 /* need: 4.5 = body text, 3 = large text (>=24px, or >=18.66px bold) and
-   graphics conveying meaning (WCAG 1.4.11). */
+   graphics conveying meaning (WCAG 1.4.11).
+
+   `not_on` names a background a token is never actually painted on, so the
+   sweep stops reporting a pairing that cannot occur. Checking every
+   foreground against all three backgrounds is the right default — it is what
+   caught golden's --bg-card — but the default has to be escapable or the only
+   way to silence a phantom is to restyle real pixels for it. Every entry
+   needs evidence from the CSS, not a hunch, and ui-audit.js on the live page
+   is the thing that would prove one wrong. */
 const ROLES = {
   '--text':      { need: 4.5, what: 'body text' },
   '--text-dim':  { need: 4.5, what: 'secondary text' },
   '--text-mute': { need: 4.5, what: 'muted text (captions, units)' },
   '--accent':    { need: 4.5, what: 'links' },
-  '--accent-2':  { need: 3.0, what: 'tags and chips (large/graphic)' },
+  /* 4.5, not 3: .tool-btn, .wx-banner .k and .key-reveal .k all render this at
+     10-11px, which is nobody's idea of large text. Classified as a chip first,
+     and the page audit disagreed. Not on --bg-elev: every one of those sits on
+     a card or the topbar, and the only rules that paint --bg-elev are inputs,
+     the map canvas and .job-out, none of which carry accent-2 text. */
+  '--accent-2':  { need: 4.5, what: 'buttons and chips (10-11px text)',
+                   not_on: ['--bg-elev'] },
   '--good':      { need: 4.5, what: 'status text' },
   '--warn':      { need: 4.5, what: 'status text' },
   '--bad':       { need: 4.5, what: 'status text' },
@@ -72,6 +86,14 @@ const SKIP = /^--(border|border-2|ch-grid|night-band|topbar-bg|shadow|rose-1|ros
 
 function palettes(css) {
   const out = new Map();
+  /* Comments go first, before anything looks at a selector. They used to
+     survive into the parse, and because the lazy selector match will happily
+     run backwards through a comment to reach the next `{`, a block's
+     "selector" could arrive as several paragraphs of prose. The descendant-
+     selector guard below then saw " .806" in a sentence about luminance and
+     threw the golden palette away — silently, which is the worst kind. */
+  css = css.replace(/\/\*[\s\S]*?\*\//g, '');
+
   /* Each palette is one `:root, [data-theme=…] { … }` or `[data-sky=…] { … }`
      block. Later blocks inherit from their base, which is why `inherits`
      exists: a sky palette only overrides what it changes. */
@@ -90,7 +112,7 @@ function palettes(css) {
 
     const vars = {};
     for (const d of body.split(';')) {
-      const kv = /^\s*(--[a-z0-9-]+)\s*:\s*([^;]+?)\s*$/i.exec(d.replace(/\/\*[\s\S]*?\*\//g, ''));
+      const kv = /^\s*(--[a-z0-9-]+)\s*:\s*([^;]+?)\s*$/i.exec(d);
       if (kv) vars[kv[1]] = kv[2].trim();
     }
     if (!Object.keys(vars).length) continue;
@@ -100,11 +122,17 @@ function palettes(css) {
     }
   }
   /* sky steps are overlays: day and golden sit on light, dusk and night on
-     dark. Resolve them so a sweep sees the palette a browser would compute. */
+     dark. Resolve them so a sweep sees the palette a browser would compute.
+     day and night have no overlay block at all — they ARE light and dark — but
+     they are still listed, and swept under their own names, because "all four
+     steps were checked" should be something the output says rather than
+     something the reader has to know to infer. */
   const inherits = { day: 'light', golden: 'light', dusk: 'dark', night: 'dark' };
   for (const [n, base] of Object.entries(inherits)) {
-    const p = out.get(n), b = out.get(base);
-    if (p && b) p.vars = Object.assign({}, b.vars, p.vars);
+    const b = out.get(base);
+    if (!b) continue;
+    const p = out.get(n);
+    out.set(n, { name: n, base, vars: Object.assign({}, b.vars, p ? p.vars : {}) });
   }
   return out;
 }
@@ -154,9 +182,11 @@ function sweep(p) {
     if (!fg) { unparsed.push(name + ': ' + raw); continue; }
     let worst = null;
     for (const [bn, bc] of bgs) {
+      if (role.not_on && role.not_on.indexOf(bn) >= 0) continue;
       const r = ratio(fg, bc);
       if (!worst || r < worst.r) worst = { r, on: bn };
     }
+    if (!worst) continue;
     rows.push({ name, raw, need: role.need, what: role.what, ...worst });
   }
   rows.sort((a, b) => (a.r - a.need) - (b.r - b.need));
@@ -178,11 +208,37 @@ if (!order.length) {
   process.exit(2);
 }
 
+/* The sky overlays inherit most of their foregrounds from their base, and that
+   is only safe while each overlay background is at least as light (light base)
+   or as dark (dark base) as the one it replaces. Asserting that in a comment
+   is how golden shipped a --bg-card a shade too dark; checking it is cheaper
+   than finding out from a page audit. */
+function inheritance() {
+  const bad = [];
+  for (const name of ['golden', 'dusk']) {
+    const p = all.get(name);
+    if (!p || !p.base) continue;
+    const b = all.get(p.base);
+    const lighter = p.base === 'light';
+    for (const k of BACKGROUNDS) {
+      const o = rgb(p.vars[k]), q = rgb(b.vars[k]);
+      if (!o || !q) continue;
+      const lo = lum(o), lq = lum(q);
+      if (lighter ? lo < lq : lo > lq) {
+        bad.push(`  \x1b[31mFAIL\x1b[0m ${name} ${k} ${p.vars[k]} (L ${lo.toFixed(4)}) is `
+          + `${lighter ? 'darker' : 'lighter'} than ${p.base}'s ${b.vars[k]} (L ${lq.toFixed(4)})`);
+      }
+    }
+  }
+  return bad;
+}
+
 let fails = 0, tight = 0;
 for (const name of order) {
   const p = all.get(name);
   const { rows, unknown, unparsed } = sweep(p);
-  console.log(`\n\x1b[1m${name}\x1b[0m  (bg ${p.vars['--bg']}, card ${p.vars['--bg-card']}, elev ${p.vars['--bg-elev']})`);
+  const from = p.base ? `  \x1b[90m— ${p.base} + [data-sky]\x1b[0m` : '';
+  console.log(`\n\x1b[1m${name}\x1b[0m  (bg ${p.vars['--bg']}, card ${p.vars['--bg-card']}, elev ${p.vars['--bg-elev']})${from}`);
   for (const r of rows) {
     const bad = r.r < r.need;
     const near = !bad && r.r < r.need + 0.35;
@@ -197,5 +253,12 @@ for (const name of order) {
   if (unknown.length) console.log('  \x1b[90m-\x1b[0m    unclassified, not swept: ' + unknown.join(' '));
 }
 
-console.log(`\n${order.length} palette(s): ${fails} failing, ${tight} within 0.35 of the limit.`);
-process.exit(fails ? 1 : 0);
+const inh = inheritance();
+if (inh.length) {
+  console.log('\n\x1b[1minheritance\x1b[0m  (a sky overlay must not move its base the wrong way)');
+  inh.forEach(l => console.log(l));
+}
+
+console.log(`\n${order.length} palette(s): ${fails} failing, ${tight} within 0.35 of the limit`
+  + `, ${inh.length} inheritance break(s).`);
+process.exit(fails || inh.length ? 1 : 0);
