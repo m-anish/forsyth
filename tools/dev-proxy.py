@@ -34,18 +34,29 @@ class H(http.server.SimpleHTTPRequestHandler):
             self.path = "/board.html"
         return super().do_GET()
 
+    # Short first, patient later. The droplet answers in about 0.3 s and a
+    # standalone python does too, but this process's FIRST outbound connection
+    # can stall for tens of seconds — it is launched inside the host app's
+    # sandbox, and whatever sets that up is not instant. One flat 25 s timeout
+    # turned that into a 25 s page load; retrying after 4 turns it into 4 s,
+    # and the later attempts stay patient in case the upstream is genuinely
+    # slow rather than merely cold.
+    TIMEOUTS = (4, 10, 25)
+
     def fetch(self):
         last = None
-        for attempt in range(3):
+        for attempt, timeout in enumerate(self.TIMEOUTS):
             try:
                 req = urllib.request.Request(UP + self.path,
                                              headers={"accept": "application/json"})
-                with urllib.request.urlopen(req, timeout=25, context=CTX) as r:
+                with urllib.request.urlopen(req, timeout=timeout, context=CTX) as r:
                     return r.read(), r.status, r.headers.get("content-type", "application/json")
             except urllib.error.HTTPError as e:
                 return e.read(), e.code, "application/json"     # a real answer
             except Exception as e:
                 last = e
+                print(f"proxy retry {attempt + 1} for {self.path}: "
+                      f"{type(e).__name__}", file=sys.stderr, flush=True)
                 time.sleep(0.25 * (attempt + 1))
         print(f"proxy giving up on {self.path}: {last}", file=sys.stderr, flush=True)
         return str(last).encode(), 502, "text/plain"
