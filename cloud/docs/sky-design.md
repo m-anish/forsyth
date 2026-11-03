@@ -1,8 +1,9 @@
 # The site should feel like the sky it is reporting on
 
-Written 2026-11-02 as a plan. **Phase 1 shipped 2026-11-03**; phases 2–5 are
-still a plan. The fall-back if it goes wrong is the `v1` tag
-(`git checkout v1`). What phase 1 changed against the plan is in §8.
+Written 2026-11-02 as a plan. **Phases 1 and 2 shipped 2026-11-03**; phases
+3–5 are still a plan. The fall-back if it goes wrong is the `v1` tag
+(`git checkout v1`). What the built phases changed against the plan is in §8
+and §9.
 
 Asked for: the three-or-four fixed palettes from [v2-design.md](v2-design.md)
 §9.2, extended so that **weather** and not only time of day shapes the page —
@@ -173,6 +174,7 @@ palette work, on one page, where it can be looked at and thrown away.
    once, exposes `Sky.state()` and emits `skychange`; the hero consumes it
    instead of fetching its own copy. Net effect is **one fewer request**, and
    no visual change at all — which makes it a safe, boring commit.
+   **Done** — `a203e4f`. The saving was larger than this line assumed; §9.
 3. **The scene, static.** Hero only, no motion, all six states.
 4. **The motion.** Three elements at most, reduced-motion honoured, paused when
    hidden.
@@ -243,13 +245,57 @@ They answer different questions and neither replaces the other: the token sweep
 checks the table, the page audit checks the pixels. Golden's `--bg-card` was
 caught only by the page audit; the beta tag only by the token sweep.
 
-### For phase 2
+### For phase 2 — all three carried out, see §9
 
-- `Theme.step()` already returns `day|golden|dusk|night` or `null`, and
-  `Theme.place(lat, lon)` is the one way coordinates get in. `Sky` can wrap
-  these rather than restate them.
-- `themechange` now fires only on a real change, so a `skychange` event can
-  follow the same discipline. The five-minute re-check depends on it.
-- The hero still caches its icon per model hour, so it does **not** follow a
-  step change mid-session. Harmless now; phase 3 must fix it, or a scene will
-  disagree with the glyph above it.
+## 9. What phase 2 found, and what phase 3 inherits
+
+Shipped as `a203e4f`. No visual change, by design.
+
+**The shape.** `js/sky.js` loads in `<head>` before `js/theme.js` and holds
+both signals plus the solar maths. `theme.js` lost the place cache, the step
+thresholds, the timer and `sunAltitude`, and is now a file about choosing a
+theme, which is what its name says. The division is: **Sky says what the sky is
+doing; Theme decides whether the reader asked for that to be painted.**
+
+```
+Sky.place(lat, lon, slug)   remember where, and whose weather is "the" weather
+Sky.step()                  day | golden | dusk | night | null (no place yet)
+Sky.base(step)              light | dark, for the charts and the map tiles
+Sky.forecast(slug, hours)   the shared, deduped, per-run cache
+Sky.state(slug?)            { step, base, kind } — either half may be null
+'skychange' on window       fires only on a real turn of step or weather
+```
+
+**The saving was bigger than §6 priced it.** The plan said one fewer request,
+from the hero dropping its own `hours=6` call. That works because the API
+answers every window from `now - 1 h`, so a 48 h response is a strict superset
+of a 6 h one — same first sample, same run.
+
+The larger half was not foreseen: `renderForecast` fetched **before** its own
+reuse check, so a board refetched the whole forecast every sixty seconds in
+order to discover it had not changed, and the station page refetched on every
+`themechange`. Sky caches per model run, and a run lasts three hours. Measured:
+one request on the board, still one after a full refresh tick; and on the
+station page, four step changes and four chart rebuilds with no refetch at all.
+
+**A bug found in passing.** `Widgets.stations()` cached the *result* rather
+than the promise, so five widgets rendering in parallel opened five identical
+requests for the same list. Fixed with the same in-flight dedupe Sky uses.
+`location.js`, `report.js` and `station.js` still each fetch `/stations` for
+themselves; a shared cache for those is a separate job and is **not** done.
+
+### For phase 3
+
+- The scene can read the step from CSS alone (`[data-sky]` on `<html>`) and the
+  weather from `Sky.state()` or the `skychange` event. It does not need a
+  request of its own.
+- **`skychange` fires on a real turn only**, so a listener that rebuilds is
+  woken about four times a day plus whenever the weather state changes, not on
+  a timer. Keep that discipline when adding the scene.
+- The hero no longer caches its own sky state, so it follows a step change as
+  soon as it re-renders — but it still only re-renders on the board's
+  sixty-second tick. A scene that moves faster than that will briefly disagree
+  with the glyph above it; have the hero listen to `skychange` too.
+- `Sky.state()` with no argument answers for the primary station, which is
+  whichever one called `Sky.place()` with a slug. That is the right station for
+  a scene that is about "here".
