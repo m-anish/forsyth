@@ -1110,8 +1110,13 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
    the one element here with no edge in the real world, so a crisp one looks
    like a graphic. Soft-light keeps them as light ON the paper rather than
    paint over it, and leaves the dark palette's rays warm instead of milky. */
-.wx-scene .bm { fill: var(--wx-ray); opacity: calc(var(--sky-a) * 0.5);
-  mix-blend-mode: soft-light; }
+/* No `fill` here: the rays carry fill="url(#...)" as an attribute so they can
+   fade along their length, and a fill rule in this stylesheet would beat it
+   and give every ray a hard end again. css owns opacity and the blend. */
+.wx-scene .bm { opacity: calc(var(--sky-a) * 0.5); mix-blend-mode: soft-light; }
+.wx-scene .b0 { stop-color: var(--wx-ray); stop-opacity: 1; }
+.wx-scene .b1 { stop-color: var(--wx-ray); stop-opacity: 0.72; }
+.wx-scene .b2 { stop-color: var(--wx-ray); stop-opacity: 0; }
 [data-theme="dark"] .wx-scene .bm { opacity: calc(var(--sky-a) * 0.75);
   mix-blend-mode: screen; }
 /* a low sun's rays carry further as well as warmer */

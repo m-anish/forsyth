@@ -1085,8 +1085,29 @@ function wxSceneSnow() {
    sits a little ABOVE the band's top edge, which is why the wedges are never
    seen to converge — light arrives, it does not emanate from a point you can
    see on the card. */
-function wxSceneBeams(n = 5) {
-  const R = 110, rad = Math.PI / 180;
+/* How far a ray reaches from its apex. The fade below is defined against
+   exactly this, so a ray reaches nothing at the moment it ends. */
+const WX_BEAM_R = 128;
+
+/* A ray has no end in the real world — it thins out. Drawn as a polygon it
+   very much does have one, and with the apex off the top corner the far end
+   can stop in open sky: a hard diagonal edge in the middle of the card, which
+   is what the leftmost beam was doing. So the group is filled with a radial
+   gradient centred on the apex that reaches zero at the ray's own tip.
+
+   userSpaceOnUse with cx/cy at 0,0, which is the apex in .bm's own
+   coordinates — .bm-o has already done the translate and the slant, and the
+   rock animation turns .bm about that same origin, so the fade travels with
+   the light rather than sitting still behind it. */
+function wxSceneBeamFade(id) {
+  return `<radialGradient id="${id}" gradientUnits="userSpaceOnUse"`
+       + ` cx="0" cy="0" r="${WX_BEAM_R}">`
+       + `<stop offset="0" class="b0"/><stop offset="0.45" class="b1"/>`
+       + `<stop offset="1" class="b2"/></radialGradient>`;
+}
+
+function wxSceneBeams(n = 5, fade = '') {
+  const R = WX_BEAM_R, rad = Math.PI / 180;
   let out = '';
   for (let i = 0; i < n; i++) {
     /* uneven spacing: evenly fanned beams read as a logo, not as weather */
@@ -1097,7 +1118,7 @@ function wxSceneBeams(n = 5) {
     out += `<polygon points="0,0 ${p1[0].toFixed(1)},${p1[1].toFixed(1)}`
          + ` ${p2[0].toFixed(1)},${p2[1].toFixed(1)}"/>`;
   }
-  return `<g class="bm">${out}</g>`;
+  return `<g class="bm"${fade ? ` fill="url(#${fade})"` : ''}>${out}</g>`;
 }
 
 /* A cloud is lit from above: bright along its top where the sun reaches it,
@@ -1147,7 +1168,7 @@ function wxScene(kind, night, sunX, lowSun) {
   const slant = (((sunX ?? 0.5) - 0.5) * 2 * 34).toFixed(1);
   /* A disc at this size reads as a logo, so a clear sky is light and no disc.
      The drawn sun stays in the hero's own glyph, small enough to be an icon. */
-  const cg = id + 'c';
+  const cg = id + 'c', bg = id + 'b';
   /* A disc at this size reads as a logo, so a clear sky is light and no disc.
      The drawn sun stays in the hero's own glyph, small enough to be an icon. */
   const glow = `<radialGradient id="${id}" cx="${cx}%" cy="8%" r="72%">`
@@ -1163,11 +1184,12 @@ function wxScene(kind, night, sunX, lowSun) {
      light to draw. `lit` is the glow and the rays together, since neither
      exists without the other. */
   const needsGlow = !night && (kind === 'clear' || kind === 'partly');
-  const defs = `<defs>${wxSceneCloudGrad(cg)}${needsGlow ? glow : ''}</defs>`;
+  const defs = `<defs>${wxSceneCloudGrad(cg)}`
+             + `${needsGlow ? glow + wxSceneBeamFade(bg) : ''}</defs>`;
   const lit = needsGlow
     ? `<rect width="400" height="60" fill="url(#${id})"/>`
       + `<g class="bm-o" transform="translate(${cx * 4} -16) rotate(${slant})">`
-      + `${wxSceneBeams()}</g>`
+      + `${wxSceneBeams(5, bg)}</g>`
     : '';
 
   let body;

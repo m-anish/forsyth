@@ -80,6 +80,15 @@
 
 .wg-tools { display: none; gap: 4px; }
 .editing .wg-tools { display: inline-flex; }
+
+/* The hero names its own station, above its own temperature, so a head
+   reading "Current conditions" over the top of it is saying nothing twice.
+   Outside arrange mode that head holds nothing else — the tools are hidden
+   and `now` has no range chips — so it comes off entirely, which also gives
+   the card back about 20px of a height budget that was already tight.
+   It returns while arranging, because that is where the gear lives. */
+.gs-type-now .wg-head { display: none; }
+.editing .gs-type-now .wg-head { display: flex; }
 .wg-tools button {
   background: none; border: 1px solid var(--border); color: var(--text-dim);
   border-radius: 4px; font-size: 11px; cursor: pointer; padding: 1px 7px;
