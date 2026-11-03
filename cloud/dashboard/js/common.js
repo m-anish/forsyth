@@ -1014,16 +1014,19 @@ const WX_CLOUD_INK = { x: 4.7, y: 6.7, w: 15.2, h: 10.9 };
    :nth-of-type(-n+2) counts every <g> SIBLING, so the beams group and the
    moon group were being counted as clouds and a partly-cloudy night ended up
    with nothing moving at all. A cloud that drifts should say so. */
-function wxSceneCloud(left, top, k, o, drift = 0) {
+function wxSceneCloud(left, top, k, o, drift = 0, grad = '') {
   const tx = (left - WX_CLOUD_INK.x * k).toFixed(1);
   const ty = (top - WX_CLOUD_INK.y * k).toFixed(1);
   /* Two groups, not one. A CSS `transform` REPLACES an element's transform
      attribute rather than composing with it, so animating .cl directly would
      throw away the translate and scale that place it. The outer group is the
      only thing the drift animation touches. */
+  /* fill as an ATTRIBUTE, not in the stylesheet: a `fill` rule in css beats
+     a presentation attribute, so a gradient set that way could never win.
+     css still owns opacity, which is how .wx-cloud adds its weight. */
   return `<g class="cl-d${drift ? ' cl-d' + drift : ''}">`
        + `<g class="cl" transform="translate(${tx} ${ty}) scale(${k})"`
-       + ` opacity="${o}">${WX_CLOUD}</g></g>`;
+       + `${grad ? ` fill="url(#${grad})"` : ''} opacity="${o}">${WX_CLOUD}</g></g>`;
 }
 
 /* Deterministic scatter: the same card draws the same stars every render, so a
@@ -1097,6 +1100,35 @@ function wxSceneBeams(n = 5) {
   return `<g class="bm">${out}</g>`;
 }
 
+/* A cloud is lit from above: bright along its top where the sun reaches it,
+   grey underneath where it does not. Two stops over each cloud's OWN bounding
+   box (objectBoundingBox is the default), so every cloud is shaded in itself
+   rather than the whole bank being shaded as one mass. Tilted slightly off
+   vertical, because light arrives at an angle and a perfectly vertical ramp
+   reads as a gradient rather than as a lit surface. */
+function wxSceneCloudGrad(id) {
+  return `<linearGradient id="${id}" x1="0" y1="0" x2="0.2" y2="1">`
+       + `<stop offset="0" class="c0"/><stop offset="1" class="c1"/></linearGradient>`;
+}
+
+/* Move the sun without rebuilding the scene.
+
+   The hero re-renders every minute and the sun has moved a little by each
+   one, but replacing the node restarts every animation inside it, which is
+   exactly what used to make the clouds jump. So the two things that depend on
+   where the sun is are written into the DOM that is already there. */
+function wxSceneSun(sceneEl, sunX, lowSun) {
+  const svg = sceneEl.querySelector('svg');
+  if (!svg) return;
+  const cx = Math.round(Math.min(0.9, Math.max(0.1, sunX ?? 0.5)) * 100);
+  const slant = (((sunX ?? 0.5) - 0.5) * 2 * 34).toFixed(1);
+  const g = svg.querySelector('radialGradient');
+  if (g) g.setAttribute('cx', cx + '%');
+  const bo = svg.querySelector('.bm-o');
+  if (bo) bo.setAttribute('transform', `translate(${cx * 4} -16) rotate(${slant})`);
+  svg.classList.toggle('wx-low', !!lowSun);
+}
+
 /* The six states. `sunX` is 0..1 across the card and comes from the sun's real
    azimuth (Sky.sunX), so the light sits where the light is and drifts across
    the card over a day instead of sitting in a corner like a logo. */
@@ -1115,46 +1147,55 @@ function wxScene(kind, night, sunX, lowSun) {
   const slant = (((sunX ?? 0.5) - 0.5) * 2 * 34).toFixed(1);
   /* A disc at this size reads as a logo, so a clear sky is light and no disc.
      The drawn sun stays in the hero's own glyph, small enough to be an icon. */
-  const glow = `<defs><radialGradient id="${id}" cx="${cx}%" cy="8%" r="72%">`
+  const cg = id + 'c';
+  /* A disc at this size reads as a logo, so a clear sky is light and no disc.
+     The drawn sun stays in the hero's own glyph, small enough to be an icon. */
+  const glow = `<radialGradient id="${id}" cx="${cx}%" cy="8%" r="72%">`
              + `<stop offset="0" class="g0"/><stop offset="1" class="g1"/>`
-             + `</radialGradient></defs>`
-             + `<rect width="400" height="60" fill="url(#${id})"/>`
-             /* The rays hang off the point the glow is centred on, and lean
-                the way the light actually leans: straight down at noon, and
-                further off vertical the lower the sun gets. `slant` is the
-                same number the hero's shadow is built from, so the beams and
-                the shadow under the temperature always agree about which
-                side the light is on. */
-             + `<g class="bm-o" transform="translate(${cx * 4} -16) rotate(${slant})">`
-             + `${wxSceneBeams()}</g>`;
+             + `</radialGradient>`;
   /* A crescent, small and high. Fixed, and NOT at sunX: the moon is not where
      the sun is, nothing here computes a lunar ephemeris, and an illustration
      put in a precise wrong place is worse than one that does not claim. */
   const moon = `<g class="mn" transform="translate(308 7) scale(1.3)">`
              + `<path d="${WX_MOON}"/></g>`;
 
+  /* One defs per scene: the cloud shading always, the glow only when there is
+     light to draw. `lit` is the glow and the rays together, since neither
+     exists without the other. */
+  const needsGlow = !night && (kind === 'clear' || kind === 'partly');
+  const defs = `<defs>${wxSceneCloudGrad(cg)}${needsGlow ? glow : ''}</defs>`;
+  const lit = needsGlow
+    ? `<rect width="400" height="60" fill="url(#${id})"/>`
+      + `<g class="bm-o" transform="translate(${cx * 4} -16) rotate(${slant})">`
+      + `${wxSceneBeams()}</g>`
+    : '';
+
   let body;
   switch (kind) {
     case 'clear':
-      body = night ? wxSceneStars(11) + moon : glow; break;
+      body = night ? wxSceneStars(11) + moon : lit; break;
     case 'partly':
-      body = (night ? wxSceneStars(7) + moon : glow)
-           + wxSceneCloud(30, 14, 2.8, 0.95, 1) + wxSceneCloud(216, 11, 3.1, 0.7, 2); break;
+      /* a big near one and a smaller far one, on different tracks */
+      body = (night ? wxSceneStars(7) + moon : lit)
+           + wxSceneCloud(26, 13, 3.4, 0.95, 1, cg)
+           + wxSceneCloud(224, 16, 2.3, 0.72, 2, cg); break;
     case 'cloud':
       /* No glow — an overcast sky is the one state with no light in it — and
          four forms that OVERLAP rather than three that sit apart. Overcast is
          read as coverage before it is read as colour: three tidy clouds with
          gaps between them is just a partly-cloudy sky that lost its sun. The
          extra weight on top of that comes from .wx-cloud in css/dash.css. */
-      body = wxSceneCloud(-16, 13, 3.0, 0.95) + wxSceneCloud(92, 10, 3.4, 0.85, 1)
-           + wxSceneCloud(206, 15, 2.8, 0.8) + wxSceneCloud(300, 11, 3.2, 0.7, 2);
+      body = wxSceneCloud(-18, 12, 3.6, 0.95, 0, cg)
+           + wxSceneCloud(88, 10, 3.1, 0.85, 1, cg)
+           + wxSceneCloud(198, 16, 2.4, 0.78, 3, cg)
+           + wxSceneCloud(296, 11, 3.3, 0.7, 2, cg);
       break;
     case 'rain':
-      body = wxSceneCloud(22, 12, 2.8, 0.9, 1) + wxSceneCloud(232, 10, 3.0, 0.7, 2)
-           + wxSceneRain(); break;
+      body = wxSceneCloud(18, 11, 3.3, 0.9, 1, cg)
+           + wxSceneCloud(236, 14, 2.5, 0.72, 2, cg) + wxSceneRain(); break;
     case 'snow':
-      body = wxSceneCloud(22, 12, 2.8, 0.9, 1) + wxSceneCloud(232, 10, 3.0, 0.7, 2)
-           + wxSceneSnow(); break;
+      body = wxSceneCloud(18, 11, 3.3, 0.9, 1, cg)
+           + wxSceneCloud(236, 14, 2.5, 0.72, 2, cg) + wxSceneSnow(); break;
     default: return '';
   }
   /* aria-hidden: the hero's own glyph already says what the sky is doing, in
@@ -1167,7 +1208,7 @@ function wxScene(kind, night, sunX, lowSun) {
      the scene is drawn for everyone. */
   return `<svg class="wx-scene wx-${kind}${night ? ' wx-night' : ''}${lowSun ? ' wx-low' : ''}"`
        + ` viewBox="0 0 400 60" preserveAspectRatio="xMidYMid slice"`
-       + ` aria-hidden="true" focusable="false">${body}</svg>`;
+       + ` aria-hidden="true" focusable="false">${defs}${body}</svg>`;
 }
 
 /* Renders the 6-hour strip + temp/precip chart into el (which is emptied).

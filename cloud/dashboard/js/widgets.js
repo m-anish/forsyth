@@ -101,7 +101,7 @@ const Widgets = (() => {
        shared with the forecast widget — this used to fetch its own 6 h copy
        beside the forecast widget's 48 h one, and the API answers both from the
        same hour, so the short one was a second request for a subset. */
-    let glyph = '', scene = '', lit = '';
+    let glyph = '', scene = null, lit = '';
     try {
       const { kind } = await Sky.state(s.slug);
       /* Whether there is a sun in it or a moon is settled on every render, so
@@ -118,14 +118,14 @@ const Widgets = (() => {
            rather than brass */
         const alt = Sky.sunAlt();
         const low = alt !== null && alt < 12 && alt > -2;
-        scene = `<div class="hero-sky">${wxScene(kind, night, Sky.sunX(), low)}</div>`;
+        scene = { kind, night, low };
         /* Light the card from where the sun is: the temperature throws a soft
            shadow away from it, long in the morning and short at noon, on the
            same side the beams lean. Only when there IS direct light — under
            an overcast sky nothing casts a shadow, and pretending otherwise is
            the kind of detail that reads as decoration rather than weather. */
         const sh = (kind === 'clear' || kind === 'partly') && !night ? Sky.shadow() : null;
-        if (sh) lit = ` has-sun" style="--sun-dx:${sh.dx}px;--sun-dy:${sh.dy}px`;
+        if (sh) lit = ' has-sun';
       }
     } catch { /* no forecast: no glyph and no scene, rather than a guessed one */ }
     /* rain measured here always beats the model's opinion of the sky */
@@ -161,8 +161,44 @@ const Widgets = (() => {
     const where = config.where === false ? '' :
       `<a class="hero-where" href="station.html?slug=${s.slug}">${s.name}<span class="arr"> →</span></a>`;
 
-    el.innerHTML = scene + `
-      <div class="hero${lit}">
+    /* The hero's own content is rebuilt every minute; the SCENE is not.
+
+       Replacing it was costing the clouds their drift: innerHTML throws the
+       node away, and a fresh element starts its 48s animation from zero, so
+       every 60s a cloud halfway through a slow sway snapped back to where it
+       started. Nothing was wrong with the keyframes — `alternate` does return
+       home — the element simply never lived long enough to get there.
+
+       So the scene is kept across renders while what it DRAWS is unchanged,
+       and the sun's position is written into the existing node instead
+       (wxSceneSun). kind and night turn a handful of times a day; the sun
+       moves constantly, and that part has to be live without restarting
+       anything. */
+    let hero = el.querySelector(':scope > .hero');
+    if (!hero) {
+      el.innerHTML = '<div class="hero"></div>';
+      hero = el.querySelector(':scope > .hero');
+    }
+    hero.className = 'hero' + lit;
+    const sh2 = lit ? Sky.shadow() : null;
+    hero.style.cssText = sh2 ? `--sun-dx:${sh2.dx}px;--sun-dy:${sh2.dy}px` : '';
+
+    let sky = el.querySelector(':scope > .hero-sky');
+    const sig = scene ? `${scene.kind}|${scene.night}` : '';
+    if (!scene) {
+      if (sky) sky.remove();
+    } else if (!sky || sky.dataset.sig !== sig) {
+      const next = document.createElement('div');
+      next.className = 'hero-sky';
+      next.dataset.sig = sig;
+      next.innerHTML = wxScene(scene.kind, scene.night, Sky.sunX(), scene.low);
+      if (sky) sky.replaceWith(next); else el.insertBefore(next, hero);
+      sky = next;
+    } else {
+      wxSceneSun(sky, Sky.sunX(), scene.low);
+    }
+
+    hero.innerHTML = `
       ${where}
       <div class="hero-top">
         ${glyph ? `<span class="hero-glyph">${glyph}</span>` : ''}
@@ -177,7 +213,6 @@ const Widgets = (() => {
         <div><span class="k">Wind</span><span class="v">${windCell}</span></div>
         <div><span class="k">Pressure</span><span class="v">${fmt(slp, 0, ' hPa')}</span></div>
         <div><span class="k">Air (${AQI_SCALE})</span><span class="v">${a ?? '—'} ${aqiLabel(a)}</span></div>
-      </div>
       </div>`;
   }
 

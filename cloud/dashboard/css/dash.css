@@ -43,6 +43,10 @@
   /* the sky icons: brass sun, silver moon, slate cloud. All three clear 3:1
      against --bg-card, which is what WCAG asks of a graphic carrying meaning. */
   --wx-sun: #d9b06a;  --wx-moon: #c9cdd6;  --wx-cloud: #8b9099;
+  /* a cloud's lit top and its shaded underside. On dark the top is the
+     brighter of the two; on light it is the paler one, which is nearer
+     the paper — the same relationship either way round. */
+  --wx-cloud-lit: #aab0ba;
 }
 
 [data-theme="light"] {
@@ -81,6 +85,7 @@
   --ch-pm25: #c2621a;  --ch-pm10: #1f6f9c;  --ch-batt: #3e7d4f;
   --ch-pm25-fill: rgba(194,98,26,0.16); --ch-pm10-fill: rgba(31,111,156,0.12);
   --wx-sun: #9b762a;  --wx-moon: #5a6472;  --wx-cloud: #7d8590;  /* sun was 2.93:1, under the 3:1 a meaningful graphic needs */
+  --wx-cloud-lit: #bcc2cb;
 }
 
 /* ---------------------------------------------------------- the sky palettes
@@ -1081,7 +1086,12 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
 
 .wx-scene .g0 { stop-color: var(--wx-ray); stop-opacity: var(--sky-a); }
 .wx-scene .g1 { stop-color: var(--wx-ray); stop-opacity: 0; }
-.wx-scene .cl { fill: var(--wx-cloud); opacity: calc(var(--sky-a) * 0.9); }
+/* No `fill` here on purpose: the clouds carry fill="url(#...)" as an
+   attribute, and a fill rule in this stylesheet would beat it and flatten
+   every cloud back to one tone. css owns opacity; the markup owns fill. */
+.wx-scene .cl { opacity: calc(var(--sky-a) * 0.9); }
+.wx-scene .c0 { stop-color: var(--wx-cloud-lit); }
+.wx-scene .c1 { stop-color: var(--wx-cloud); }
 .wx-scene .mn { fill: var(--wx-moon); opacity: calc(var(--sky-a) * 1.5); }
 .wx-scene .st { fill: var(--wx-moon); opacity: calc(var(--sky-a) * 1.4); }
 .wx-scene .rn { stroke: var(--ch-rain); stroke-width: 2.2; stroke-linecap: round;
@@ -1127,7 +1137,7 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
    row by its own height instead leaves the top of the band empty halfway
    through every cycle, which reads as rain that stutters. */
 @keyframes wx-fall  { to { transform: translateY(20px); } }
-@keyframes wx-drift { to { transform: translateX(14px); } }
+@keyframes wx-drift { to { transform: translateX(var(--drift)); } }
 /* The rays rock about their apex by three degrees and breathe. Slow enough
    (38s and 19s, and they are not multiples) that nothing is ever caught
    moving — you only notice the light is not quite where it was. */
@@ -1139,12 +1149,18 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
 /* alternate, so a cloud drifts back rather than teleporting home. Three
    different periods, none a multiple of another, so the overcast sky's three
    clouds never line up and start moving as one object. */
-/* Two drift tracks, and a cloud rides one or neither — js/common.js names
-   which. The budget is three moving groups and overcast draws four forms;
-   beyond the arithmetic, a sky where every cloud is in motion reads as a
-   screensaver, while two moving against two still reads as weather. */
-.wx-scene .cl-d1 { animation: wx-drift 48s ease-in-out infinite alternate; }
-.wx-scene .cl-d2 { animation: wx-drift 71s ease-in-out infinite alternate-reverse; }
+/* Three drift tracks, and a cloud rides one or none — js/common.js names
+   which. A sky where every cloud moves reads as a screensaver; some moving
+   against some still reads as weather.
+
+   All three go the same way, because wind does, and differ in how far and
+   how fast: a nearer cloud covers more ground in the same time than a far
+   one, which is most of what makes a drifting sky look deep rather than
+   scrolled. `alternate` is what makes it loop — out and back, returning
+   exactly where it began, with ease-in-out so the turn is not a bounce. */
+.wx-scene .cl-d1 { --drift: 38px; animation: wx-drift 34s ease-in-out infinite alternate; }
+.wx-scene .cl-d2 { --drift: 22px; animation: wx-drift 52s ease-in-out infinite alternate; }
+.wx-scene .cl-d3 { --drift: 29px; animation: wx-drift 43s ease-in-out infinite alternate-reverse; }
 
 /* The rays move only in a clear sky. Through cloud the light is broken up
    already, and rocking it as well is one motion too many in a card that has
