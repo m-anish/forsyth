@@ -101,7 +101,7 @@ const Widgets = (() => {
        shared with the forecast widget — this used to fetch its own 6 h copy
        beside the forecast widget's 48 h one, and the API answers both from the
        same hour, so the short one was a second request for a subset. */
-    let glyph = '', scene = '';
+    let glyph = '', scene = '', lit = '';
     try {
       const { kind } = await Sky.state(s.slug);
       /* Whether there is a sun in it or a moon is settled on every render, so
@@ -114,6 +114,13 @@ const Widgets = (() => {
            there is no kind there is no scene either: better an empty card than
            a guessed sky (docs/sky-design.md §4). */
         scene = `<div class="hero-sky">${wxScene(kind, night, Sky.sunX())}</div>`;
+        /* Light the card from where the sun is: the temperature throws a soft
+           shadow away from it, long in the morning and short at noon, on the
+           same side the beams lean. Only when there IS direct light — under
+           an overcast sky nothing casts a shadow, and pretending otherwise is
+           the kind of detail that reads as decoration rather than weather. */
+        const sh = (kind === 'clear' || kind === 'partly') && !night ? Sky.shadow() : null;
+        if (sh) lit = ` has-sun" style="--sun-dx:${sh.dx}px;--sun-dy:${sh.dy}px`;
       }
     } catch { /* no forecast: no glyph and no scene, rather than a guessed one */ }
     /* rain measured here always beats the model's opinion of the sky */
@@ -150,7 +157,7 @@ const Widgets = (() => {
       `<a class="hero-where" href="station.html?slug=${s.slug}">${s.name}<span class="arr"> →</span></a>`;
 
     el.innerHTML = scene + `
-      <div class="hero">
+      <div class="hero${lit}">
       ${where}
       <div class="hero-top">
         ${glyph ? `<span class="hero-glyph">${glyph}</span>` : ''}

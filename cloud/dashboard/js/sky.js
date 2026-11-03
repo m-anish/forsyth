@@ -98,6 +98,32 @@ const Sky = (() => {
      charts have light and dark and nothing else, so this is what they get. */
   function base(s) { return BASE[s] || null; }
 
+  /* Which way, and how far, the sun throws a shadow right now.
+
+     dx away from the sun's azimuth, dy always downward because light comes
+     from above, and the length from the altitude — 1/tan is how long a
+     shadow actually is, so it stretches as the sun drops and is shortest at
+     noon. Clamped, because 1/tan goes to infinity at the horizon and a
+     shadow the width of the card is not a nice touch, it is a bug.
+
+     Returns null when there is no sun up to cast anything. */
+  function shadow(atMs) {
+    const p = coords();
+    if (!p) return null;
+    const s = sunPosition(atMs === undefined ? Date.now() : atMs, p.lat, p.lon);
+    if (!(s.altitude > 2)) return null;          // below 2°: no useful light
+    const rad = Math.PI / 180;
+    const len = Math.min(3.4, 1 / Math.tan(Math.max(s.altitude, 12) * rad));
+    /* Azimuth is clockwise from north and the shadow points the opposite way,
+       so its east-west component is -sin(azimuth), eastward-positive. But
+       sunX puts EAST at the left of the card, so east-positive is
+       screen-NEGATIVE and the sign flips back: +sin. Written out because the
+       first version had it backwards and a morning sun threw its shadow
+       towards the morning. */
+    return { dx: +(Math.sin(s.azimuth * rad) * len * 1.6).toFixed(2),
+             dy: +(len * 1.1 + 0.6).toFixed(2) };
+  }
+
   /* Where the sun sits across the sky as a fraction: 0 due east, 0.5 due
      south, 1 due west. The scene uses it to put its light where the light
      actually is, so the glow drifts across the card over a day instead of
@@ -219,7 +245,7 @@ const Sky = (() => {
   }
   hidden();
 
-  return { place, coords, step, base, sunX, forecast, state, kind: () => kind };
+  return { place, coords, step, base, sunX, shadow, forecast, state, kind: () => kind };
 })();
 
 /* Where the sun is, at an instant and a place — the standard NOAA/SunCalc

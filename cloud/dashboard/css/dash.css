@@ -1074,6 +1074,21 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
 .wx-scene .rn { stroke: var(--ch-rain); stroke-width: 2.2; stroke-linecap: round;
   fill: none; opacity: calc(var(--sky-a) * 0.85); }
 .wx-scene .sn { fill: var(--wx-moon); opacity: calc(var(--sky-a) * 0.85); }
+/* Sun rays. Much fainter than anything else in the scene: a beam of light is
+   the one element here with no edge in the real world, so a crisp one looks
+   like a graphic. Soft-light keeps them as light ON the paper rather than
+   paint over it, and leaves the dark palette's rays warm instead of milky. */
+.wx-scene .bm { fill: var(--wx-sun); opacity: calc(var(--sky-a) * 0.5);
+  mix-blend-mode: soft-light; }
+[data-theme="dark"] .wx-scene .bm { opacity: calc(var(--sky-a) * 0.75);
+  mix-blend-mode: screen; }
+
+/* Overcast carries more than the other states: the clouds already overlap to
+   read as coverage, and this is the weight on top of it. Not a separate grey
+   — the same token, asked for harder, so a palette change still reaches it. */
+.wx-scene.wx-cloud .cl { opacity: calc(var(--sky-a) * 1.35); }
+.wx-scene.wx-rain .cl,
+.wx-scene.wx-snow .cl { opacity: calc(var(--sky-a) * 1.15); }
 
 /* Someone who has asked their system for more contrast has asked for less
    decoration, whatever the arithmetic says. The scene sits over nothing, so
@@ -1097,15 +1112,32 @@ dialog .checks input { display: inline; width: auto; margin: 0; }
    through every cycle, which reads as rain that stutters. */
 @keyframes wx-fall  { to { transform: translateY(20px); } }
 @keyframes wx-drift { to { transform: translateX(14px); } }
+/* The rays rock about their apex by three degrees and breathe. Slow enough
+   (38s and 19s, and they are not multiples) that nothing is ever caught
+   moving — you only notice the light is not quite where it was. */
+@keyframes wx-ray   { to { transform: rotate(3deg); } }
+@keyframes wx-glint { 50% { opacity: calc(var(--sky-a) * 0.78); } }
 
 .wx-scene .rn { animation: wx-fall 2.2s linear infinite; }
 .wx-scene .sn { animation: wx-fall 7s linear infinite; }
 /* alternate, so a cloud drifts back rather than teleporting home. Three
    different periods, none a multiple of another, so the overcast sky's three
    clouds never line up and start moving as one object. */
-.wx-scene .cl-d { animation: wx-drift 48s ease-in-out infinite alternate; }
-.wx-scene .cl-d:nth-of-type(2) { animation-duration: 71s; animation-direction: alternate-reverse; }
-.wx-scene .cl-d:nth-of-type(3) { animation-duration: 97s; }
+/* Two drift tracks, and a cloud rides one or neither — js/common.js names
+   which. The budget is three moving groups and overcast draws four forms;
+   beyond the arithmetic, a sky where every cloud is in motion reads as a
+   screensaver, while two moving against two still reads as weather. */
+.wx-scene .cl-d1 { animation: wx-drift 48s ease-in-out infinite alternate; }
+.wx-scene .cl-d2 { animation: wx-drift 71s ease-in-out infinite alternate-reverse; }
+
+/* The rays move only in a clear sky. Through cloud the light is broken up
+   already, and rocking it as well is one motion too many in a card that has
+   clouds drifting in it — which is also what keeps `partly` inside the
+   three-group budget. Two animations, because the rock is about the apex
+   (.bm) and the breathe is not (.bm-o), so neither restates the other. */
+.wx-scene.wx-clear .bm { transform-origin: 0 0; transform-box: fill-box;
+  animation: wx-ray 38s ease-in-out infinite alternate; }
+.wx-scene.wx-clear .bm-o { animation: wx-glint 19s ease-in-out infinite; }
 
 /* Paused while the tab is hidden. Browsers throttle background animation but
    do not reliably stop it, and the desktop app's browser pane runs a hidden
@@ -1120,6 +1152,36 @@ html[data-hidden] .wx-scene * { animation-play-state: paused; }
 
 /* the hero's content sits above its sky */
 .hero { position: relative; z-index: 1; }
+
+/* The number lit from wherever the sun is. --sun-dx/--sun-dy come from
+   Sky.shadow() via js/widgets.js and are set only when there is direct light
+   to cast anything, so an overcast card simply has no .has-sun and no shadow.
+
+   Very soft, and never dark enough to be read as a second glyph: it is the
+   card catching the light, not a drop shadow on a button. On the dark
+   palettes the shadow is black at a higher alpha, since a grey one over a
+   near-black card is invisible. */
+.hero.has-sun .hero-temp,
+.hero.has-sun .hero-glyph {
+  text-shadow: var(--sun-dx) var(--sun-dy) 6px rgba(90, 70, 35, 0.26);
+}
+[data-theme="dark"] .hero.has-sun .hero-temp,
+[data-theme="dark"] .hero.has-sun .hero-glyph {
+  text-shadow: var(--sun-dx) var(--sun-dy) 9px rgba(0, 0, 0, 0.55);
+}
+/* the glyph is an inline svg, so it needs the filter form to be lit at all */
+.hero.has-sun .hero-glyph .wx-ico {
+  filter: drop-shadow(var(--sun-dx) var(--sun-dy) 4px rgba(90, 70, 35, 0.3));
+}
+[data-theme="dark"] .hero.has-sun .hero-glyph .wx-ico {
+  filter: drop-shadow(var(--sun-dx) var(--sun-dy) 6px rgba(0, 0, 0, 0.6));
+}
+@media (prefers-reduced-motion: reduce) {
+  /* the offsets change through the day; someone who asked for stillness can
+     have the plain number */
+  .hero.has-sun .hero-temp, .hero.has-sun .hero-glyph { text-shadow: none; }
+  .hero.has-sun .hero-glyph .wx-ico { filter: none; }
+}
 
 /* Whose weather this is, above the number rather than under the sparkline,
    and a way through to the station itself. Mono and small so it reads as a
