@@ -4,7 +4,14 @@ is deployed. Verification only — nothing here ships.
 
 A board opens a dozen API calls at once and the upstream occasionally drops one
 mid-handshake, which showed up as a page of skeletons; each request gets three
-tries before it gives up."""
+tries before it gives up.
+
+Speaks HTTP/1.1 with keep-alive. It spoke 1.0 for a while, which closes the
+connection after every response, so a board's fifteen calls meant fifteen TCP
+setups from the browser and page loads that took minutes — while the proxy
+itself answered the same fifteen in half a second from a shell. Keep-alive
+needs an accurate Content-Length on every response, which both paths below
+set."""
 import http.server, os, socketserver, ssl, sys, time, urllib.error, urllib.request
 
 ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -15,7 +22,7 @@ CTX = ssl.create_default_context(cafile="/etc/ssl/cert.pem")
 
 
 class H(http.server.SimpleHTTPRequestHandler):
-    protocol_version = "HTTP/1.0"
+    protocol_version = "HTTP/1.1"
 
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=ROOT, **kw)
@@ -49,7 +56,13 @@ class H(http.server.SimpleHTTPRequestHandler):
         self.send_header("content-type", ctype)
         self.send_header("content-length", str(len(body)))
         self.end_headers()
-        self.wfile.write(body)
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
+    def do_HEAD(self):
+        if self.path.startswith("/api/"):
+            return self.proxy()
+        return super().do_HEAD()
 
     def end_headers(self):
         # ?v=NN is a fixed URL, so the browser kept serving the build from
