@@ -462,3 +462,90 @@ the full width of the board, so `slice` crops the **vertical** axis, and at
 
 Whether `sky` becomes the default theme mode. Deliberately not decided here:
 it is a judgement to make after living with it, not a line of code to write.
+
+---
+
+# 12. The same idea for the air-quality card — a plan
+
+Asked for 2026-11-03: the air card sits beside the hero on desktop and could
+carry a band of its own. Written as a plan; nothing below is built.
+
+## 12.1 The problem, which is that air is invisible
+
+Weather has a picture. Air quality does not: there is nothing to draw of PM2.5
+except the thing it does to you, and drawing *that* is either a graph (the card
+already has one) or scaremongering.
+
+So draw what bad air actually looks like from Bir: **the ridge disappearing**.
+
+The Dhauladhar sits across the valley, and on a clean day you can count its
+gullies. At 150 µg/m³ it is a grey suggestion. This is not a metaphor —
+visual range falls roughly as the inverse of particle extinction, so "how far
+can I see" IS the reading, expressed the way a person already experiences it.
+It is the one air-quality visual that is honest rather than decorative.
+
+## 12.2 What it draws
+
+Three ridge silhouettes at different depths, and the band's clarity is the
+measurement:
+
+| AQI | the view |
+|---|---|
+| good (0–50) | all three ridges, the far one crisp, a clean pale sky behind |
+| satisfactory (51–100) | the far ridge softens and lifts toward the sky's tone |
+| moderate (101–200) | the far ridge is nearly gone; the middle one flattens |
+| poor (201–300) | two ridges left, both pale, the wash warming to brown |
+| severe (301+) | one near ridge, barely separated from the air around it |
+
+Mechanically that is **one** number driving **three** things: each layer's
+opacity, the gap in tone between layers, and the wash's hue. No new geometry
+per band — the same three paths every time, read differently.
+
+- **Do not colour the sky by the AQI scale.** The gradient bar under the number
+  already does that, and a card whose background goes red is alarm design, not
+  weather. The wash moves from the palette's own paper toward a dim warm brown,
+  which is what a hazy valley looks like.
+- **Nothing swarms.** No drifting particles, no dots. A still, flattened view
+  is both what haze looks like and the opposite of alarming.
+- **Motion: none, or one layer.** Air does not move visibly. At most the
+  nearest ridge could breathe by a pixel over a minute; most likely nothing,
+  which also keeps the card cheap next to a hero that already animates.
+
+## 12.3 What it reuses
+
+Almost everything, which is the argument for doing it at all:
+
+- The band mechanism. `.hero-sky` plus `.hero-sky + .hero { padding-top }`
+  generalises to a `.card-sky` with the same absolute-positioning trick and
+  the same adjacent-sibling rule, so a card with no reading gets its old
+  layout back with nothing to configure.
+- The composition rule: ink inside y 10..50 of a 400×60 viewBox, because the
+  air card is narrower than the hero and `slice` still crops the long axis.
+- `tools/scene-audit.js` unchanged in spirit — it asserts that no text box
+  intersects the band, which is exactly the property this needs too. It would
+  need its `.hero` selectors widened.
+- The gating discipline: no AQI reading, no band. Never a guessed sky.
+
+## 12.4 What is new, and the two risks
+
+**A ridge is a place.** Forsyth serves one valley today, so a generic
+Himalayan ridge is true. A second deployment somewhere flat would be lying
+about the view out of the window. If that ever happens the ridge should come
+from the station record, or be dropped for that station — it should not quietly
+draw mountains in Gujarat.
+
+**Visibility is not only particles.** Fog, rain and humidity cut visual range
+too, and a clean, foggy morning would draw a dirty-looking band. Two defences:
+the number sits directly underneath saying what is actually measured, and the
+scene can be suppressed when the weather state is `rain` or `snow`, where
+nobody would read the haze as air quality anyway.
+
+## 12.5 Phases, if it goes ahead
+
+1. The band and the three ridge paths, static, driven by the AQI bucket.
+2. The wash hue, and the suppression rules (no reading, rain, snow).
+3. Decide whether the hero and the air card should ever both carry a band on
+   the same screen, or whether two bands side by side is one too many. **This
+   is the real open question** and it cannot be answered before seeing it:
+   the hero's band earns its place because the hero is about the sky, and a
+   second band next to it may simply read as wallpaper.
