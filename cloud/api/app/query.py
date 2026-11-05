@@ -358,6 +358,38 @@ _SEVERITY_RANK = {"NO_FLOODING": 0, "UNKNOWN": 0, "ABOVE_NORMAL": 1,
                   "SEVERE": 2, "EXTREME": 3}
 
 
+def _river_response(slug, reaches, nearby, reason=None):
+    """The /river response, assembled in exactly one place.
+
+    This exists because it did not. There were two returns — the real one and
+    a three-key stub for a station with no coordinates — and every field added
+    to the real one afterwards was silently missing from the stub, so a caller
+    had to probe for keys to find out which shape it had been handed. Both
+    paths come through here now: a field added below appears on every path by
+    construction, which is the only version of this that stays true.
+    """
+    worst = max((_SEVERITY_RANK.get(x["severity"] or "", 0) for x in reaches), default=0)
+    return {
+        "station": slug,
+        "reaches": reaches,
+        # True when reaches exist within range but none of them is current.
+        # "No reach near here" and "we have stopped hearing about the one
+        # there is" are different facts and a reader deserves the right one.
+        "stale": bool(not reaches and nearby),
+        # The front end's one question: is any of this worth a reader's
+        # attention right now? Either Google call it above normal, or the
+        # forecast peak crosses the reach's own warning level. It can only
+        # ever be true about data that passed the freshness filters.
+        "notable": bool(worst >= 1 or any(
+            (x["of_warning_peak"] or 0) >= 1 for x in reaches)),
+        # null in the ordinary case; set when the emptiness has a cause worth
+        # naming that `stale` does not cover.
+        "reason": reason,
+        "attribution": "Google Flood Hub",
+        "license": "CC BY 4.0",
+    }
+
+
 @router.get("/stations/{slug}/river")
 def river(slug: str, limit: int = Query(3, ge=1, le=20)):
     """The modelled river reaches near a station (docs/flood-roadmap.md).
@@ -371,6 +403,17 @@ def river(slug: str, limit: int = Query(3, ge=1, le=20)):
     `of_warning` is the point of the response: warning levels across one valley
     span 17.7 to 1781 m3/s, so the raw discharge is not comparable between
     reaches and the fraction of each reach's own threshold is.
+
+    EVERYTHING HERE IS FILTERED ON AGE. A reach appears only if the area
+    search still saw it within flood_gauge_ttl_hours and we fetched its
+    forecast within flood_fresh_hours; a severity older than that is ignored
+    as though it were absent. Without this the endpoint happily served the
+    last thing it ever heard: `valid_end > now()` keeps the NUMBERS honest,
+    but flood_status has no expiry at all, so a reach whose final severity was
+    ABOVE_NORMAL would have kept `notable` true for ever, and the widget loud
+    on a warning that no longer existed. `stale` tells the caller which kind
+    of empty it is looking at — no reach near here, or no current data about
+    one — because those two want different words on the page.
     """
     with engine.connect() as conn:
         st = conn.execute(text(
@@ -378,7 +421,8 @@ def river(slug: str, limit: int = Query(3, ge=1, le=20)):
         if st is None:
             raise HTTPException(404, "no such station")
         if st.lat is None or st.lon is None:
-            return {"station": slug, "reaches": [], "reason": "station has no coordinates"}
+            # Not stale — nothing is being withheld. There is nowhere to look.
+            return _river_response(slug, [], 0, "station has no coordinates")
 
         # Nearest reaches, with each one's latest forecast run and the
         # thresholds of the model that run was made under. The join on
@@ -387,16 +431,26 @@ def river(slug: str, limit: int = Query(3, ge=1, le=20)):
         rows = conn.execute(text("""
             WITH near AS (
                 SELECT g.gauge_id, g.lat, g.lon, g.river, g.source, g.quality_verified,
+                       g.last_seen,
                        6371 * 2 * asin(sqrt(
                            power(sin(radians(g.lat - :lat) / 2), 2) +
                            cos(radians(:lat)) * cos(radians(g.lat)) *
                            power(sin(radians(g.lon - :lon) / 2), 2))) AS km
                 FROM flood_gauges g
                 WHERE g.has_model
+            ), live AS (
+                -- still in the gauge network as of the last few searches
+                SELECT * FROM near
+                WHERE km <= :near_km
+                  AND last_seen > now() - make_interval(secs => :ttl_s)
             ), latest AS (
+                -- the newest run we actually fetched recently. Keyed on
+                -- fetched_at, not issued_time: a seven-day run from a poller
+                -- that died on Tuesday still has valid_end in the future.
                 SELECT DISTINCT ON (f.gauge_id) f.gauge_id, f.gauge_model_id, f.issued_time
                 FROM flood_forecasts f
-                JOIN near n ON n.gauge_id = f.gauge_id
+                JOIN live n ON n.gauge_id = f.gauge_id
+                WHERE f.fetched_at > now() - make_interval(secs => :fresh_s)
                 ORDER BY f.gauge_id, f.issued_time DESC
             )
             SELECT n.gauge_id, n.km, n.river, n.source, n.quality_verified,
@@ -411,16 +465,37 @@ def river(slug: str, limit: int = Query(3, ge=1, le=20)):
                      WHERE f.gauge_id = l.gauge_id AND f.gauge_model_id = l.gauge_model_id
                        AND f.issued_time = l.issued_time
                        AND f.valid_end > now()) AS value_peak
-            FROM near n
+            FROM live n
             JOIN latest l ON l.gauge_id = n.gauge_id
             LEFT JOIN flood_models m
               ON m.gauge_id = l.gauge_id AND m.gauge_model_id = l.gauge_model_id
+            -- a severity we have not refreshed lately is no severity at all
             LEFT JOIN flood_status s ON s.gauge_id = n.gauge_id
-            WHERE n.km <= :near_km
+              AND s.fetched_at > now() - make_interval(secs => :fresh_s)
             ORDER BY n.km
             LIMIT :limit
         """), {"lat": st.lat, "lon": st.lon,
-               "near_km": settings.flood_near_km, "limit": limit}).mappings().all()
+               "near_km": settings.flood_near_km, "limit": limit,
+               # seconds, not hours: make_interval's `hours` argument is an
+               # integer, so a fractional setting would have been silently
+               # truncated even if the call had been accepted
+               "fresh_s": settings.flood_fresh_hours * 3600,
+               "ttl_s": settings.flood_gauge_ttl_hours * 3600}).mappings().all()
+
+        # Nothing current. Is that because there is no reach here, or because
+        # we have stopped hearing about one? The widget says different words
+        # for each, so the difference has to survive the trip.
+        nearby = 0
+        if not rows:
+            nearby = conn.execute(text("""
+                SELECT count(*) FROM flood_gauges g
+                WHERE g.has_model
+                  AND 6371 * 2 * asin(sqrt(
+                          power(sin(radians(g.lat - :lat) / 2), 2) +
+                          cos(radians(:lat)) * cos(radians(g.lat)) *
+                          power(sin(radians(g.lon - :lon) / 2), 2))) <= :near_km
+            """), {"lat": st.lat, "lon": st.lon,
+                   "near_km": settings.flood_near_km}).scalar() or 0
 
     reaches = []
     for r in rows:
@@ -450,15 +525,4 @@ def river(slug: str, limit: int = Query(3, ge=1, le=20)):
             "issued": r["issued_time"].isoformat() if r["issued_time"] else None,
         })
 
-    worst = max((_SEVERITY_RANK.get(x["severity"] or "", 0) for x in reaches), default=0)
-    return {
-        "station": slug,
-        "reaches": reaches,
-        # The front end's one question: is any of this worth a reader's
-        # attention right now? Either Google call it above normal, or the
-        # forecast peak crosses the reach's own warning level.
-        "notable": bool(worst >= 1 or any(
-            (x["of_warning_peak"] or 0) >= 1 for x in reaches)),
-        "attribution": "Google Flood Hub",
-        "license": "CC BY 4.0",
-    }
+    return _river_response(slug, reaches, nearby)

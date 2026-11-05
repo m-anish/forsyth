@@ -17,6 +17,10 @@ import http.server, os, socketserver, ssl, sys, time, urllib.error, urllib.reque
 ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                     "cloud", "dashboard")
 UP = os.environ.get("FORSYTH_UPSTREAM", "https://live.forsyth.starstucklab.com")
+# Settable so a proxy onto the LOCAL stack can run beside the production one.
+# Worth the two lines: this file defaults to production, and a browser check
+# of a local API change against it quietly verifies the wrong server.
+PORT = int(os.environ.get("FORSYTH_PORT", "4180"))
 # this python build ships no CA store of its own; use the system bundle
 CTX = ssl.create_default_context(cafile="/etc/ssl/cert.pem")
 
@@ -91,6 +95,6 @@ class S(socketserver.ThreadingTCPServer):
     request_queue_size = 64
 
 
-with S(("127.0.0.1", 4180), H) as s:
-    print("dashboard on http://localhost:4180 (api -> " + UP + ")", flush=True)
+with S(("127.0.0.1", PORT), H) as s:
+    print("dashboard on http://localhost:%d (api -> %s)" % (PORT, UP), flush=True)
     s.serve_forever()

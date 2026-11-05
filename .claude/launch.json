@@ -14,6 +14,12 @@
       "port": 4180
     },
     {
+      "name": "forsyth-dashboard-local",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": ["-c", "FORSYTH_UPSTREAM=http://localhost:8080 FORSYTH_PORT=4181 python3 tools/dev-proxy.py"],
+      "port": 4181
+    },
+    {
       "name": "starstucklab-hub",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "/Users/anish/Documents/GitHub/starstucklab"],

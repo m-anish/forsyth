@@ -255,3 +255,39 @@ def test_forecast_live_roundtrip(client, station):
     # pressure stored in Pa to match readings (sanity: > 50 kPa anywhere on Earth)
     pres = [v for v in d["series"]["pressure_pa"] if v is not None]
     assert not pres or pres[0] > 50_000
+
+
+def test_river_never_reports_stale_as_calm(client, station):
+    """/river must not be able to speak for data it no longer has.
+
+    The widget this feeds is built to stay quiet unless something is wrong,
+    so a severity left behind by a reach that stopped reporting would pin it
+    loud for ever. Google are renaming the whole gauge network in late 2026
+    (docs, the flood doc), which guarantees that case rather than merely
+    risking it.
+
+    This asserts the invariants that hold whatever is in the table; the
+    freshness windows themselves are exercised against a seeded database,
+    which these tests have no write access to.
+    """
+    d = client.get(f"/api/v1/stations/{SLUG}/river?limit=5").json()
+    assert d["station"] == SLUG
+    assert isinstance(d["reaches"], list)
+    # the two kinds of empty must stay distinguishable
+    assert isinstance(d["stale"], bool)
+    if d["reaches"]:
+        assert d["stale"] is False, "reaches present means nothing is being withheld"
+    # nothing can be notable without a reach to be notable about
+    if not d["reaches"]:
+        assert d["notable"] is False
+
+    for r in d["reaches"]:
+        # every row still says what it is, however fresh
+        assert r["modelled"] is True
+        assert isinstance(r["quality_verified"], bool)
+        # a row that made it through the freshness filters carries a run time
+        assert r["issued"], "a current reach must say when its run was issued"
+        # notable may only be claimed on a number or a severity we actually hold
+        if d["notable"]:
+            assert any(x["severity"] or (x["of_warning_peak"] or 0) >= 1
+                       for x in d["reaches"]), "notable with nothing to justify it"

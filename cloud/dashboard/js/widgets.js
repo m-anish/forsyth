@@ -675,9 +675,16 @@ const Widgets = (() => {
     const rs = d.reaches || [];
     if (!rs.length) {
       /* Said plainly rather than hidden: "no modelled reach near here" is a
-         fact about coverage, and a reader who sees nothing cannot learn it. */
-      el.innerHTML = '<p class="wg-empty">No modelled river reach within '
-                   + 'range of this station.</p>';
+         fact about coverage, and a reader who sees nothing cannot learn it.
+
+         Two different empties, and they must not share a sentence. A reach
+         that was never here is coverage; a reach we have stopped hearing
+         about is a fault at our end, and calling that one "no reach" would
+         be the widget quietly lying about why it has nothing to say. */
+      el.innerHTML = '<p class="wg-empty">' + (d.stale
+        ? 'The river model here has stopped reporting. Nothing current '
+          + 'enough to show.'
+        : 'No modelled river reach within range of this station.') + '</p>';
       el.dataset.quiet = '1';
       return;
     }

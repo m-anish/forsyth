@@ -47,6 +47,21 @@ class Settings:
     flood_search_pad_deg: float = float(os.environ.get("FLOOD_SEARCH_PAD_DEG", "0.45"))
     # How far a reach may be from a station and still be "the river below it".
     flood_near_km: float = float(os.environ.get("FLOOD_NEAR_KM", "25"))
+    # How old our copy of a reach's data may be and still be shown as current.
+    # The poller runs hourly, so six hours survives a few failed cycles and
+    # still notices a job that has actually stopped. Past this the reach is
+    # dropped from /river rather than shown stale: a river widget whose whole
+    # job is to be quiet unless something is wrong must not be able to sit
+    # loud on a warning that expired (docs/flood-roadmap.md).
+    flood_fresh_hours: float = float(os.environ.get("FLOOD_FRESH_HOURS", "6"))
+    # How long a reach may go unseen by the area search before it stops being
+    # a reach we know about. The search runs daily, so two days is two missed
+    # searches. This is what retires gauges Google withdraws — in late 2026
+    # the whole network is being renamed hybas_* -> subhybas_* — without a
+    # DELETE anywhere: a partial or failed search returning fewer gauges would
+    # otherwise quietly wipe the table, trading a visible staleness bug for an
+    # invisible data-loss one.
+    flood_gauge_ttl_hours: float = float(os.environ.get("FLOOD_GAUGE_TTL_HOURS", "48"))
 
     # Public-API rate limiting (app/limits.py). Sized for people: a station
     # page costs 38 calls to load. An integration test suite is not a person —

@@ -378,3 +378,60 @@ And the thing not to do: put a flood warning on the homepage of a village in a
 state where people have died in cloudbursts, on the strength of a 20 km grid
 cell and a pilot API, without saying plainly where the number came from and how
 coarse it is.
+
+## 7. The November 2026 model change, and the staleness it would have caused
+
+Google wrote on 2026-11-04 to say the Flood Hub model becomes semi-distributed
+in late November: one model per *reach* rather than per basin, served through
+the same `gauges` / `gaugeModels` / `floodStatus` endpoints, and with the whole
+virtual network renamed `hybas_*` → `subhybas_*`. Gauge ids are not stable
+across the switch. Thresholds are re-derived, so a warning level may move
+without the river doing anything.
+
+**What that exposed.** `/river` had no freshness filter anywhere, and
+`flood_status` has no expiry column, so the endpoint served the last thing it
+ever heard. The ids being renamed is exactly the shape of change that leaves a
+poller returning nothing while the rows it wrote last week sit in the table
+looking current — and a reach whose final severity was `ABOVE_NORMAL` would
+have kept `notable` true indefinitely, the widget loud about a warning that no
+longer existed. On a page that has promised not to shout about floods in this
+valley, that is the failure that actually matters.
+
+So, as of this commit, everything `/river` serves is filtered on age:
+
+- a reach appears only if the daily area search still saw it within
+  `FLOOD_GAUGE_TTL_HOURS` (48h — two missed searches), and
+- only if its forecast was fetched within `FLOOD_FRESH_HOURS` (6h — several
+  missed hourly cycles), and
+- a `flood_status` severity older than that window is ignored as though it were
+  absent.
+
+The TTL is what retires the old `hybas_*` ids when they stop being returned,
+with no `DELETE` anywhere: a partial or failed search returning fewer gauges
+has to be unable to wipe the table, or we would have traded a visible
+staleness bug for an invisible data-loss one.
+
+`stale` in the response distinguishes the two empties. "No modelled reach near
+here" is a fact about coverage; "we have stopped hearing about the one there
+is" is a fault at our end. The widget says them in different words, because
+calling the second one "no reach" is the widget quietly lying about why it has
+nothing to say.
+
+**To check after the switch lands (late November).** Neither of these is code
+we can write in advance; both are things to look at once:
+
+1. Whether gauge ids in `flood_gauges` have become `subhybas_*`. If the old
+   `hybas_*` rows are still there 48h after the switch, the area search is
+   failing rather than returning new ids, and the widget will be showing the
+   stale sentence — which is correct, and is the signal.
+2. Whether the job result carries `incomplete: true` — that is *our* flag
+   (`jobs/flood.py`), raised when any call in a cycle failed, and the switch
+   is when to expect it. Thresholds are re-derived across the switch, so also
+   confirm `of_warning` comes through null rather than as a ratio against a
+   half-built level: the endpoint already returns null when `warning_level` is
+   missing or zero, but a threshold that is present and *wrong* is not
+   something we can detect from here, which is the limit of this check.
+
+**Backfill.** Historic discharge under the new model is not available through
+the API; Google point at a Colab notebook. That is a manual one-off and is not
+worth doing until there is a monsoon's worth of numbers to compare (§6, idea 2).
