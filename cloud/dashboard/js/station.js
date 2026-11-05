@@ -186,22 +186,58 @@ async function drawCharts() {
   });
 
   /* km/h, not m/s — nobody thinks in m/s (§7 units table). */
-  const windKmh = ['wind_avg_ms', 'wind_gust_ms'].map(k =>
+  const windRaw = ['wind_avg_ms', 'wind_gust_ms'].map(k =>
     (windD.series[k] || []).map(v => (v === null || v === undefined) ? null : v * 3.6));
+  /* Everything under the floor is a stalled cup, not a light wind, and is
+     dropped rather than drawn (windFloorSeries). At this site that usually
+     takes the whole sustained series with it, which is the honest answer: the
+     anemometer cannot resolve the wind here most of the time, and a line
+     wobbling at 0.1 km/h said otherwise. The threshold is marked on the chart
+     and the note under it says which case the reader is looking at. */
+  const WIND_FLOOR_KMH = WIND_CALM_MS * 3.6;
+  const windKmh = windRaw.map(a => windFloorSeries(a, WIND_FLOOR_KMH));
+  const clears = windRaw.map(a =>
+    a.some(v => v !== null && v !== undefined && v >= WIND_FLOOR_KMH));
   S.charts.wind = makeChart(document.getElementById('chart-wind'), [
     { label: 'Wind km/h', stroke: COL.wind, width: 1.5 },
     { label: 'Gust km/h', stroke: COL.gust, width: 1 },
   ], breakGaps(windD.ts, windKmh, gapThresholdS(windD.ts)), {
     uplot: {
+      /* Zero stays on the axis. Once everything under the floor is dropped,
+         uPlot auto-ranges to the first real gust — the axis started at 1.6
+         km/h, which put the threshold line off the bottom of the chart and
+         left the note pointing at a mark the reader could not see. A wind
+         axis that excludes zero is harder to read anyway: the distance from
+         calm is the thing being judged. */
+      scales: { y: { range: (u, dmin, dmax) =>
+        [0, Math.max(dmax === null || dmax === undefined ? 0 : dmax,
+                     WIND_FLOOR_KMH) * 1.1] } },
       /* The gap between sustained and gust IS the information. Filling it
          says "this is the range the wind moved in"; two spiky lines just read
          as noise (§8). Direction rides on top as arrows — a circular quantity
          cannot go on a linear axis without 350°→10° looking like a crash. */
       bands: [{ series: [2, 1], fill: cssVar('--ch-gust-fill') }],
-      plugins: nightPlugins(windDirArrows(windD.ts, windD.series.wind_dir_deg || [],
+      plugins: nightPlugins(hLine(WIND_FLOOR_KMH, 'anemometer threshold'),
+                            windDirArrows(windD.ts, windD.series.wind_dir_deg || [],
                                           windD.series.wind_gust_ms || [])),
     },
   });
+
+  /* The dashed line needs a sentence or it is just a mysterious mark. Three
+     cases, because they are three different facts about the day and only one
+     of them is "the instrument could see the wind". */
+  const wnote = document.getElementById('wind-note');
+  if (wnote) {
+    const f = WIND_FLOOR_KMH.toFixed(1);
+    wnote.textContent = !clears[1]
+      ? `Still all window — nothing reached the ${f} km/h the anemometer needs `
+        + `before its cups turn steadily.`
+      : !clears[0]
+      ? `Sustained wind stayed below the marked ${f} km/h threshold, where the `
+        + `cups stall, so only the gusts are drawn.`
+      : `Below the dashed ${f} km/h line the cups stall, and a reading there is `
+        + `quantisation rather than measurement.`;
+  }
 
   /* Sea level, matching the panel above. The two disagreed by 177 hPa while
      both were labelled "Pressure": the panel had been reduced to sea level and

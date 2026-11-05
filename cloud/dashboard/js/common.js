@@ -184,9 +184,15 @@ function windText(r) {
   return `${windArrow(r.wind_dir_deg)} ${Math.round(k)} km/h from ${dirName(r.wind_dir_deg)}`;
 }
 
+/* Same floor as everything else. A sub-threshold "gust" is one reed closure
+   in a 10 s gate, and this row was the last place still printing it as a
+   number — "Gust 1 km/h" directly under "Wind calm", next to a chart that
+   refuses to plot anything below 1.8. Says what is true instead of '—',
+   which would claim the reading is missing rather than too small. */
 function gustText(r) {
   const k = windKmh(r && r.wind_gust_ms);
   if (k === null) return '—';
+  if (r.wind_gust_ms < WIND_CALM_MS) return `under ${(WIND_CALM_MS * 3.6).toFixed(1)} km/h`;
   return `${Math.round(k)} km/h`;
 }
 
@@ -342,6 +348,24 @@ function breakGaps(ts, arrays, maxGapS, { dropNulls = false } = {}) {
    anything under this reads as calm rather than as a number implying
    precision the instrument does not have. Matches the API's ROSE_CALM_MS. */
 const WIND_CALM_MS = 0.5;
+
+/* The floor, applied to a plotted series. Below WIND_CALM_MS the cups are
+   stalled rather than turning slowly, so a value there is quantisation and not
+   a measurement: one reed closure in a 10 s gate is 0.067 m/s whatever the air
+   is doing. The hero already refuses to call that a gust and the direction
+   arrows already refuse to draw it; the chart was the last place still
+   plotting it as weather, which is what made a calm night look like a
+   malfunction. Null, not zero — "under the threshold" is not "no wind", and a
+   line pinned at zero asserts a reading the instrument never took.
+
+   The threshold itself is drawn with hLine(), the same dashed marker the PM
+   chart uses for the WHO guideline — a band shaded behind the data was tried
+   first and was both invisible against the card and confusable with the night
+   shading, which runs the other way. */
+function windFloorSeries(valsKmh, floorKmh) {
+  return valsKmh.map(v =>
+    (v === null || v === undefined || v < floorKmh) ? null : v);
+}
 
 /* Wind direction as arrows along the top of the wind chart, never as a line.
    Direction is circular: 350° → 10° is a 20° shift that a linear axis renders

@@ -188,3 +188,40 @@ irrelevant in practice, but it is still the first thing to reclaim in a REV1:
 gate the excitation from a spare pin and settle before sampling. Noted
 2026-07-13 during firmware bring-up planning; re-measured against the
 commercial vane 2026-10-31.
+
+## Anemometer pulse path — audited 2026-11-05, nothing is being missed
+
+The wind average sits at or near zero on the dashboard while gusts reach
+4–5 km/h, which looks exactly like dropped pulses. It is not. Every mechanism
+that could lose a closure was checked against the live data; the answer is
+that the cups are genuinely stationary most of the time at this site. Recorded
+here because the question will be asked again.
+
+| Risk | Why it does not bite |
+|---|---|
+| Pin interrupt dead in POWER-DOWN | `hal.c` sets `PORT_ISC_BOTHEDGES_gc`. On AVR that is the fully asynchronous sense, the one that wakes from power-down on **any** pin — `RISING`/`FALLING` are synchronous and would have been dead on a partially-async pin. The ISR then filters to the falling edge in software. This is the trap and it was already avoided. |
+| Both 5 V rails off between duties | The anemometer is a passive reed switch on the MCU's internal pull-up. It needs no rail. |
+| Multi-second sleeps collapsing a gate | PIT runs at 1 Hz (32.768 kHz ÷ 32 ÷ 32768) with `RUNSTDBY`, and the main loop catches up one `wind_second_tick()` per elapsed second rather than one per wake. |
+| Interrupts masked during radio TX | Only three short `ATOMIC_BLOCK`s, all around 16-bit reads. No long `cli()` anywhere, radio session included. |
+| Debounce ceiling | `ANEMO_MIN_EDGE_MS` 4 → 250 Hz → 167 m/s. Nowhere near limiting. |
+| 16-bit tick wrap in the debounce | Real, and the same flaw the rain path carries an explicit fix for — but the loss is window ÷ 65536, so 4/65536 = 0.006 % here against 150/65536 = 0.23 % for rain. That is why rain was fixed and this was not: ~0.1 pulses a day. |
+
+What the data says instead: at least 55 % (median) of a report's revolutions
+land in **one** of the thirty 10 s gates, where steady wind would put ~3 %. In
+77 of 264 reports the cups turned once or twice in five whole minutes. Gust
+factors run 30–60 against the 1.3–2.0 of real wind. That is a cup anemometer
+below its starting threshold: static friction holds it still until a puff
+breaks it loose, so every sub-threshold second contributes a hard zero to the
+average. The gusts themselves are real — they follow a textbook valley-breeze
+cycle, still at 05:00, peaking 12:00–14:00, gone by 19:00.
+
+One genuine bias, in the conservative direction: gusts use fixed back-to-back
+10 s gates, not a sliding window, so a gust straddling a boundary is split and
+under-reported by up to ~2×. Real gusts are if anything higher than reported.
+
+The cheapest real improvement is resolution, not pulse capture. `wind_cms()`
+returns whole cm/s, so one revolution in five minutes moves the average by
+0.22 cm/s and is truncated away — it takes ~4.5 revolutions to register 1 cm/s,
+which is why the 24 h average only ever takes five distinct values here.
+Reporting mm/s instead still fits `uint16` (65 m/s ceiling) and gives 10× the
+resolution. That is a protocol change, so it belongs with the next flash.
