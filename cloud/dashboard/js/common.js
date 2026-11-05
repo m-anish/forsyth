@@ -349,10 +349,9 @@ function breakGaps(ts, arrays, maxGapS, { dropNulls = false } = {}) {
    precision the instrument does not have. Matches the API's ROSE_CALM_MS. */
 const WIND_CALM_MS = 0.5;
 
-/* The floor, applied to a plotted series. Below WIND_CALM_MS the cups are
-   stalled rather than turning slowly, so a value there is quantisation and not
-   a measurement: one reed closure in a 10 s gate is 0.067 m/s whatever the air
-   is doing. The hero already refuses to call that a gust and the direction
+/* The floor, applied to a plotted series. Below WIND_CALM_MS a value is
+   quantisation and not a measurement: one reed closure in a 10 s gate reads as
+   0.067 m/s whatever the air is doing. The hero already refuses to call that a gust and the direction
    arrows already refuse to draw it; the chart was the last place still
    plotting it as weather, which is what made a calm night look like a
    malfunction. Null, not zero — "under the threshold" is not "no wind", and a

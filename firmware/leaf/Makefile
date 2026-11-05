@@ -56,6 +56,14 @@ ifdef DIAG_PULSE
 CFLAGS += -DDIAG_PULSE
 endif
 
+# Wind pulse diagnostic: keeps the REAL sleep and bucketing, unlike DIAG_PULSE.
+# LED: short = one revolution credited, long = a 10 s gate closed, flutter =
+# pulses lost between the ISR and the bucket. Boot signature is 4 flashes.
+#   make clean && make DIAG_WIND=1 && make flash PORT=...
+ifdef DIAG_WIND
+CFLAGS += -DDIAG_WIND
+endif
+
 # RF-link diagnostic: unconfigured (factory-default) E220, blind-send test
 # packets. Pair with the coordinator debug listener.
 #   make clean && make DIAG_LORATX=1 && make flash PORT=...

@@ -31,6 +31,15 @@
 /* ---------------- ISR-shared state -------------------------------------- */
 
 static volatile uint16_t v_anemo_pulses;    /* pulses this second            */
+#ifdef DIAG_WIND
+/* Free-running, never cleared, DIAG_WIND only. v_anemo_pulses is drained
+ * every second, so it cannot answer "how many did the ISR ever credit?" —
+ * which is exactly the number the bucketing has to preserve. The reject
+ * counter is the other half: it separates "the ISR never fired" from "the
+ * ISR fired and we threw the edge away", and those have different causes. */
+static volatile uint32_t v_anemo_total;
+static volatile uint32_t v_anemo_rej;
+#endif
 static volatile uint16_t v_rain_tips;       /* cumulative, wraps (protocol)  */
 static volatile uint8_t  v_as3935_flag;
 static volatile uint8_t  v_btn_wake;        /* button edge seen — wake & poll */
@@ -46,8 +55,17 @@ ISR(PORTA_PORT_vect)
         if (!(ANEMO_PORT.IN & ANEMO_bm) &&              /* falling edge only */
             (uint16_t)(now - last) >= ANEMO_MIN_EDGE_MS) {
             v_anemo_pulses++;
+#ifdef DIAG_WIND
+            v_anemo_total++;
+#endif
             last = now;
         }
+#ifdef DIAG_WIND
+        /* the edge reached the ISR but was not credited: either it was the
+         * rising half of the closure (expected — BOTHEDGES gives two per
+         * revolution and we want one), or the debounce rejected it */
+        else v_anemo_rej++;
+#endif
     }
     if (flags & RAIN_bm) {
         static uint16_t last;
@@ -568,6 +586,101 @@ int main(void)
             hal_led(1); hal_delay_ms(40); hal_led(0); hal_delay_ms(60);
         }
         hal_wdt_reset();
+    }
+#endif
+
+#ifdef DIAG_WIND
+    /* Wind pulse diagnostic (build with DIAG_WIND=1).
+     *
+     * DIAG_PULSE already blinks per credited pulse, but it runs with NO SLEEP
+     * and a 100 ms blocking blink, so it is a hand-speed bring-up test and it
+     * cannot see a fault that only happens while the MCU is in power-down.
+     * This mode keeps the REAL sleep and the REAL bucketing, because that is
+     * what is under suspicion: the reported average says the cups turn a few
+     * times in five minutes while they are visibly turning continuously.
+     *
+     * What the LED says:
+     *   SHORT flash (25 ms)   one revolution credited by the ISR
+     *   LONG  flash (250 ms)  a 10 s gate closed WITH revolutions in it
+     *   DOUBLE (2 x 120 ms)   a 10 s gate closed having credited nothing,
+     *                         though edges DID reach the ISR and were thrown
+     *                         away by the level test or the debounce
+     *   FLUTTER (6 x 40 ms)   pulses went missing AFTER the ISR counted them
+     *   4 flashes at boot     this build is running (2 = normal, 3 = DIAG_PULSE)
+     *
+     * Silence between gate marks and a DOUBLE are different faults: silence
+     * means no edge arrived at the pin at all (reed, cable, pull-up, or the
+     * pin not waking from power-down), a DOUBLE means the edge arrived and
+     * the firmware rejected it. Those are hours apart in the debugging.
+     *
+     * How to read it. Watch the cups and the LED together:
+     *
+     *  - One short flash per revolution, and roughly N short flashes between
+     *    two long ones where N = revolutions in 10 s? Then the ISR and the
+     *    bucketing are both fine and the fault is downstream — in the report
+     *    packet, the coordinator, or the cloud. Count the flashes between two
+     *    longs and multiply by 0.24 for km/h.
+     *  - Flashes missing revolutions? The ISR is not seeing every closure.
+     *    Cause is the reed, the cable, the pull-up, the RC, or the pin's
+     *    wake-from-power-down behaviour.
+     *  - FLUTTER at any point? The ISR counted them and the per-second
+     *    bucketing lost them. That is a firmware bug and this mode has caught
+     *    it; note roughly when it fluttered relative to the gate marks.
+     *
+     * No UART here on purpose: PB2/PB3 is the shared rail bus (see uart.h),
+     * and powering a rail to get a console would change the very conditions
+     * being measured.
+     *
+     * rep_secs is uint16 and wraps after ~18 h; this is a bench run, not a
+     * deployment, and nothing in the invariant below depends on it.         */
+    hal_led_blink(4, 80);
+    {
+        uint32_t seen = 0, last_s = g_uptime_s, lost_prev = 0, rej_prev = 0;
+        for (;;) {
+            hal_wdt_reset();
+
+            /* the production bucketing, catch-up loop and all */
+            while (last_s != g_uptime_s) {
+                last_s++;
+                uint32_t rep_before = wind.rep_pulses;
+                wind_second_tick();
+                /* gate_secs returns to 0 only on the tick that closes a gate */
+                if (wind.gate_secs == 0) {
+                    uint32_t rej;
+                    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { rej = v_anemo_rej; }
+                    if (wind.rep_pulses != rep_before) {
+                        hal_led(1); hal_delay_ms(250); hal_led(0);
+                    } else if (rej != rej_prev) {
+                        /* nothing credited this gate, yet edges arrived and
+                         * were discarded — not the same as a silent pin */
+                        hal_led_blink(2, 120);
+                    }
+                    rej_prev = rej;
+                }
+            }
+
+            uint32_t tot;
+            ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { tot = v_anemo_total; }
+
+            /* one short flash per newly credited revolution. Blocking, but
+             * only 70 ms per pulse: at a plausible 1-2 Hz that is well clear
+             * of the next edge, and the ISR keeps counting throughout
+             * regardless — a blink cannot cost a pulse. */
+            while (seen != tot) {
+                seen++;
+                hal_led(1); hal_delay_ms(25); hal_led(0); hal_delay_ms(45);
+            }
+
+            /* THE INVARIANT: every pulse the ISR credited is still held in
+             * the buckets, because nothing drains them in this mode. If this
+             * ever fails, the loss is between the ISR and the gate — which is
+             * the one span the dashboard numbers cannot distinguish. */
+            uint32_t bucketed = wind.rep_pulses + wind.gate_pulses;
+            uint32_t lost = tot - bucketed;
+            if (lost != lost_prev) { lost_prev = lost; hal_led_blink(6, 40); }
+
+            hal_sleep_powerdown();
+        }
     }
 #endif
 

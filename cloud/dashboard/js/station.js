@@ -188,12 +188,13 @@ async function drawCharts() {
   /* km/h, not m/s — nobody thinks in m/s (§7 units table). */
   const windRaw = ['wind_avg_ms', 'wind_gust_ms'].map(k =>
     (windD.series[k] || []).map(v => (v === null || v === undefined) ? null : v * 3.6));
-  /* Everything under the floor is a stalled cup, not a light wind, and is
-     dropped rather than drawn (windFloorSeries). At this site that usually
-     takes the whole sustained series with it, which is the honest answer: the
-     anemometer cannot resolve the wind here most of the time, and a line
-     wobbling at 0.1 km/h said otherwise. The threshold is marked on the chart
-     and the note under it says which case the reader is looking at. */
+  /* Everything under the floor is dropped rather than drawn
+     (windFloorSeries): at one reed closure per 10 s gate the number is
+     quantisation, not a measurement. At this site that usually takes the
+     whole sustained series with it, and a line wobbling at 0.1 km/h claimed
+     otherwise. WHY the sustained reading is that low is unresolved — see
+     firmware/leaf/README.md — but it is below what the instrument resolves
+     either way, which is all this chart needs to decide. */
   const WIND_FLOOR_KMH = WIND_CALM_MS * 3.6;
   const windKmh = windRaw.map(a => windFloorSeries(a, WIND_FLOOR_KMH));
   const clears = windRaw.map(a =>
@@ -229,14 +230,20 @@ async function drawCharts() {
   const wnote = document.getElementById('wind-note');
   if (wnote) {
     const f = WIND_FLOOR_KMH.toFixed(1);
+    /* Says what is measured, not why. An earlier wording blamed the cups for
+       stalling; the cups were then observed turning continuously, so that
+       explanation is wrong and is not something to assert to a reader while
+       it is still being chased (firmware/leaf/README.md, DIAG_WIND). Below
+       the floor one reed closure dominates the gate whatever the cause, and
+       that much is true either way. */
     wnote.textContent = !clears[1]
-      ? `Still all window — nothing reached the ${f} km/h the anemometer needs `
-        + `before its cups turn steadily.`
+      ? `Still all window — nothing rose above the ${f} km/h this anemometer `
+        + `can resolve.`
       : !clears[0]
-      ? `Sustained wind stayed below the marked ${f} km/h threshold, where the `
-        + `cups stall, so only the gusts are drawn.`
-      : `Below the dashed ${f} km/h line the cups stall, and a reading there is `
-        + `quantisation rather than measurement.`;
+      ? `Sustained wind stayed below the ${f} km/h the anemometer can resolve, `
+        + `so only the gusts are drawn.`
+      : `Below the dashed ${f} km/h line a reading is quantisation rather than `
+        + `measurement.`;
   }
 
   /* Sea level, matching the panel above. The two disagreed by 177 hPa while
