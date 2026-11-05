@@ -635,7 +635,8 @@ int main(void)
      * deployment, and nothing in the invariant below depends on it.         */
     hal_led_blink(4, 80);
     {
-        uint32_t seen = 0, last_s = g_uptime_s, lost_prev = 0, rej_prev = 0;
+        uint32_t seen = 0, last_s = g_uptime_s, rej_prev = 0;
+        uint8_t  flutter = 0;
         for (;;) {
             hal_wdt_reset();
 
@@ -646,8 +647,30 @@ int main(void)
                 wind_second_tick();
                 /* gate_secs returns to 0 only on the tick that closes a gate */
                 if (wind.gate_secs == 0) {
-                    uint32_t rej;
-                    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { rej = v_anemo_rej; }
+                    uint32_t tot, rej;
+                    uint16_t pend;
+                    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+                        tot  = v_anemo_total;
+                        rej  = v_anemo_rej;
+                        pend = v_anemo_pulses;   /* credited, not yet drained */
+                    }
+                    /* THE INVARIANT, and it must count the undrained
+                     * remainder. v_anemo_total moves the instant the ISR
+                     * credits a pulse; the buckets only catch up on the next
+                     * 1 Hz tick. Comparing the two without `pend` therefore
+                     * reports a loss on nearly every pulse — the first cut of
+                     * this mode did exactly that, fluttered continuously, and
+                     * the half-second of blocking blink it added per
+                     * iteration then made the catch-up loop close whole gates
+                     * empty, which manufactured the doubles as well. Both
+                     * symptoms were the instrument, not the firmware.
+                     *
+                     * Checked only here, at a gate boundary: a gate has just
+                     * drained, so this is the quiet point where the three
+                     * terms must add up exactly. */
+                    if (tot != wind.rep_pulses + wind.gate_pulses + pend)
+                        flutter = 1;
+
                     if (wind.rep_pulses != rep_before) {
                         hal_led(1); hal_delay_ms(250); hal_led(0);
                     } else if (rej != rej_prev) {
@@ -656,6 +679,10 @@ int main(void)
                         hal_led_blink(2, 120);
                     }
                     rej_prev = rej;
+
+                    /* at most one flutter per gate, so a real fault cannot
+                     * swamp the display the way the broken version did */
+                    if (flutter) { flutter = 0; hal_led_blink(6, 40); }
                 }
             }
 
@@ -670,14 +697,6 @@ int main(void)
                 seen++;
                 hal_led(1); hal_delay_ms(25); hal_led(0); hal_delay_ms(45);
             }
-
-            /* THE INVARIANT: every pulse the ISR credited is still held in
-             * the buckets, because nothing drains them in this mode. If this
-             * ever fails, the loss is between the ISR and the gate — which is
-             * the one span the dashboard numbers cannot distinguish. */
-            uint32_t bucketed = wind.rep_pulses + wind.gate_pulses;
-            uint32_t lost = tot - bucketed;
-            if (lost != lost_prev) { lost_prev = lost; hal_led_blink(6, 40); }
 
             hal_sleep_powerdown();
         }
