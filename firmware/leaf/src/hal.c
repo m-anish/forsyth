@@ -90,7 +90,28 @@ void hal_init(void)
     wdt_init();
     gpio_init();
     rtc_init();
-    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    /* ===================== DIAGNOSTIC — NOT SHIPPABLE =====================
+     * IDLE, not PWR_DOWN, to test one thing: whether the anemometer pin
+     * wakes the MCU at all while it sleeps.
+     *
+     * The evidence says it does not. Over a 47 s window of continuous
+     * rotation the leaf accepted 14 edges with a largest gap between
+     * consecutive accepts of 202 ticks (~197 ms) — so every one of those
+     * accepts fell inside at most ~2.6 s, and gates_hit=1 agrees. All 532
+     * edges arrived in the one stretch where the part is continuously
+     * awake, the radio session, and nothing at all reached the ISR for the
+     * other 44 seconds. DIAG_WIND counted perfectly for the same reason:
+     * its LED blinking kept the part awake.
+     *
+     * In IDLE the CPU stops but every clock keeps running, so pin interrupts
+     * are not in question. If counting comes right, sleep is the cause and
+     * STANDBY is the next thing to try for the power budget. If it does not,
+     * the theory is wrong and the pin is not the place to look.
+     *
+     * Costs milliamps. Revert to PWR_DOWN before this goes anywhere near a
+     * deployment.
+     * ==================================================================== */
+    set_sleep_mode(SLEEP_MODE_IDLE);
     sei();
 }
 
