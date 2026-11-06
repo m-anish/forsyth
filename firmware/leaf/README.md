@@ -189,52 +189,65 @@ gate the excitation from a spare pin and settle before sampling. Noted
 2026-07-13 during firmware bring-up planning; re-measured against the
 commercial vane 2026-10-31.
 
-## Anemometer pulse path — OPEN, and how to narrow it (2026-11-05)
+## Anemometer: two closures per revolution, and the 2x it caused
 
-The dashboard reports a sustained wind of 0.01–0.04 m/s while gusts reach
-4–5 km/h. Reading the code alone, that looked like a cup anemometer sitting
-below its starting threshold: stalled most of the time, spun up by puffs. The
-risk table below is still correct — every mechanism that could silently drop a
-closure was checked and none of them bites.
+**Settled 2026-11-06 with `DIAG_WIND`.** The dashboard reported a sustained
+wind near zero against gusts of 4–5 km/h. Reading the code, that looked like
+cups stalled below their starting threshold. Then Anish watched the cups:
+they rotate continuously. The diagnostic firmware then showed the LED
+blinking **twice per revolution, 180 degrees apart** — two magnets, two reed
+closures per turn, evenly spaced rather than one closure counted twice.
 
-**Then Anish watched the cups. They rotate continuously and barely stop.**
+### What that fixed
 
-That settles it against the stall explanation, and it means a pulse is going
-missing somewhere the code audit did not reach. Continuous rotation at a
-plausible ~1.25 Hz is 375 revolutions in a 300 s report; the leaf reports a
-number consistent with 4–18. The audit below was reasoning from the source and
-the symptom; the cups are evidence, and evidence wins.
+`ANEMO_MS_PER_HZ_X1000` was 667, chosen from the datasheet's English line
+("2.4 km/h causes the switch to close once per second") with the Chinese
+line's 0.33 m/s per closure dismissed, on the grounds that it "would be right
+only if the rotor closed the reed twice per turn". It does. The old comment
+even named the condition that would overturn it, and then recorded the
+opposite as settled on a 2026-10-31 check that was simply wrong.
 
-### What is ruled out
+The two texts actually agree once "closure" is read carefully: 0.667 m/s per
+**revolution**-Hz, two closures per revolution, therefore **0.333 m/s per
+closure-Hz**. The firmware counts closures, so the constant is now **333**.
+
+**Every wind reading this leaf has ever produced is 2x high.** Both
+`wind_avg` and `wind_gust`, back to first light. Anything comparing data from
+before 2026-11-06 with data after it has to halve the earlier half, and any
+calibration conclusion drawn from the old numbers is void.
+
+### What was ruled out along the way
 
 | Risk | Why it does not bite |
 |---|---|
-| Pin interrupt dead in POWER-DOWN | `hal.c` sets `PORT_ISC_BOTHEDGES_gc`. On AVR that is the fully asynchronous sense, the one that wakes from power-down on **any** pin — `RISING`/`FALLING` are synchronous and would have been dead on a partially-async pin. The ISR then filters to the falling edge in software. This is the classic trap and it was already avoided. |
-| Both 5 V rails off between duties | The anemometer is a passive reed switch on the MCU's internal pull-up. It needs no rail. |
-| Multi-second sleeps collapsing a gate | PIT runs at 1 Hz (32.768 kHz ÷ 32 ÷ 32768) with `RUNSTDBY`, and the main loop catches up one `wind_second_tick()` per elapsed second rather than one per wake. |
-| Interrupts masked during radio TX | Only three short `ATOMIC_BLOCK`s, all around 16-bit reads. No long `cli()` anywhere, radio session included. |
-| Debounce ceiling | `ANEMO_MIN_EDGE_MS` 4 → 250 Hz → 167 m/s. Nowhere near limiting. |
-| 16-bit tick wrap in the debounce | Real, and the same flaw the rain path carries an explicit fix for — but the loss is window ÷ 65536, so 4/65536 = 0.006 % here against 150/65536 = 0.23 % for rain. That is why rain was fixed and this was not: ~0.1 pulses a day. |
+| Pin interrupt dead in POWER-DOWN | `hal.c` sets `PORT_ISC_BOTHEDGES_gc`, the fully asynchronous sense that wakes from power-down on **any** pin. `RISING`/`FALLING` are synchronous and would have been dead on a partially-async pin. The ISR filters to the falling edge in software. The classic trap, already avoided. |
+| Both 5 V rails off between duties | The anemometer is a passive reed on the MCU's internal pull-up. It needs no rail. |
+| Multi-second sleeps collapsing a gate | PIT runs at 1 Hz with `RUNSTDBY`, and the main loop catches up one `wind_second_tick()` per elapsed second, not one per wake. |
+| Interrupts masked during radio TX | Three short `ATOMIC_BLOCK`s around 16-bit reads. No long `cli()` anywhere. |
+| Debounce double-counting one closure | Ruled out by the 180-degree spacing: a bounce would pair the flashes, not space them evenly. `ANEMO_MIN_EDGE_MS` stays at 4. |
+| 16-bit tick wrap in the debounce | Real, but the loss is window ÷ 65536: 4/65536 = 0.006 % here against 150/65536 = 0.23 % for rain. That is why rain was fixed and this was not — ~0.1 pulses a day. |
+| Coordinator scaling | `wind_avg_ms` and `wind_gust_ms` are both ×0.01 (cm/s on the wire), so the avg/gust asymmetry on the dashboard was never a unit bug. |
+| Pin reconfigured later | `ANEMO_CTRL` is written once in `hal_init()` and never touched again. |
 
-### What is still suspect
+### Still open: the near-zero averages
 
-Something between the reed closing and the number in the report packet. The
-span splits into three, and `DIAG_WIND` tells them apart without a serial
-console:
+Halving the constant does not explain them. A gust is a `max` over 10 s gates
+and survives sparse data; the average is a `sum` over the 300 s report and
+collapses. So most production gates were empty while every diag gate was
+full. That may not be a fault at all — the 24 h sample was mostly genuine
+night calm and the diag run was at peak afternoon valley-breeze. **Settle it
+by comparing the dashboard against a DIAG_WIND flash count in the same
+wind**, not by reasoning about it.
 
-1. **The edge never reaches the ISR** — reed, cable, pull-up, the board RC, or
-   a wake-from-power-down behaviour the datasheet reading did not predict.
-2. **The ISR sees it and discards it** — the falling-edge level test or the
-   `ANEMO_MIN_EDGE_MS` debounce.
-3. **The ISR credits it and the bucketing loses it** — somewhere between
-   `v_anemo_pulses` and `wind.rep_pulses`.
+Also worth doing: `wind_cms()` returns whole cm/s, so at this site the 24 h
+average only ever takes a handful of distinct values. Reporting mm/s instead
+still fits `uint16` (65 m/s ceiling) and gives 10x the resolution.
 
 ### `make DIAG_WIND=1` — the instrument
 
-`DIAG_PULSE` cannot answer this: it runs with **no sleep** and a 100 ms
-blocking blink, so it is a hand-speed bring-up test. `DIAG_WIND` keeps the
-real power-down sleep and the real per-second bucketing, because the sleeping
-path is the suspect.
+`DIAG_PULSE` cannot answer questions like these: it runs with **no sleep** and
+a 100 ms blocking blink, so it is a hand-speed bring-up test. `DIAG_WIND`
+keeps the real power-down sleep and the real per-second bucketing.
 
 ```
 make clean && make DIAG_WIND=1 && make flash PORT=/dev/tty.usbserial-…
@@ -243,39 +256,34 @@ make clean && make DIAG_WIND=1 && make flash PORT=/dev/tty.usbserial-…
 | LED | Meaning |
 |---|---|
 | 4 flashes at boot | this build is running (2 = normal, 3 = `DIAG_PULSE`) |
-| short, 25 ms | one revolution credited by the ISR |
-| long, 250 ms | a 10 s gate closed **with** revolutions in it |
-| double, 2 × 120 ms | a gate closed having credited nothing, **though edges did reach the ISR** and were discarded |
-| flutter, 6 × 40 ms | pulses went missing *after* the ISR counted them |
+| short, 25 ms | one closure credited by the ISR |
+| long, 250 ms | a 10 s gate closed **with** closures in it |
+| double, 2 × 120 ms | a gate credited nothing, **though edges did reach the ISR** and were discarded |
+| flutter, 6 × 40 ms | closures went missing *after* the ISR counted them |
 
-Watch the cups and the LED together:
+Count the shorts between two longs: that is N closures per 10 s. **× 0.12
+gives km/h** — N/10 closure-Hz × 0.333 m/s × 3.6. Two closures per
+revolution, so the cups turned N/2 times in those 10 s.
 
-- **One short flash per revolution**, and N shorts between two longs where N is
-  the revolutions in 10 s → cases 1–3 are all clear and the fault is
-  downstream, in the report packet, the coordinator or the cloud. N × 0.24 is
-  the km/h the firmware thinks it is seeing.
-- **Flashes missing revolutions, no doubles** → case 1. The edge is not
-  arriving. Electrical, or the pin is not waking.
-- **Doubles** → case 2. Edges arrive and the firmware throws them away.
-- **Flutter** → case 3, a firmware bug in the bucketing, and it has just been
-  caught red-handed.
+Silence between gate marks and a double are different faults — "no edge
+arrived" versus "an edge arrived and we binned it" look identical from the
+dashboard and are hours apart in the debugging.
 
-Silence and a double are different faults, which is the whole reason the
-reject counter exists: "no edge arrived" and "an edge arrived and we binned
-it" look identical from the dashboard and are hours apart in the debugging.
+**A diagnostic can lie.** The first cut of this mode compared an instant ISR
+counter against buckets that only update at 1 Hz, so it reported its own
+sampling lag as a fault: it fluttered continuously, and the half-second
+blocking blink it then ran every iteration made the catch-up loop close whole
+gates empty, which manufactured the doubles too. One bug, two false symptoms,
+both pointing at innocent code. The invariant now includes the undrained
+remainder in `v_anemo_pulses` and is checked only at a gate boundary.
 
-### One bias that is real but conservative
+### Flashing gotchas that cost time here
 
-Gusts use fixed back-to-back 10 s gates, not a sliding window, so a gust
-straddling a boundary is split across two gates and under-reported by up to
-~2×. Real gusts are if anything higher than reported. This does not explain
-the average.
-
-### Worth doing regardless of the outcome
-
-`wind_cms()` returns whole cm/s, so one revolution in five minutes moves the
-average by 0.22 cm/s and is truncated away — it takes ~4.5 revolutions to
-register 1 cm/s, which is why a 24 h average only ever takes a handful of
-distinct values at this site. Reporting mm/s instead still fits `uint16`
-(65 m/s ceiling) and gives 10× the resolution. Protocol change, so it belongs
-with the next flash.
+- The **UPDI adapter flaps**: it drops off the USB bus and re-enumerates
+  ~8 s later. Expect several retries per flash; it is not a dead board.
+  `tty.*` and `cu.*` perform identically (12/12 each), so that is not the
+  variable.
+- `make flash` alone flashes **whatever is already in `build/`**. Restoring
+  production after a diag session needs
+  `make clean && make STATION_ID=1 && make flash PORT=…`, or the station
+  silently stays dark while looking flashed.

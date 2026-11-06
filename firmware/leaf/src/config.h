@@ -57,32 +57,42 @@
                                         gust is a 3 s mean; 10 s is the power-
                                         friendly compromise. Continuous
                                         back-to-back buckets, no dead time.   */
-#define ANEMO_MS_PER_HZ_X1000 667    /* [E 0x06] m/s per pulse-Hz ×1000.
+#define ANEMO_MS_PER_HZ_X1000 333    /* [E 0x06] m/s per CLOSURE-Hz ×1000.
                                         SparkFun SEN-15901 / Fine Offset cup
-                                        set: the datasheet's English text says
-                                        "a wind speed of 2.4 km/h causes the
-                                        switch to close once per second", and
-                                        SparkFun's own documentation gives the
-                                        same figure as 1.492 mph. 2.4 km/h =
-                                        0.6667 m/s per Hz -> 667.
+                                        set. This counts reed CLOSURES, which
+                                        is the distinction the value turns on.
                                         WAS 2400, a Davis-style cup default,
-                                        which over-reported this meter by 3.6x
-                                        (it read the 2.4 as m/s, not km/h).
-                                        SETTLED, don't re-litigate: the same
-                                        datasheet's Chinese text says 0.33 m/s
-                                        per closure, exactly half, which would
-                                        be right only if the rotor closed the
-                                        reed twice per turn. Anish confirmed
-                                        the rotor closes it ONCE per
-                                        revolution (2026-10-31), so that line
-                                        is simply wrong for this unit and 667
-                                        is the calibrated value, not a guess.
-                                        What is still open is the CUP
-                                        aerodynamics, which only a side-by-side
-                                        against a reference anemometer in
-                                        steady wind can check [B]. TLV 0x06
-                                        makes that a message, not a ladder
-                                        trip.                                 */
+                                        which over-reported by 3.6x (it read
+                                        the datasheet's 2.4 as m/s, not km/h).
+                                        THEN 667, from the English text's "a
+                                        wind speed of 2.4 km/h causes the
+                                        switch to close once per second"
+                                        (2.4 km/h = 0.667 m/s), with the
+                                        Chinese text's 0.33 m/s per closure
+                                        dismissed as wrong because the rotor
+                                        was believed to close the reed once
+                                        per revolution. That belief was the
+                                        error, and the 2026-10-31 check that
+                                        produced it was mistaken.
+                                        MEASURED 2026-11-06 with DIAG_WIND:
+                                        the LED blinks TWICE per revolution,
+                                        180 degrees apart — two magnets, two
+                                        closures per turn. That reconciles the
+                                        datasheet instead of contradicting it:
+                                        0.667 m/s per REVOLUTION-Hz and two
+                                        closures per revolution IS 0.333 m/s
+                                        per closure-Hz, so both texts describe
+                                        the same meter and the English one is
+                                        loose about what "once" counts.
+                                        Everything this leaf has ever reported
+                                        is therefore 2x high; see
+                                        firmware/leaf/README.md before
+                                        comparing old data with new.
+                                        Still open: the CUP aerodynamics,
+                                        which only a side-by-side against a
+                                        reference anemometer in steady wind
+                                        can check [B]. TLV 0x06 makes that a
+                                        message, not a ladder trip.          */
 #define ANEMO_MIN_EDGE_MS   4        /* [C] ISR-level noise gate; the board RC
                                         (τ≈7 ms vs internal pull-up) already
                                         rounds edges — see board-a §6 item 5  */
