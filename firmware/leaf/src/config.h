@@ -53,29 +53,30 @@
                                         mean; below that a single stray pulse
                                         in a 1 s remainder would report a
                                         0.67 m/s gust out of nothing.          */
-#define RADIO_SETTLE_MS     400      /* [C] quiet pause between the module
-                                        reporting ready (AUX high) and the
-                                        first TX burst.
-                                        NOT for the bulk cap: 100-220 uF
-                                        through the TPS61023 charges in about
-                                        a millisecond, so it is full long
-                                        before AUX rises. This is for the
-                                        CELL. Power-on inrush plus the
-                                        module's boot current sag a LiFePO4
-                                        through its internal resistance, and
-                                        the ~110-190 mA TX pulse lands on top
-                                        of whatever is left; letting the cell
-                                        relax first is the cheap half of not
-                                        browning out at the pulse.
-                                        It is a settle delay AFTER the AUX
-                                        wait, never instead of one — blind
-                                        delays in place of two-edge AUX waits
-                                        are precisely the lokki failure
-                                        (hardware/architecture.md §3).
-                                        Costs 400 ms per report: at the 300 s
-                                        default that is 0.13 % duty, which is
-                                        nothing against a radio session
-                                        already running up to ~4 s.          */
+#define RADIO_BOOST_DELAY_MS 25     /* [C] quiet gap between reset and
+                                        raising TPS61023 EN for the E220's
+                                        5 V rail.
+                                        At reset the MCU's own start-up pulls
+                                        VDD down; stacking the boost's inrush
+                                        (charging 100-220 uF) on top of that
+                                        is what a 2.6 V BOD trips on, and the
+                                        reset that follows repeats it
+                                        forever. A few tens of ms lets VDD
+                                        come back before the rail is asked
+                                        for anything.
+                                        Raised at BOOT and then left up, so
+                                        the boost, the cap and the module all
+                                        settle during sensor init instead of
+                                        in front of the first transmit. The
+                                        module is idle (~10-15 mA) for that
+                                        extra ~0.5 s, once per boot only —
+                                        radio_off() still drops the rail at
+                                        the end of the session and later
+                                        sessions power it on demand.
+                                        REPLACED RADIO_SETTLE_MS (400 ms
+                                        before the TX burst), which was the
+                                        same idea aimed at the wrong moment
+                                        and measured as not helping.        */
 #define WIND_GATE_S         10       /* [C] gust bucket width, seconds. WMO
                                         gust is a 3 s mean; 10 s is the power-
                                         friendly compromise. Continuous

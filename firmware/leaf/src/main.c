@@ -247,20 +247,13 @@ static void apply_tlvs(const uint8_t *p, uint8_t n_tlv, uint8_t avail)
     if (reboot) { cfg_save(); while (1) {} }   /* watchdog does the reset    */
 }
 
-/* One full radio session: power up, ensure NVRAM, settle, TX (with retries
- * when an ACK is expected), harvest the ACK's TLVs, power down. Radio is on
- * for roughly 4-4.5 s total at default settings — RADIO_SETTLE_MS is 400 ms
- * of that, spent deliberately idle before the burst.                        */
+/* One full radio session: power up, ensure NVRAM, TX (with retries when an
+ * ACK is expected), harvest the ACK's TLVs, power down. Radio is on for
+ * well under ~4 s total at default settings.                                */
 static uint8_t radio_session(const uint8_t *frame, uint8_t len)
 {
     if (!radio_on()) return 0;
     radio_ensure_nvram();
-    /* Let the cell come back up before the PA pulls on it. radio_on() has
-     * already waited on AUX, and radio_ensure_nvram() is low-current UART
-     * config, so the supply has been loaded but not yet hit hard. The pause
-     * goes HERE, immediately before the burst, rather than earlier in the
-     * sequence where it would only delay work that costs little. */
-    hal_delay_ms(RADIO_SETTLE_MS);
     uint8_t ok = 0;
     for (uint8_t attempt = 0; attempt <= TX_RETRIES && !ok; attempt++) {
         if (!radio_tx(frame, len)) continue;
@@ -778,6 +771,24 @@ int main(void)
         hal_wdt_reset();
     }
 #endif
+
+    /* Radio rail up FIRST, and deliberately early. The boot loop this
+     * guards against is a brown-out: the BOD trips when the boost's inrush
+     * lands on a VDD still recovering from the MCU's own reset, and the
+     * reset it causes reproduces the conditions exactly, forever.
+     *
+     * Two things matter. The short gap before EN lets VDD recover from the
+     * reset itself. Raising the rail now, rather than inside the first
+     * radio_session(), then gives the boost, the 100-220 uF bulk cap and the
+     * module's own boot the whole of sensor init to settle, instead of
+     * cramming all three in just ahead of the transmit.
+     *
+     * uart_init() has to come with it: gpio_init() parks UART_TX LOW while
+     * the rails are down, which becomes a continuous break on the module's
+     * RX the moment it is powered. The USART idles the line high. */
+    hal_delay_ms(RADIO_BOOST_DELAY_MS);
+    rail_radio_on();
+    uart_init();
 
     cfg_load();
     twi_init();

@@ -105,13 +105,15 @@ flash: $(BUILD)/$(TARGET).hex
 
 # Fuses: factory defaults are right except BODCFG, which we now set.
 #
-#   BODCFG = 0x44  (was 0x00, BOD fully off)
-#       LVL      bits 7:5 = 0b010 -> 2.6 V  (only 1.8 / 2.6 / 4.2 exist; 4.2 is
-#                                            above the cell, 1.8 is the MCU's
-#                                            own floor and so catches nothing
-#                                            until the part is already lost)
+#   BODCFG = 0x24  (was 0x44 = 2.6 V; before that 0x00, BOD fully off)
+#       LVL      bits 7:5 = 0b001 -> 2.15 V
 #       ACTIVE   bits 3:2 = 0b01  -> enabled, continuous
 #       SLEEP    bits 1:0 = 0b00  -> disabled
+#
+#   EIGHT levels exist, not three. This comment used to say "only 1.8 / 2.6 /
+#   4.2 exist", which is wrong and cost real debugging: datasheet 7.8.2.2
+#   lists 1.8 / 2.15 / 2.60 / 2.95 / 3.30 / 3.70 / 4.00 / 4.30 V at LVL 0..7.
+#   2.15 V was there the whole time and is the level this design wanted.
 #
 #   Why: BOD off was a deliberate call — the firmware's soft-UVLO
 #   (BATT_CRIT_MV) plus the BMS parachute cover *slow* undervoltage. They do
@@ -120,15 +122,26 @@ flash: $(BUILD)/$(TARGET).hex
 #   simply hangs, leaving no trace, until the rail recovers. That is the
 #   unexplained "button stops responding" symptom. BOD turns it into a clean
 #   reset that reports itself as BORF (0x02) in the STATUS packet's
-#   reset_cause. 2.6 V sits between the 2.8 V soft-UVLO and the ~2.4 V BMS cut,
-#   so normal operation never reaches it.
+#   reset_cause.
+#
+#   Why 2.15 and not 2.6: the original reasoning — sit between the 2.8 V
+#   soft-UVLO and the ~2.4 V BMS cut so normal operation never reaches it —
+#   is right, and 2.15 V still satisfies it by being below the BMS cut. What
+#   2.6 V did NOT survive is the TRANSIENT: the boost inrush plus the E220 TX
+#   pulse drag VDD through 2.6 V momentarily even on a healthy cell, and the
+#   BOD then resets into the same sequence, forever (observed 2026-11-06,
+#   ~0.7 s loop period). 2.15 V buys 0.45 V of sag headroom while keeping
+#   0.35 V above the MCU's 1.8 V floor, so it still fires before the part is
+#   out of spec — which was the real objection to 1.8 V, and remains valid.
+#   If a loop survives 2.15 V, 1.8 V (0x04) is the next step and the core is
+#   still in spec there at 5 MHz (see hal.c clock_init).
 #
 #   Cost: BOD draws current only in ACTIVE mode, and the leaf is asleep for
 #   ~99 % of its duty cycle, so the sleep floor is untouched. SLEEP=disabled
 #   makes that explicit rather than relying on it.
 #
 #   Set it (once per chip):
-#     pymcuprog write -t uart -u $(PORT) -d $(MCU) -m fuses -o 1 -l 0x44
+#     pymcuprog write -t uart -u $(PORT) -d $(MCU) -m fuses -o 1 -l 0x24
 #   Revert to no BOD:
 #     pymcuprog write -t uart -u $(PORT) -d $(MCU) -m fuses -o 1 -l 0x00
 #   Verify what's on the part:
