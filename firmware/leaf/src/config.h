@@ -119,7 +119,19 @@
                                         message, not a ladder trip.          */
 #define ANEMO_MIN_EDGE_MS   4        /* [C] ISR-level noise gate; the board RC
                                         (τ≈7 ms vs internal pull-up) already
-                                        rounds edges — see board-a §6 item 5  */
+                                        rounds edges — see board-a §6 item 5.
+                                        Now applied to EVERY edge, not just
+                                        credited ones, since the ISR counts
+                                        edges and takes every second rather
+                                        than reading the pin level. The
+                                        ceiling is one edge per 4 ms = 125
+                                        closures/s ≈ 41 m/s, far above
+                                        anything real. Whether 4 ms is long
+                                        enough for this reed is now MEASURED,
+                                        not assumed: rej_edges in the verbose
+                                        wind diagnostic counts exactly what
+                                        it suppresses. Raise it only if that
+                                        number is large.                     */
 
 /* ================= rain ================================================= */
 #define RAIN_DEBOUNCE_MS    150      /* [C] min gap between counted tips, in

@@ -55,16 +55,39 @@ ISR(PORTA_PORT_vect)
 
     if (flags & ANEMO_bm) {
         static uint16_t last;
-        if (!(ANEMO_PORT.IN & ANEMO_bm) &&              /* falling edge only */
-            (uint16_t)(now - last) >= ANEMO_MIN_EDGE_MS) {
-            v_anemo_pulses++;
-#ifdef DIAG_WIND
-            v_anemo_total++;
-#endif
+        static uint8_t  half;   /* two edges make one closure */
+        /* COUNT EDGES, NEVER READ THE LEVEL.
+         *
+         * This used to credit an edge only if the pin still read LOW, to
+         * pick the falling half out of BOTHEDGES. That test races the
+         * wake-up: PA4 is not a fully asynchronous pin, so coming out of
+         * power-down the clock has to restart before the ISR runs, and a
+         * reed that has already reopened reads HIGH and gets thrown away as
+         * a rising edge. Measured 2026-11-06 under continuous rotation: 414
+         * edges rejected against 10 credited, where the design expects 1:1.
+         * It worked whenever the MCU happened to be awake — during a radio
+         * session, or with DIAG_WIND's LED blinking — which is exactly why
+         * the diagnostic build counted perfectly and production did not.
+         *
+         * A closure always produces exactly two edges, so counting every
+         * debounced edge and taking every second one is the same number
+         * without sampling anything after the fact. If an edge is ever lost
+         * the phase flips, which costs nothing: the RATE is still one count
+         * per two edges. g_cfg.anemo_ms_per_hz_x1000 is per CLOSURE, so it
+         * is unchanged by this. */
+        if ((uint16_t)(now - last) >= ANEMO_MIN_EDGE_MS) {
             last = now;
+            half ^= 1;
+            if (!half) {
+                v_anemo_pulses++;
+#ifdef DIAG_WIND
+                v_anemo_total++;
+#endif
+            }
         }
-        /* the edge reached the ISR but was not credited: either the rising
-         * half of the closure (expected), or the debounce rejected it */
+        /* Now purely a bounce meter: edges suppressed by the debounce. With
+         * a clean reed this should sit near zero, and anything large says
+         * ANEMO_MIN_EDGE_MS is too short for this switch. */
         else if (v_anemo_rej != 0xFFFF) v_anemo_rej++;
     }
     if (flags & RAIN_bm) {
