@@ -168,8 +168,18 @@ void hal_sleep_powerdown(void)
      * FAST: 20 MHz/64 = 312.5 kHz still samples the pin every 3.2 us,
      * against reed closures lasting milliseconds — about a thousandfold
      * margin — and the interrupt dead-time of three cycles is 9.6 us
-     * against a 4 ms floor between edges. Standby current tracks frequency,
-     * so this should take roughly 16x off the price.
+     * against a 4 ms floor between edges.
+     *
+     * MEASURED 2026-11-06, no rails energised, vane untouched:
+     *     470 uA  POWER_DOWN, TCB0 off  (cannot count wind at all)
+     *    1000 uA  STANDBY at 5 MHz      -> costs 530 uA
+     *     708 uA  STANDBY at 312.5 kHz  -> costs 238 uA
+     * So the drop is worth 292 uA. I predicted 16x on the theory that
+     * standby current tracks frequency; it is 2.2x, because PDIV only
+     * DIVIDES the oscillator's output and does not stop the oscillator.
+     * OSC20M runs at 20 MHz either way and its own draw is a floor the
+     * prescaler cannot touch — only the clock tree and TCB0 scale. Keep the
+     * two writes regardless: 292 uA is more than the whole feature costs.
      *
      * Restored IMMEDIATELY on wake, before the main loop can reach anything
      * that cares: both the USART baud divisor and _delay_ms() are derived
@@ -178,11 +188,15 @@ void hal_sleep_powerdown(void)
      * runs slower, which the PIT handler does not mind.
      *
      * The RTC/PIT and the WDT have their own oscillators and are untouched. */
+#ifndef DIAG_IDLE_FAST
     _PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, CLKCTRL_PDIV_64X_gc | CLKCTRL_PEN_bm);
+#endif
     sleep_enable();
     sleep_cpu();
     sleep_disable();
+#ifndef DIAG_IDLE_FAST
     _PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, CLKCTRL_PDIV_4X_gc | CLKCTRL_PEN_bm);
+#endif
 }
 
 void hal_wdt_reset(void) { wdt_reset(); }

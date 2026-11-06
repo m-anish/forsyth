@@ -67,6 +67,12 @@ endif
 ifdef DIAG_IDLE_PD
 CFLAGS += -DDIAG_IDLE_PD
 endif
+# ...and one more: STANDBY without the 312.5 kHz drop, to find out what the
+# prescaler is actually worth rather than asserting 16x.
+#   make clean && make DIAG_IDLE=1 DIAG_IDLE_FAST=1
+ifdef DIAG_IDLE_FAST
+CFLAGS += -DDIAG_IDLE_FAST
+endif
 
 # Wind pulse diagnostic: keeps the REAL sleep and bucketing, unlike DIAG_PULSE.
 # LED: short = one revolution credited, long = a 10 s gate closed, flutter =
