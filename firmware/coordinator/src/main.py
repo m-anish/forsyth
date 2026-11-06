@@ -144,6 +144,10 @@ def _handle_frame(radio, up, payload, rssi):
                   % (slug, msg["seq"], rssi, flags,
                      {k: v for k, v in r.items() if k != "ts"}))
         if "vane_adc" in msg:
+            if "wind_diag" in msg:
+                g, gap, rej = msg["wind_diag"]
+                print("   wind: gates_hit=%d max_gap=%ds rej_edges=%d"
+                      % (g, gap, rej))
             print("   diag: vane_adc=%d mcu_temp=%s"
                   % (msg["vane_adc"], msg.get("mcu_temp_c")))
         # Raw cumulative tips, not mm. During a manual tipping test this is the

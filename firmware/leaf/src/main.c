@@ -31,14 +31,17 @@
 /* ---------------- ISR-shared state -------------------------------------- */
 
 static volatile uint16_t v_anemo_pulses;    /* pulses this second            */
+/* Edges that reached the ISR and were NOT credited: the rising half of each
+ * closure (expected — BOTHEDGES gives two per closure and we want one), plus
+ * anything the debounce rejected. Separates "no edge arrived at all" from
+ * "an edge arrived and we binned it", which look identical from the outside
+ * and have completely different causes. Reported verbose via FLP_R_WINDDIAG
+ * and cleared each report. */
+static volatile uint16_t v_anemo_rej;
 #ifdef DIAG_WIND
 /* Free-running, never cleared, DIAG_WIND only. v_anemo_pulses is drained
- * every second, so it cannot answer "how many did the ISR ever credit?" —
- * which is exactly the number the bucketing has to preserve. The reject
- * counter is the other half: it separates "the ISR never fired" from "the
- * ISR fired and we threw the edge away", and those have different causes. */
+ * every second, so it cannot answer "how many did the ISR ever credit?" */
 static volatile uint32_t v_anemo_total;
-static volatile uint32_t v_anemo_rej;
 #endif
 static volatile uint16_t v_rain_tips;       /* cumulative, wraps (protocol)  */
 static volatile uint8_t  v_as3935_flag;
@@ -60,12 +63,9 @@ ISR(PORTA_PORT_vect)
 #endif
             last = now;
         }
-#ifdef DIAG_WIND
-        /* the edge reached the ISR but was not credited: either it was the
-         * rising half of the closure (expected — BOTHEDGES gives two per
-         * revolution and we want one), or the debounce rejected it */
-        else v_anemo_rej++;
-#endif
+        /* the edge reached the ISR but was not credited: either the rising
+         * half of the closure (expected), or the debounce rejected it */
+        else if (v_anemo_rej != 0xFFFF) v_anemo_rej++;
     }
     if (flags & RAIN_bm) {
         static uint16_t last;
@@ -113,6 +113,8 @@ static struct {
     uint16_t gate_pulses, gate_secs;
     uint32_t rep_pulses;  uint16_t rep_secs;
     uint16_t max_gate_pulses;
+    uint8_t  gates_hit;      /* completed gates that saw >=1 closure        */
+    uint8_t  max_gap;        /* worst seconds between catch-ups, saturating */
 } wind;
 
 static void wind_second_tick(void)
@@ -123,6 +125,9 @@ static void wind_second_tick(void)
     if (++wind.gate_secs >= WIND_GATE_S) {
         if (wind.gate_pulses > wind.max_gate_pulses)
             wind.max_gate_pulses = wind.gate_pulses;
+        /* a gate that saw anything at all. Spread tells rotation from a
+         * one-gate burst, which the speeds alone cannot. */
+        if (wind.gate_pulses && wind.gates_hit != 0xFF) wind.gates_hit++;
         wind.rep_pulses += wind.gate_pulses;
         wind.rep_secs   += wind.gate_secs;
         wind.gate_pulses = wind.gate_secs = 0;
@@ -374,6 +379,10 @@ static void do_report(void)
         uint16_t partial = wind_cms(wind.gate_pulses, wind.gate_secs);
         if (partial > gust_cms) gust_cms = partial;
     }
+    uint8_t  dg_gates = wind.gates_hit;
+    uint8_t  dg_gap   = wind.max_gap;
+    uint16_t dg_rej;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { dg_rej = v_anemo_rej; v_anemo_rej = 0; }
     memset(&wind, 0, sizeof wind);
     mask |= FLP_R_WAVG | FLP_R_WGUST;
     po = flp_put16(payload, po, wind_cms(pulses, secs));
@@ -427,6 +436,15 @@ static void do_report(void)
         mask |= FLP_R_VANEADC | FLP_R_MCUTEMP;
         po = flp_put16(payload, po, vadc);
         po = flp_put16(payload, po, (uint16_t)adc_read_mcu_temp_x100());
+        /* Why the wind numbers look the way they do. gates_hit separates a
+         * real spread-out wind from everything landing in one gate;
+         * max_gap_s catches a main loop stalled long enough to dump several
+         * seconds of closures into a single gate and fake exactly that; rej
+         * says whether edges are arriving and being discarded. */
+        mask |= FLP_R_WINDDIAG;
+        po = flp_put8(payload, po, dg_gates);
+        po = flp_put8(payload, po, dg_gap);
+        po = flp_put16(payload, po, dg_rej);
     }
     if (st_strikes || st_disturbers || st_noise) {
         mask |= FLP_R_LTGSTATS;
@@ -831,6 +849,12 @@ int main(void)
         hal_wdt_reset();
 
         /* per-second housekeeping (handles multi-second sleeps too) */
+        {   /* how far behind we fell. 1 is normal; more means the loop was
+             * busy elsewhere, and every closure that arrived meanwhile lands
+             * in whichever gate the first catch-up tick is in. */
+            uint32_t gap = g_uptime_s - last_sec;
+            if (gap > wind.max_gap) wind.max_gap = (gap > 255) ? 255 : (uint8_t)gap;
+        }
         while (last_sec != g_uptime_s) {
             last_sec++;
             wind_second_tick();

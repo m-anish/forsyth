@@ -40,6 +40,11 @@ _READING_FIELDS = (
     ("mcu_temp_c", "<h", 0.01),
     ("ltg_stats", "3B", 1),
     ("temp_delta_c", "<h", 0.01),     # SHTx minus BMx280; sensor cross-check
+    # bit 15, verbose only: (gates_hit, max_gap_s, rej_edges). Why the wind
+    # numbers look the way they do — how many 10 s gates saw a closure,
+    # whether the main loop ever fell behind enough to dump several seconds
+    # of closures into one gate, and how many edges hit the ISR uncredited.
+    ("wind_diag", "<BBH", 1),
 )
 
 # Mirrors ENV_TEMP_DIVERGE_X100 in leaf/src/config.h. The leaf decides what to

@@ -40,6 +40,15 @@
 #define FLP_R_VANEADC  (1 << 11)  /* u16 raw          */
 #define FLP_R_MCUTEMP  (1 << 12)  /* i16 °C ×100      */
 #define FLP_R_LTGSTATS (1 << 13)  /* u8 strikes, u8 disturbers, u8 noise */
+#define FLP_R_WINDDIAG (1 << 15)  /* u8 gates_hit, u8 max_gap_s, u16 rej_edges
+                                     — verbose only. Why the wind numbers
+                                     look the way they do, which the numbers
+                                     themselves cannot say: how many 10 s
+                                     gates saw a closure, whether the main
+                                     loop ever stalled long enough to dump
+                                     several seconds of closures into one
+                                     gate, and how many edges reached the ISR
+                                     without being credited.               */
 #define FLP_R_TEMPDELTA (1 << 14) /* i16 °C ×100, SHTx minus BMx280 — sensor
                                      cross-check; sent on divergence or verbose.
                                      PACKED LAST so older coordinators that do

@@ -81,7 +81,7 @@ Payload: `u16 field_mask`, then only the present fields, packed in bit order:
 | 12 | mcu_temp_c | i16 ×100 | internal sensor; the charge-inhibit policy input, sent verbose |
 | 13 | ltg_stats | u8×3 | strikes / disturbers / noise events since last reading |
 | 14 | temp_delta_c | i16 ×100 | **sensor cross-check**: SHTx temp *minus* BMx280 temp, sent only when BOTH answered. Present whenever \|delta\| ≥ the leaf's divergence threshold, and additionally while the verbose knob is on. See below. |
-| 15 | reserved | | |
+| 15 | wind_diag | u8 gates_hit · u8 max_gap_s · u16 rej_edges | **verbose only.** Why the wind numbers look the way they do, which the speeds themselves cannot say. `gates_hit` = completed 10 s gates that saw ≥1 closure, so a real spread-out wind is distinguishable from everything landing in one gate. `max_gap_s` = worst seconds the main loop fell behind its per-second catch-up; anything above 1 means closures that arrived while it was busy all got credited to whichever gate the first catch-up tick was in, faking exactly that bunching. `rej_edges` = edges that reached the ISR uncredited (the rising half of each closure, plus anything the debounce threw out), which separates "no edge arrived" from "an edge arrived and we binned it". Added 2026-11-06 while chasing closures that vanished between the cups and the packet. |
 
 Wind avg is engineering units but rain is raw counts — asymmetric on purpose: wind is
 instantaneous (nothing accumulates, loss loses nothing), rain is cumulative (a counter
