@@ -56,16 +56,18 @@
 #define ANEMO_EVENTS_PER_CLOSURE 1  /* [C] Event System counts per reed
                                         closure. The PORT generator emits the
                                         pin LEVEL and TCB0 counts its rising
-                                        edge, so one closure should be one
-                                        count — but VERIFY IT, do not trust
-                                        this line. Calibration is per closure,
-                                        so a wrong value here is another
-                                        silent 2x of exactly the kind that
-                                        cost 2026-11-05/06. The first rotation
-                                        test settles it: max_events_s in the
-                                        verbose wind diagnostic is the raw
-                                        per-second count, and at a known
-                                        hand speed it is unambiguous.        */
+                                        edge, so one closure is one count.
+                                        VERIFIED 2026-11-06 against the IDLE
+                                        diagnostic, which measured the same
+                                        hand twirl by counting ISR edges and
+                                        halving: 1.71 m/s there against 2.05
+                                        here, a 1.2x spread that is hand
+                                        speed. Two events per closure would
+                                        have read ~3.4. Keep that comparison
+                                        in mind if the event routing ever
+                                        changes — calibration is per closure
+                                        and a wrong value here is a silent
+                                        2x, which is exactly what 667 was.   */
 #define ANEMO_MAX_EVENTS_PER_S 250  /* [C] above this it is not wind. 41 m/s
                                         is 125 closures/s; at one event each
                                         that is 125, and 250 leaves headroom
