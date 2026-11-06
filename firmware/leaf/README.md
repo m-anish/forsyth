@@ -179,6 +179,30 @@ boot (by design, self-healing; just re-send any OTA tweaks).
    reading, rail down. Confirm the radio still transmits afterwards (shared
    UART handover).
 
+## AS3935 IRQ floats when the sensor is absent (REV1 wants a resistor)
+
+`gpio_init()` sets the lightning IRQ to `PORT_ISC_BOTHEDGES_gc` with **no
+pull-up**, which is right while the SEN0290 drives the line — it idles low and
+pulses high, so a pull-up would just fight it. Unplug the sensor and that pin
+floats, and a floating input with edge interrupts fires on noise. Every one of
+those is a wake from power-down, so the part never reaches its ~80-100 µA
+sleep floor and sits in the milliamps instead. On a marginal cell that is
+brown-out fuel, and it looks like a firmware hang: the board is awake and busy
+but appears not to answer the button.
+
+**Firmware guard (2026-11-06).** When `as3935_init()` fails twice, the IRQ pin
+is switched to `PORT_ISC_INPUT_DISABLE_gc` — the same thing `gpio_init()` does
+for every unused pin. No float, no interrupts, no drain, and nothing changes
+when the sensor is present. It is one-way: plug the sensor in later and the
+board needs a reboot, same as every other sensor here.
+
+**What the board should do instead.** This part has no internal pull-downs, so
+software cannot define the line without a pull-up that costs ~90-100 µA
+forever against a driven-low idle. A **1 MΩ pull-down on the IRQ net** solves
+it in hardware for ~3 µA: the line is defined with no driver, the SEN0290
+still overpowers it easily, and the firmware guard becomes belt-and-braces.
+Worth doing in REV1 alongside gating the vane excitation.
+
 ## Known hardware quirk the firmware can't fix
 
 The vane divider is excited from VBAT permanently (no GPIO gates it). Standing

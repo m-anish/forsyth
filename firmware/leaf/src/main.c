@@ -797,6 +797,26 @@ int main(void)
     bme280_init();                          /* soft-fail: retried per-read   */
     uint8_t as_ok = (as3935_init() == 0);
     if (!as_ok) { hal_delay_ms(50); as_ok = (as3935_init() == 0); }
+    if (!as_ok) {
+        /* Nothing answering on I2C means nothing is driving the IRQ line
+         * either, and gpio_init() leaves it on BOTHEDGES with no pull-up —
+         * correct while the SEN0290 drives it, a floating input the moment
+         * it is unplugged. A floating input with edge interrupts fires on
+         * noise, and every one of those is a wake from power-down, so the
+         * part never reaches its ~80-100 uA sleep floor and sits in the
+         * milliamps instead. On a marginal cell that is brown-out fuel.
+         *
+         * A pull-up would define the line but cost ~90-100 uA forever once
+         * the sensor IS present, because its IRQ idles LOW and the pull-up
+         * would fight it; this part has no internal pull-downs to use
+         * instead. Disabling the input buffer is what gpio_init() already
+         * does for every unused pin, and it costs nothing in either state.
+         *
+         * One-way on purpose: plugging the sensor in later needs a reboot,
+         * which is the same as every other sensor here. */
+        AS3935_IRQ_PORT.AS3935_IRQ_CTRL = PORT_ISC_INPUT_DISABLE_gc;
+        v_as3935_flag = 0;
+    }
 
     charge_policy_update();
 
