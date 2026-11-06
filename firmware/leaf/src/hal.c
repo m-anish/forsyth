@@ -101,10 +101,25 @@ void hal_init(void)
     gpio_init();
     rtc_init();
     hal_wind_counter_init();
-    /* Back to POWER_DOWN. The IDLE diagnostic proved the pin does not wake
-     * the CPU from power-down (0.05 -> 1.71 m/s on the same rotation), and
-     * TCB0 now counts those edges in hardware without needing it to. */
-    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    /* STANDBY, and the reason is specific. TCB_CLKSEL_EVENT does NOT clock
+     * the counter asynchronously from the event — it still needs CLK_PER to
+     * sample it, which POWER_DOWN stops. Measured 2026-11-06: asleep in
+     * power-down the counter reported max_events_s=1 while the cups turned
+     * at ~10 edges/s, i.e. it was aliasing the pin once per PIT wake rather
+     * than counting; the one window that read 13 contained a radio session,
+     * the only stretch with the clock running.
+     *
+     * STANDBY keeps CLK_PER alive for peripherals that ask, and TCB0 asks
+     * (TCB_RUNSTDBY_bm in hal_wind_counter_init). The CPU still sleeps.
+     *
+     * OPEN: what this costs. Running the 5 MHz domain continuously is worth
+     * hundreds of µA against an 80-100 µA sleep floor, so this is a working
+     * solution of unknown price, not a finished one. Measure it on the bench
+     * before trusting it to solar. If it is too dear, the alternative is a
+     * fully asynchronous pin for the anemometer so the edge wakes the CPU
+     * directly — PORTA is fully allocated today, so that is a wiring change
+     * and not a line of code. */
+    set_sleep_mode(SLEEP_MODE_STANDBY);
     sei();
 }
 
