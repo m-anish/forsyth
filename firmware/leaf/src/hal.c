@@ -63,9 +63,17 @@ static void gpio_init(void)
     PORTB.DIRSET = UART_TX_bm | LED_bm;
     PORTC.DIRSET = E220_M0_bm | E220_M1_bm;
 
-    /* Pulse inputs: pull-ups + both-edge interrupts. PA4/PA5 are not fully
-     * asynchronous pins, so BOTHEDGES is the only edge sense that wakes from
-     * power-down — the ISRs sort out which edge by reading the level.        */
+    /* Pulse inputs: pull-ups + both-edge interrupts. PA4/PA5 are PARTIALLY
+     * asynchronous, and datasheet table 17-3 is worth reading before
+     * touching any of this. BOTHEDGES really is the only sense that wakes
+     * with CLK_PER stopped — that part of the original comment was right.
+     * What it missed is the row underneath: with CLK_PER stopped "the pin
+     * value must be kept until CLK_PER has restarted", so a reed closure
+     * that ends first is missed ENTIRELY, not just misclassified. That is
+     * why wind counting failed in power-down for as long as it did, and why
+     * the leaf now sleeps in STANDBY with TCB0 counting the edges instead.
+     * A fully asynchronous pin would need none of this (same table, right
+     * column); PORTA has no free one today.                                 */
 #if defined(DIAG_PULSE) || defined(DIAG_WIND)
     /* the diag builds count in the ISR, so they still need the interrupt */
     ANEMO_PORT.ANEMO_CTRL = PORT_PULLUPEN_bm | PORT_ISC_BOTHEDGES_gc;
@@ -150,9 +158,31 @@ uint16_t hal_wind_count(void) { return TCB0.CNT; }
 
 void hal_sleep_powerdown(void)
 {
+    /* Slow the main clock right down while asleep, and put it back before
+     * anything notices.
+     *
+     * STANDBY has to keep CLK_PER running because TCB0 is a SYNCHRONOUS
+     * event user and cannot sample its event without it (datasheet, Event
+     * System sleep-mode operation). That is the whole cost of counting wind
+     * in hardware. But a synchronous user needs its clock RUNNING, not
+     * FAST: 20 MHz/64 = 312.5 kHz still samples the pin every 3.2 us,
+     * against reed closures lasting milliseconds — about a thousandfold
+     * margin — and the interrupt dead-time of three cycles is 9.6 us
+     * against a 4 ms floor between edges. Standby current tracks frequency,
+     * so this should take roughly 16x off the price.
+     *
+     * Restored IMMEDIATELY on wake, before the main loop can reach anything
+     * that cares: both the USART baud divisor and _delay_ms() are derived
+     * from F_CPU at compile time, so at 312.5 kHz every delay would run 16x
+     * long and 9600 baud would be 600. An ISR landing while slow simply
+     * runs slower, which the PIT handler does not mind.
+     *
+     * The RTC/PIT and the WDT have their own oscillators and are untouched. */
+    _PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, CLKCTRL_PDIV_64X_gc | CLKCTRL_PEN_bm);
     sleep_enable();
     sleep_cpu();
     sleep_disable();
+    _PROTECTED_WRITE(CLKCTRL.MCLKCTRLB, CLKCTRL_PDIV_4X_gc | CLKCTRL_PEN_bm);
 }
 
 void hal_wdt_reset(void) { wdt_reset(); }
