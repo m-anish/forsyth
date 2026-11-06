@@ -38,6 +38,13 @@ static volatile uint16_t v_anemo_pulses;    /* pulses this second            */
  * and have completely different causes. Reported verbose via FLP_R_WINDDIAG
  * and cleared each report. */
 static volatile uint16_t v_anemo_rej;
+/* Largest (now - last) in RTC ticks (~1 ms) between two ACCEPTED edges.
+ * The one number that separates the two remaining explanations for a
+ * debounce eating 97% of edges: ~100 means hal_ticks() advances fine and
+ * the rejects are genuine sub-4 ms bursts (contact bounce), while ~0-4
+ * means the tick is not moving when read from the ISR and the debounce is
+ * comparing against a frozen clock. */
+static volatile uint16_t v_anemo_gapmax;
 #ifdef DIAG_WIND
 /* Free-running, never cleared, DIAG_WIND only. v_anemo_pulses is drained
  * every second, so it cannot answer "how many did the ISR ever credit?" */
@@ -75,7 +82,10 @@ ISR(PORTA_PORT_vect)
          * the phase flips, which costs nothing: the RATE is still one count
          * per two edges. g_cfg.anemo_ms_per_hz_x1000 is per CLOSURE, so it
          * is unchanged by this. */
-        if ((uint16_t)(now - last) >= ANEMO_MIN_EDGE_MS) {
+        uint16_t d = (uint16_t)(now - last);
+        if (d >= ANEMO_MIN_EDGE_MS) {
+            /* skip the very first edge, where last is still 0 */
+            if (last && d > v_anemo_gapmax && d < 0x8000) v_anemo_gapmax = d;
             last = now;
             half ^= 1;
             if (!half) {
@@ -405,7 +415,11 @@ static void do_report(void)
     uint8_t  dg_gates = wind.gates_hit;
     uint8_t  dg_gap   = wind.max_gap;
     uint16_t dg_rej;
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { dg_rej = v_anemo_rej; v_anemo_rej = 0; }
+    uint16_t dg_gapmax;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        dg_rej = v_anemo_rej; v_anemo_rej = 0;
+        dg_gapmax = v_anemo_gapmax; v_anemo_gapmax = 0;
+    }
     memset(&wind, 0, sizeof wind);
     mask |= FLP_R_WAVG | FLP_R_WGUST;
     po = flp_put16(payload, po, wind_cms(pulses, secs));
@@ -468,6 +482,7 @@ static void do_report(void)
         po = flp_put8(payload, po, dg_gates);
         po = flp_put8(payload, po, dg_gap);
         po = flp_put16(payload, po, dg_rej);
+        po = flp_put16(payload, po, dg_gapmax);
     }
     if (st_strikes || st_disturbers || st_noise) {
         mask |= FLP_R_LTGSTATS;
