@@ -247,13 +247,20 @@ static void apply_tlvs(const uint8_t *p, uint8_t n_tlv, uint8_t avail)
     if (reboot) { cfg_save(); while (1) {} }   /* watchdog does the reset    */
 }
 
-/* One full radio session: power up, ensure NVRAM, TX (with retries when an
- * ACK is expected), harvest the ACK's TLVs, power down. Radio is on for
- * well under ~4 s total at default settings.                                */
+/* One full radio session: power up, ensure NVRAM, settle, TX (with retries
+ * when an ACK is expected), harvest the ACK's TLVs, power down. Radio is on
+ * for roughly 4-4.5 s total at default settings — RADIO_SETTLE_MS is 400 ms
+ * of that, spent deliberately idle before the burst.                        */
 static uint8_t radio_session(const uint8_t *frame, uint8_t len)
 {
     if (!radio_on()) return 0;
     radio_ensure_nvram();
+    /* Let the cell come back up before the PA pulls on it. radio_on() has
+     * already waited on AUX, and radio_ensure_nvram() is low-current UART
+     * config, so the supply has been loaded but not yet hit hard. The pause
+     * goes HERE, immediately before the burst, rather than earlier in the
+     * sequence where it would only delay work that costs little. */
+    hal_delay_ms(RADIO_SETTLE_MS);
     uint8_t ok = 0;
     for (uint8_t attempt = 0; attempt <= TX_RETRIES && !ok; attempt++) {
         if (!radio_tx(frame, len)) continue;
