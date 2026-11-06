@@ -14,6 +14,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
+#include <avr/sleep.h>   /* DIAG_IDLE_PD overrides the sleep mode */
 #include <string.h>
 
 #include "config.h"
@@ -877,9 +878,11 @@ int main(void)
      * uart_init() has to come with it: gpio_init() parks UART_TX LOW while
      * the rails are down, which becomes a continuous break on the module's
      * RX the moment it is powered. The USART idles the line high. */
+#ifndef DIAG_IDLE
     hal_delay_ms(RADIO_BOOST_DELAY_MS);
     rail_radio_on();
     uart_init();
+#endif
 
     cfg_load();
     twi_init();
@@ -910,6 +913,49 @@ int main(void)
     }
 
     charge_policy_update();
+
+#ifdef DIAG_IDLE
+    /* Sleep-floor measurement build (make DIAG_IDLE=1, or DIAG_IDLE=1
+     * DIAG_IDLE_PD=1 for the baseline).
+     *
+     * Neither boost is ever energised, so there is no 190 mA TX surge to
+     * blow past a µA range — the meter can stay where it can actually
+     * resolve this. Everything else is the production state: sensors
+     * initialised, the AS3935 IRQ guard applied, the wind counter running,
+     * the PIT waking once a second to bucket it.
+     *
+     * READ THE DELTA, NOT THE ABSOLUTE. The vane divider is excited from
+     * VBAT permanently and draws 26 µA at W to 403 µA at ESE depending
+     * purely on where it is pointing, which swamps everything this is
+     * trying to measure. So take two readings WITHOUT MOVING THE VANE:
+     *
+     *   make clean && make DIAG_IDLE=1                  -> production sleep
+     *   make clean && make DIAG_IDLE=1 DIAG_IDLE_PD=1   -> old baseline
+     *
+     * The difference is what counting wind in hardware costs. The second
+     * build sleeps in POWER_DOWN with TCB0 stopped, which is exactly what
+     * the leaf did before today and cannot count wind at all.
+     *
+     * Six blinks at boot say it is running (2 = normal, 3 = DIAG_PULSE,
+     * 4 = DIAG_WIND), then the LED stays dark — it would be worth more than
+     * the signal otherwise. */
+#ifdef DIAG_IDLE_PD
+    TCB0.CTRLA = 0;                      /* counter off: the before picture */
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+#endif
+    rail_radio_off();
+    rail_aqi_off();
+    hal_led_blink(6, 70);
+    hal_led(0);
+    {
+        uint32_t ls = g_uptime_s;
+        for (;;) {
+            hal_wdt_reset();
+            while (ls != g_uptime_s) { ls++; wind_second_tick(); }
+            hal_sleep_powerdown();
+        }
+    }
+#endif
 
     /* Boot STATUS doubles as the NVRAM-programming trip (first boot).       */
     tx_status(reset_cause, g_cfg.radio_nvram_crc != 0);

@@ -56,6 +56,18 @@ ifdef DIAG_PULSE
 CFLAGS += -DDIAG_PULSE
 endif
 
+# Sleep-floor measurement: no boost ever energised, so a uA range survives.
+# Take two readings WITHOUT MOVING THE VANE and subtract — the vane divider
+# alone is 26-403 uA depending on heading and will swamp the absolute number.
+#   make clean && make DIAG_IDLE=1                   # production sleep
+#   make clean && make DIAG_IDLE=1 DIAG_IDLE_PD=1    # pre-2026-11-06 baseline
+ifdef DIAG_IDLE
+CFLAGS += -DDIAG_IDLE
+endif
+ifdef DIAG_IDLE_PD
+CFLAGS += -DDIAG_IDLE_PD
+endif
+
 # Wind pulse diagnostic: keeps the REAL sleep and bucketing, unlike DIAG_PULSE.
 # LED: short = one revolution credited, long = a 10 s gate closed, flutter =
 # pulses lost between the ISR and the bucket. Boot signature is 4 flashes.
