@@ -148,12 +148,50 @@ static struct {
     uint16_t max_gate_pulses;
     uint8_t  gates_hit;      /* completed gates that saw >=1 closure        */
     uint8_t  max_gap;        /* worst seconds between catch-ups, saturating */
+    uint16_t anom;           /* seconds whose event count was not wind      */
+    uint16_t max_events;     /* largest one-second raw event count          */
 } wind;
+
+/* Where the hardware counter was last read. Deliberately NOT inside `wind`:
+ * that struct is memset at every report and this is an absolute position in
+ * a free-running counter, not a per-report accumulator. */
+static uint16_t wind_last_cnt;
+#if ANEMO_EVENTS_PER_CLOSURE > 1
+static uint8_t  wind_rem;    /* events not yet adding up to a whole closure */
+#endif
 
 static void wind_second_tick(void)
 {
+    /* Read the hardware counter rather than draining an ISR variable. TCB0
+     * is clocked by the pin event itself, so it kept counting through the
+     * power-down this function could not see edges during. Wraparound-safe
+     * subtraction; at the plausibility ceiling the 16-bit counter needs
+     * 262 s to lap and this runs every second. */
+    uint16_t c  = hal_wind_count();
+    uint16_t ev = (uint16_t)(c - wind_last_cnt);
+    wind_last_cnt = c;
+
+    if (ev > wind.max_events) wind.max_events = ev;
+
+    /* THE bounce guard. Counting in hardware leaves no per-edge timing to
+     * debounce with, so plausibility per second replaces it: a rate no wind
+     * can produce is contact noise, and the second is discarded rather than
+     * allowed to invent a gust. Counted so it is visible instead of silent. */
+    if (ev > ANEMO_MAX_EVENTS_PER_S) {
+        if (wind.anom != 0xFFFF) wind.anom++;
+        ev = 0;
+    }
+
     uint16_t p;
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { p = v_anemo_pulses; v_anemo_pulses = 0; }
+#if ANEMO_EVENTS_PER_CLOSURE > 1
+    /* carry the remainder, or a whole closure is lost at every second
+       boundary that does not divide evenly */
+    ev += wind_rem;
+    p = ev / ANEMO_EVENTS_PER_CLOSURE;
+    wind_rem = (uint8_t)(ev - p * ANEMO_EVENTS_PER_CLOSURE);
+#else
+    p = ev;
+#endif
     wind.gate_pulses += p;
     if (++wind.gate_secs >= WIND_GATE_S) {
         if (wind.gate_pulses > wind.max_gate_pulses)
@@ -415,11 +453,8 @@ static void do_report(void)
     uint8_t  dg_gates = wind.gates_hit;
     uint8_t  dg_gap   = wind.max_gap;
     uint16_t dg_rej;
-    uint16_t dg_gapmax;
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        dg_rej = v_anemo_rej; v_anemo_rej = 0;
-        dg_gapmax = v_anemo_gapmax; v_anemo_gapmax = 0;
-    }
+    uint16_t dg_maxev = wind.max_events;
+    dg_rej = wind.anom;
     memset(&wind, 0, sizeof wind);
     mask |= FLP_R_WAVG | FLP_R_WGUST;
     po = flp_put16(payload, po, wind_cms(pulses, secs));
@@ -482,7 +517,7 @@ static void do_report(void)
         po = flp_put8(payload, po, dg_gates);
         po = flp_put8(payload, po, dg_gap);
         po = flp_put16(payload, po, dg_rej);
-        po = flp_put16(payload, po, dg_gapmax);
+        po = flp_put16(payload, po, dg_maxev);
     }
     if (st_strikes || st_disturbers || st_noise) {
         mask |= FLP_R_LTGSTATS;

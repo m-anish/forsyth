@@ -53,6 +53,29 @@
                                         mean; below that a single stray pulse
                                         in a 1 s remainder would report a
                                         0.67 m/s gust out of nothing.          */
+#define ANEMO_EVENTS_PER_CLOSURE 1  /* [C] Event System counts per reed
+                                        closure. The PORT generator emits the
+                                        pin LEVEL and TCB0 counts its rising
+                                        edge, so one closure should be one
+                                        count — but VERIFY IT, do not trust
+                                        this line. Calibration is per closure,
+                                        so a wrong value here is another
+                                        silent 2x of exactly the kind that
+                                        cost 2026-11-05/06. The first rotation
+                                        test settles it: max_events_s in the
+                                        verbose wind diagnostic is the raw
+                                        per-second count, and at a known
+                                        hand speed it is unambiguous.        */
+#define ANEMO_MAX_EVENTS_PER_S 250  /* [C] above this it is not wind. 41 m/s
+                                        is 125 closures/s; at one event each
+                                        that is 125, and 250 leaves headroom
+                                        for the two-events-per-closure case
+                                        without ever admitting a real gale.
+                                        Seconds above it are counted into
+                                        anom_s and their closures discarded:
+                                        with the counter in hardware there is
+                                        no per-edge timing left to debounce
+                                        with, so this IS the bounce guard.   */
 #define RADIO_BOOST_DELAY_MS 25     /* [C] quiet gap between reset and
                                         raising TPS61023 EN for the E220's
                                         5 V rail.

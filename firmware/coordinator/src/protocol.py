@@ -44,7 +44,7 @@ _READING_FIELDS = (
     # numbers look the way they do — how many 10 s gates saw a closure,
     # whether the main loop ever fell behind enough to dump several seconds
     # of closures into one gate, and how many edges hit the ISR uncredited.
-    ("wind_diag", "<BBHH", 1),   # gates_hit, max_gap_s, rej_edges, edge_gap_max
+    ("wind_diag", "<BBHH", 1),   # gates_hit, max_gap_s, anom_s, max_events_s
 )
 
 # Mirrors ENV_TEMP_DIVERGE_X100 in leaf/src/config.h. The leaf decides what to

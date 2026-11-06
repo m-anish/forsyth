@@ -18,6 +18,14 @@ void hal_reset(void);                /* immediate software reset (RSTCTRL.SWRR) 
  * and keep running in power-down.                                            */
 extern volatile uint32_t g_uptime_s;
 uint16_t hal_ticks(void);            /* ~1024 Hz, wraps */
+
+/* Anemometer edge counter, in hardware. EVSYS routes the pin to TCB0, which
+ * is clocked BY the event (TCB_CLKSEL_EVENT) rather than by CLK_PER — so it
+ * keeps counting through POWER_DOWN, where CLK_PER is stopped and, as of
+ * 2026-11-06, the pin demonstrably does not wake the CPU at all. Free
+ * running 16-bit; read it and subtract, wraparound-safe.                    */
+void     hal_wind_counter_init(void);
+uint16_t hal_wind_count(void);
 void     hal_delay_ms(uint16_t ms);  /* busy-ish wait, WDT-safe */
 
 /* Status LED (active-low). Blink is blocking — boot/service feedback only.   */

@@ -66,7 +66,17 @@ static void gpio_init(void)
     /* Pulse inputs: pull-ups + both-edge interrupts. PA4/PA5 are not fully
      * asynchronous pins, so BOTHEDGES is the only edge sense that wakes from
      * power-down — the ISRs sort out which edge by reading the level.        */
+#if defined(DIAG_PULSE) || defined(DIAG_WIND)
+    /* the diag builds count in the ISR, so they still need the interrupt */
     ANEMO_PORT.ANEMO_CTRL = PORT_PULLUPEN_bm | PORT_ISC_BOTHEDGES_gc;
+#else
+    /* Production counts in hardware (hal_wind_counter_init), so the CPU does
+     * not need waking per edge — which it was not reliably doing anyway. The
+     * input buffer stays on because the Event System reads the pin through
+     * it; only the interrupt is off. At 5 m/s that is ~30 wakes a second this
+     * no longer pays for. */
+    ANEMO_PORT.ANEMO_CTRL = PORT_PULLUPEN_bm | PORT_ISC_INTDISABLE_gc;
+#endif
     RAIN_PORT.RAIN_CTRL   = PORT_PULLUPEN_bm | PORT_ISC_BOTHEDGES_gc;
     BTN_PORT.BTN_CTRL     = PORT_PULLUPEN_bm | PORT_ISC_BOTHEDGES_gc;
     /* AS3935 IRQ idles low, pulses high; SEN0290 drives it — no pull-up.     */
@@ -90,30 +100,38 @@ void hal_init(void)
     wdt_init();
     gpio_init();
     rtc_init();
-    /* ===================== DIAGNOSTIC — NOT SHIPPABLE =====================
-     * IDLE, not PWR_DOWN, to test one thing: whether the anemometer pin
-     * wakes the MCU at all while it sleeps.
-     *
-     * The evidence says it does not. Over a 47 s window of continuous
-     * rotation the leaf accepted 14 edges with a largest gap between
-     * consecutive accepts of 202 ticks (~197 ms) — so every one of those
-     * accepts fell inside at most ~2.6 s, and gates_hit=1 agrees. All 532
-     * edges arrived in the one stretch where the part is continuously
-     * awake, the radio session, and nothing at all reached the ISR for the
-     * other 44 seconds. DIAG_WIND counted perfectly for the same reason:
-     * its LED blinking kept the part awake.
-     *
-     * In IDLE the CPU stops but every clock keeps running, so pin interrupts
-     * are not in question. If counting comes right, sleep is the cause and
-     * STANDBY is the next thing to try for the power budget. If it does not,
-     * the theory is wrong and the pin is not the place to look.
-     *
-     * Costs milliamps. Revert to PWR_DOWN before this goes anywhere near a
-     * deployment.
-     * ==================================================================== */
-    set_sleep_mode(SLEEP_MODE_IDLE);
+    hal_wind_counter_init();
+    /* Back to POWER_DOWN. The IDLE diagnostic proved the pin does not wake
+     * the CPU from power-down (0.05 -> 1.71 m/s on the same rotation), and
+     * TCB0 now counts those edges in hardware without needing it to. */
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
     sei();
 }
+
+void hal_wind_counter_init(void)
+{
+    /* PA4 -> event channel 0 -> TCB0's COUNT input (Event in B), and TCB0
+     * clocked by that event instead of CLK_PER. CLKSEL_EVENT is the whole
+     * trick: the counter advances on the pin edge with no system clock, so
+     * it works in POWER_DOWN. RUNSTDBY keeps it alive in standby too.
+     *
+     * CNTMODE_INT with CCMP at full scale is just "free-running 16-bit
+     * up-counter"; nothing wants the interrupt, the firmware polls CNT once
+     * a second and subtracts. At the 250 events/s ceiling a 16-bit counter
+     * needs 262 s to wrap, so a once-a-second read cannot miss a lap. */
+    EVSYS.CHANNEL0      = EVSYS_CHANNEL0_PORTA_PIN4_gc;
+    EVSYS.USERTCB0COUNT = EVSYS_USER_CHANNEL0_gc;
+
+    TCB0.CTRLA   = 0;                       /* configure while disabled      */
+    TCB0.CNT     = 0;
+    TCB0.CCMP    = 0xFFFF;
+    TCB0.CTRLB   = TCB_CNTMODE_INT_gc;
+    TCB0.EVCTRL  = 0;                       /* COUNT input, not capture      */
+    TCB0.INTCTRL = 0;                       /* polled, never interrupts      */
+    TCB0.CTRLA   = TCB_CLKSEL_EVENT_gc | TCB_RUNSTDBY_bm | TCB_ENABLE_bm;
+}
+
+uint16_t hal_wind_count(void) { return TCB0.CNT; }
 
 void hal_sleep_powerdown(void)
 {
