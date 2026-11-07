@@ -184,15 +184,13 @@ function windText(r) {
   return `${windArrow(r.wind_dir_deg)} ${Math.round(k)} km/h from ${dirName(r.wind_dir_deg)}`;
 }
 
-/* Same floor as everything else. A sub-threshold "gust" is one reed closure
-   in a 10 s gate, and this row was the last place still printing it as a
-   number — "Gust 1 km/h" directly under "Wind calm", next to a chart that
-   refuses to plot anything below 1.8. Says what is true instead of '—',
-   which would claim the reading is missing rather than too small. */
+/* Printed as measured. This hid anything under 1.8 km/h behind "under 1.8
+   km/h" while the leaf was only crediting a few percent of reed closures and
+   a small gust meant nothing. The counting was fixed 2026-11-06, so a 1 km/h
+   gust is now a 1 km/h gust. */
 function gustText(r) {
   const k = windKmh(r && r.wind_gust_ms);
   if (k === null) return '—';
-  if (r.wind_gust_ms < WIND_CALM_MS) return `under ${(WIND_CALM_MS * 3.6).toFixed(1)} km/h`;
   return `${Math.round(k)} km/h`;
 }
 
@@ -225,13 +223,38 @@ function feelsLike(temp_c, rh, wind_ms) {
    against the WHO 24-hour guideline (15 µg/m³, 2021). See §6.2.              */
 const AQI_SCALE = 'CPCB';
 
+/* How old a PM reading may be and still be shown as the current air quality.
+   PM rides every AQI_EVERY_N_REPORTS-th report (~30 min at the default
+   cadence) and the battery taper stretches that further, so pm_ts lags the
+   rest of a reading by design and needs its own freshness rule rather than
+   the whole-reading one.
+
+   Two hours, and the index is withheld rather than dimmed. Everything else
+   on this site is an observation a reader can discount for themselves; an
+   air-quality index is health ADVICE, and "good, go outside" from two hours
+   ago is not a stale observation but a wrong instruction. The raw µg/m³ stay
+   on screen with their age, because the data is still real — it is the
+   verdict drawn from it that expires. */
+const AQI_STALE_S = 2 * 3600;
+
+/* Seconds since an ISO timestamp, or null if there isn't one. */
+function ageS(iso) {
+  if (!iso) return null;
+  const a = (Date.now() - new Date(iso).getTime()) / 1000;
+  return isFinite(a) ? a : null;
+}
+
 /* The charge policy's own vocabulary, in words. "charging-allowed" is the
    policy state — the MCU is not inhibiting charge — not a claim that current
-   is flowing, so "ready to charge" is the honest rendering. */
+   is flowing.
+   "ready to charge" read as "not charging yet", which is wrong: the leaf is
+   also in this state WHILE charging, since the policy only ever gates
+   permission and never observes current. "charging allowed" says the thing
+   the leaf actually knows and leaves the rest open. */
 function solarWord(state) {
   switch (state) {
     case 'charging':         return 'charging';
-    case 'charging-allowed': return 'ready to charge';
+    case 'charging-allowed': return 'charging allowed';
     case 'float':            return 'topped up';
     case 'discharging':      return 'running on battery';
     default:                 return state || '—';
@@ -348,23 +371,6 @@ function breakGaps(ts, arrays, maxGapS, { dropNulls = false } = {}) {
    anything under this reads as calm rather than as a number implying
    precision the instrument does not have. Matches the API's ROSE_CALM_MS. */
 const WIND_CALM_MS = 0.5;
-
-/* The floor, applied to a plotted series. Below WIND_CALM_MS a value is
-   quantisation and not a measurement: one reed closure in a 10 s gate reads as
-   0.067 m/s whatever the air is doing. The hero already refuses to call that a gust and the direction
-   arrows already refuse to draw it; the chart was the last place still
-   plotting it as weather, which is what made a calm night look like a
-   malfunction. Null, not zero — "under the threshold" is not "no wind", and a
-   line pinned at zero asserts a reading the instrument never took.
-
-   The threshold itself is drawn with hLine(), the same dashed marker the PM
-   chart uses for the WHO guideline — a band shaded behind the data was tried
-   first and was both invisible against the card and confusable with the night
-   shading, which runs the other way. */
-function windFloorSeries(valsKmh, floorKmh) {
-  return valsKmh.map(v =>
-    (v === null || v === undefined || v < floorKmh) ? null : v);
-}
 
 /* Wind direction as arrows along the top of the wind chart, never as a line.
    Direction is circular: 350° → 10° is a 20° shift that a linear axis renders

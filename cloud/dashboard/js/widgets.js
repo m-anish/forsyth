@@ -71,7 +71,13 @@ const Widgets = (() => {
   async function now(el, config) {
     const s = await pick(config, el);
     if (!s) return;
-    const a = aqi(s.pm25, s.pm10);
+    /* Same rule as the air-quality card: PM rides every Nth report and can
+       be hours older than the temperature printed next to it. A number here
+       with no age beside it reads as current. */
+    const pmAge = ageS(s.pm_ts);
+    const pmStale = s.pm25 === null || s.pm25 === undefined
+                 || pmAge === null || pmAge > AQI_STALE_S;
+    const a = pmStale ? null : aqi(s.pm25, s.pm10);
     const slp = pressureSeaLevelHpa(s.pressure_pa, s.elevation_m, s.temp_c);
     const fl = feelsLike(s.temp_c, s.rh, s.wind_avg_ms);
     const showFeels = fl !== null && s.temp_c !== null && Math.abs(fl - s.temp_c) >= 1;
@@ -213,7 +219,9 @@ const Widgets = (() => {
         <div><span class="k">Humidity</span><span class="v">${fmt(s.rh, 0, '%')}</span></div>
         <div><span class="k">Wind</span><span class="v">${windCell}</span></div>
         <div><span class="k">Pressure</span><span class="v">${fmt(slp, 0, ' hPa')}</span></div>
-        <div><span class="k">Air (${AQI_SCALE})</span><span class="v">${a ?? '—'} ${aqiLabel(a)}</span></div>
+        <div><span class="k">Air (${AQI_SCALE})</span><span class="v">${
+          pmStale ? `— <span class="hero-sub2">${agoLabel(s.pm_ts)}</span>`
+                  : `${a ?? '—'} ${aqiLabel(a)}`}</span></div>
       </div>`;
   }
 
@@ -386,8 +394,17 @@ const Widgets = (() => {
   async function aqiW(el, config) {
     const s = await pick(config, el);
     if (!s) return;
-    const a = aqi(s.pm25, s.pm10);
-    const who = whoPm25Multiple(s.pm25);
+    /* PM has its own clock. It rides every Nth report, so it can be hours
+       stale while temperature and wind beside it are a minute old — and the
+       reader has no way to tell from the card. Past AQI_STALE_S the index,
+       the band and the guidance are all withheld: those are health advice
+       and an old verdict is a wrong instruction, not a soft one. The raw
+       concentrations stay, labelled with their age. */
+    const pmAge = ageS(s.pm_ts);
+    const pmStale = s.pm25 === null || s.pm25 === undefined
+                 || pmAge === null || pmAge > AQI_STALE_S;
+    const a = pmStale ? null : aqi(s.pm25, s.pm10);
+    const who = pmStale ? null : whoPm25Multiple(s.pm25);
     /* Worth more than most trends here: "getting worse" is the cue to shut a
        window, and the index moves slowly enough that a 3 h fit is meaningful.
        Rising reads red, falling green — the polarity lives in TREND_SPECS,
@@ -412,16 +429,23 @@ const Widgets = (() => {
        (docs/v2-design.md §6.2). The WHO multiple is the honest anchor. */
     el.innerHTML = `
       <div class="wg-big">${a ?? '—'}</div>
-      <div class="wg-sub">${s.name} · ${aqiLabel(a)} · ${AQI_SCALE} scale</div>
-      ${aqTrend ? `<div class="aqi-trend">${aqTrend}</div>` : ''}
-      <div class="aqi-band"><span class="pin" style="left:${a !== null ? Math.min(100, a/5) : 0}%"></span></div>
-      ${a !== null ? `<p class="aqi-advice">${aqiGuidance(a)}</p>` : ''}
+      <div class="wg-sub${pmStale ? ' stale' : ''}">${s.name} · ${
+        pmStale ? 'no current reading' : `${aqiLabel(a)} · ${AQI_SCALE} scale`
+      } · measured ${agoLabel(s.pm_ts)}</div>
+      ${aqTrend && !pmStale ? `<div class="aqi-trend">${aqTrend}</div>` : ''}
+      ${pmStale ? '' : `<div class="aqi-band"><span class="pin" style="left:${
+        a !== null ? Math.min(100, a/5) : 0}%"></span></div>`}
+      ${pmStale
+        ? `<p class="aqi-advice">No index shown — air quality this old is not
+             advice about now.</p>`
+        : (a !== null ? `<p class="aqi-advice">${aqiGuidance(a)}</p>` : '')}
       <div class="kv">
         <div><span class="k">PM2.5</span><span class="v">${fmt(s.pm25,1)} µg/m³</span></div>
         <div><span class="k">PM10</span><span class="v">${fmt(s.pm10,1)} µg/m³</span></div>
       </div>
-      ${who !== null ? `<p class="aqi-who">PM2.5 is <b>${who.toFixed(1)}×</b> the WHO
-         24-hour guideline of 15 µg/m³</p>` : ''}`;
+      ${!pmStale && who !== null
+        ? `<p class="aqi-who">PM2.5 is <b>${who.toFixed(1)}×</b> the WHO
+             24-hour guideline of 15 µg/m³</p>` : ''}`;
   }
 
   async function lightning(el, config) {

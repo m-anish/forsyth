@@ -186,65 +186,33 @@ async function drawCharts() {
   });
 
   /* km/h, not m/s — nobody thinks in m/s (§7 units table). */
-  const windRaw = ['wind_avg_ms', 'wind_gust_ms'].map(k =>
+  /* Drawn as measured. This used to suppress everything below a 1.8 km/h
+     "anemometer threshold" and mark the line, because the leaf was crediting
+     a few percent of the reed closures and anything low was quantisation
+     rather than wind. That was a firmware fault, fixed 2026-11-06 (hardware
+     edge counter, firmware/leaf/README.md), and the floor went with it — a
+     low reading is now a low wind. */
+  const windKmh = ['wind_avg_ms', 'wind_gust_ms'].map(k =>
     (windD.series[k] || []).map(v => (v === null || v === undefined) ? null : v * 3.6));
-  /* Everything under the floor is dropped rather than drawn
-     (windFloorSeries): at one reed closure per 10 s gate the number is
-     quantisation, not a measurement. At this site that usually takes the
-     whole sustained series with it, and a line wobbling at 0.1 km/h claimed
-     otherwise. WHY the sustained reading is that low is unresolved — see
-     firmware/leaf/README.md — but it is below what the instrument resolves
-     either way, which is all this chart needs to decide. */
-  const WIND_FLOOR_KMH = WIND_CALM_MS * 3.6;
-  const windKmh = windRaw.map(a => windFloorSeries(a, WIND_FLOOR_KMH));
-  const clears = windRaw.map(a =>
-    a.some(v => v !== null && v !== undefined && v >= WIND_FLOOR_KMH));
   S.charts.wind = makeChart(document.getElementById('chart-wind'), [
     { label: 'Wind km/h', stroke: COL.wind, width: 1.5 },
     { label: 'Gust km/h', stroke: COL.gust, width: 1 },
   ], breakGaps(windD.ts, windKmh, gapThresholdS(windD.ts)), {
     uplot: {
-      /* Zero stays on the axis. Once everything under the floor is dropped,
-         uPlot auto-ranges to the first real gust — the axis started at 1.6
-         km/h, which put the threshold line off the bottom of the chart and
-         left the note pointing at a mark the reader could not see. A wind
-         axis that excludes zero is harder to read anyway: the distance from
-         calm is the thing being judged. */
+      /* Zero stays on the axis: distance from calm is what a reader is
+         judging, and an auto-ranged wind axis that starts at 1.6 km/h makes
+         a still day look breezy. */
       scales: { y: { range: (u, dmin, dmax) =>
-        [0, Math.max(dmax === null || dmax === undefined ? 0 : dmax,
-                     WIND_FLOOR_KMH) * 1.1] } },
+        [0, (dmax === null || dmax === undefined || dmax <= 0) ? 1 : dmax * 1.1] } },
       /* The gap between sustained and gust IS the information. Filling it
          says "this is the range the wind moved in"; two spiky lines just read
          as noise (§8). Direction rides on top as arrows — a circular quantity
          cannot go on a linear axis without 350°→10° looking like a crash. */
       bands: [{ series: [2, 1], fill: cssVar('--ch-gust-fill') }],
-      plugins: nightPlugins(hLine(WIND_FLOOR_KMH, 'anemometer threshold'),
-                            windDirArrows(windD.ts, windD.series.wind_dir_deg || [],
+      plugins: nightPlugins(windDirArrows(windD.ts, windD.series.wind_dir_deg || [],
                                           windD.series.wind_gust_ms || [])),
     },
   });
-
-  /* The dashed line needs a sentence or it is just a mysterious mark. Three
-     cases, because they are three different facts about the day and only one
-     of them is "the instrument could see the wind". */
-  const wnote = document.getElementById('wind-note');
-  if (wnote) {
-    const f = WIND_FLOOR_KMH.toFixed(1);
-    /* Says what is measured, not why. An earlier wording blamed the cups for
-       stalling; the cups were then observed turning continuously, so that
-       explanation is wrong and is not something to assert to a reader while
-       it is still being chased (firmware/leaf/README.md, DIAG_WIND). Below
-       the floor one reed closure dominates the gate whatever the cause, and
-       that much is true either way. */
-    wnote.textContent = !clears[1]
-      ? `Still all window — nothing rose above the ${f} km/h this anemometer `
-        + `can resolve.`
-      : !clears[0]
-      ? `Sustained wind stayed below the ${f} km/h the anemometer can resolve, `
-        + `so only the gusts are drawn.`
-      : `Below the dashed ${f} km/h line a reading is quantisation rather than `
-        + `measurement.`;
-  }
 
   /* Sea level, matching the panel above. The two disagreed by 177 hPa while
      both were labelled "Pressure": the panel had been reduced to sea level and
