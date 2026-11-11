@@ -43,6 +43,7 @@ import screen  # noqa: E402
 import enclosure  # noqa: E402
 
 ASA_DENSITY = 1.07       # g/cm3
+TPU_DENSITY = 1.21
 OVERHANG_COS = math.cos(math.radians(45.0)) + 0.02   # facets steeper than 45 deg pass
 CLASH_MM3 = 0.5          # two placed parts sharing more volume than this is an error
 QTY = {}  # filled in main(), after any overrides
@@ -108,7 +109,7 @@ def frame_assembly(parts):
 
     # wind kit: foot plate on the mast's -X face, plate top level with the mast top
     kit = wind.place(parts) + [("ref_" + n, s) for n, s in wind.reference()]
-    add(kit, -10 - P.wind_arm_len, 0, Lm - P.wind_body_h)
+    add(kit, -10 - P.wind_arm_len, 0, Lm - P.wind_body_h - P.wind_gasket_t)
     # rain gauge on one end of the crossarm, screen on the other
     add(rain.place(parts), P.arm_len / 2 - 62, 20, za, lambda s: rz(s, 45))
     scr = screen.place(parts) + [("ref_" + n, s) for n, s in screen.reference()]
@@ -117,7 +118,7 @@ def frame_assembly(parts):
     up = lambda s: rx(s, 90)   # box frame -> world: Y becomes up, depth runs along -Y
     enc = enclosure.place(parts) + [("ref_" + n, s) for n, s in enclosure.reference()]
     ez = Lm - P.enc_drop - P.enc_in_h / 2
-    add(enc, -P.enc_in_w / 2, -10, ez, up)
+    add(enc, -P.enc_tab_x, -10, ez, up)
     sol = [("solar_bracket", parts["solar_bracket"])] + \
           [("ref_" + n, s) for n, s in enclosure.solar_reference()]
     y_lo = -(P.solar_foot_pitch + P.m5_head_d / 2 + 3.0)
@@ -167,7 +168,8 @@ def main():
     for sub in ("step", "print"):
         os.makedirs(os.path.join(out, sub), exist_ok=True)
 
-    QTY.update({"wind_spacer": 2, "wind_shim": 2, "cup_arm": int(P.n_cups), "screen_plate": int(P.scr_plates)})
+    QTY.update({"tpu_washer_gland": 3, "tpu_washer_gx12": 2,
+                "wind_spacer": 2, "wind_shim": 2, "cup_arm": int(P.n_cups), "screen_plate": int(P.scr_plates)})
     parts = {}
     for mod in (wind, rain, screen, enclosure):
         log("building %s ..." % mod.__name__)
@@ -226,6 +228,8 @@ def main():
             (na, a), (nb, b) = placed[i], placed[j]
             if not a.BoundBox.intersect(b.BoundBox):
                 continue
+            if na.startswith("tpu_") or nb.startswith("tpu_"):
+                continue          # gaskets are squeezed on purpose
             v = a.common(b).Volume
             if v > CLASH_MM3:
                 clashes.append((na, nb, v))
@@ -248,11 +252,13 @@ def main():
         f.write("Sizes are in print orientation (the meshes in `print/` are already "
                 "turned that way). Mass assumes solid ASA; expect roughly half with "
                 "3 walls and 15-20 % infill.\n\n")
-        f.write("| Part | Qty | X | Y | Z | Volume cm3 | Solid mass g | Bed | "
-                "Overhang mm2 | Checks |\n|---|---|---|---|---|---|---|---|---|---|\n")
+        f.write("| Part | Material | Qty | X | Y | Z | Volume cm3 | Solid mass g | Bed | "
+                "Overhang mm2 | Checks |\n|---|---|---|---|---|---|---|---|---|---|---|\n")
         for name, q, x, y, z, vol, how, oh, worst, notes, ext in rows:
-            f.write("| %s | %d | %.1f | %.1f | %.1f | %.1f | %.0f | %s | %.0f | %s |\n"
-                    % (name, q, x, y, z, vol, vol * ASA_DENSITY, how, oh,
+            tpu = name.startswith("tpu_")
+            f.write("| %s | %s | %d | %.1f | %.1f | %.1f | %.1f | %.1f | %s | %.0f | %s |\n"
+                    % (name, "TPU" if tpu else "ASA", q, x, y, z, vol,
+                       vol * (TPU_DENSITY if tpu else ASA_DENSITY), how, oh,
                        "; ".join(notes) or "ok"))
         f.write("\nOverhang = down-facing surface shallower than 45 degrees that is not "
                 "on the bed. Where it is not zero, the biggest contributors are:\n\n")
@@ -281,6 +287,8 @@ def main():
                     "They print as a single pass; cut them from %.1f mm OD metal tube "
                     "if they crush when the shaft screw is tightened\n"
                     % (P.spacer_wall, P.race_od))
+        f.write("- Antenna (inside the box, whip up): %.0f mm clear of the cell, %.0f mm from the "
+                "nearest face of the mast\n" % (P.enc_ant_to_cell, P.enc_ant_to_mast))
         f.write("- Assembly clash check: %s\n"
                 % ("none" if not clashes else "; ".join("%s / %s" % (a, b) for a, b, _ in clashes)))
         f.write("\n## Hardware\n\n| Item | Qty | Where |\n|---|---|---|\n")

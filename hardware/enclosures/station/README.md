@@ -13,7 +13,7 @@ checks below, but nothing has been printed or bench-tested.**
 ## Change something
 
 1. Edit a value in `params.py`. Units are millimetres and every value is commented.
-2. Run `./build.sh` (needs FreeCAD 1.x, takes about 30 s).
+2. Run `./build.sh` (needs FreeCAD 1.x, takes about 35 s).
 3. Read `out/report.md`.
 
 The build protects you in three layers:
@@ -84,9 +84,26 @@ pattern does not matter. Print it in white.
 **Core box.** Back wall on the bed. Board A lies with its connector row facing
 a connector bay at the bottom; all five cable entries (two glands, GX12-2,
 GX12-3, GX16-5) are in the bottom wall and face the ground, each named on the
-lid. The radio's own SMA passes out through the side wall. The cell sits in a
-cradle above the board, held by a pad on the lid. Tongue-and-groove rim for a
-bead of sealant or 1.5 mm cord. Mounting tabs are outside the sealed volume.
+lid. The cell sits in a cradle above the board, held by a pad on the lid.
+Mounting tabs are outside the sealed volume.
+
+**Antenna stays inside the box.** The right-angle stubby screws onto the
+radio's own SMA and points up in a bay at the right-hand end, resting in a
+saddle. There is no antenna hole. ASA is close to transparent at 868 MHz; what
+costs signal is metal near the whip, so the layout keeps it 34 mm from the
+cell and puts the mounting tabs 15 mm left of centre, which leaves 64 mm
+between the whip and the aluminium mast. Expect a few dB less than the same
+antenna in free air, and a weaker lobe in the direction where the mast is
+behind the whip: hang the box on the side of the mast that faces the
+coordinator. Keep the whip vertical; a cross-polarised link loses far more
+than the box does. `ant_elbow`, `ant_d` and `ant_len` are estimated from the
+product photo and need measuring.
+
+**Seals (TPU).** `tpu_box_lid_gasket` lies in the rim groove and a narrow
+ridge on the lid presses 0.3 mm into it. `tpu_wind_lid_gasket` sits between
+the wind housing and its lid. `tpu_washer_*` go under the flange of each GX
+socket and gland. Nothing else needs one: the rain gauge and screen are meant
+to be open, and the wind rotors are sealed by overlap, not by contact.
 
 **Solar bracket** is separate from the box (no holes through the box top) and
 mounts on the mast just above it, which also shades the box.
@@ -101,6 +118,8 @@ mounts on the mast just above it, which also shades the box.
 - `enclosure_body` is the largest footprint (163 x 159 mm): use a brim and a
   draught shield against ASA warping.
 - Print `wind_spacer` x2, `wind_shim` x2, `cup_arm` x3, `screen_plate` x3.
+- TPU parts (`tpu_*`): 95A, 100 % infill, flat on the bed, slow. Quantities are
+  in the report (`tpu_washer_gland` x3, `tpu_washer_gx12` x2).
 - Bearing pockets are modelled 0.1 mm over nominal. Print one `wind_lid` first
   and check the fit before printing the body.
 
@@ -119,8 +138,15 @@ mounts on the mast just above it, which also shades the box.
 4. **Board A underside.** The corner with no mounting hole (under the radio)
    sits on an edge rest 2 mm wide; check nothing on the board's underside is there.
 5. **Cell length.** Defaults fit a 32700 (71 mm). For a 32650 set `batt_l = 66`.
-6. **Antenna.** The SMA only just reaches the outer wall face; the hole is wide
-   enough for the antenna's connector body to enter. Seal round it.
+6. **Antenna size and range.** Measure the antenna and set `ant_elbow`,
+   `ant_d`, `ant_len`; the box grows to suit. Then compare RSSI with the lid
+   on and off at a fixed distance. If the loss matters, the fallback is an SMA
+   bulkhead pigtail through the bottom wall.
+7. **Gasket squeeze.** 0.3 mm into 95A TPU is a guess at what six M3 screws
+   close comfortably. If the lid bows between screws, lower `gasket_squeeze`.
+8. **The box is now airtight**, so it will breathe through its weakest seal as
+   it heats and cools. Fit a membrane vent plug in the bottom wall if
+   condensation shows up.
 
 ## Not designed yet
 

@@ -88,6 +88,9 @@ wind_foot_pitch_h = 12.5  # +/- from centre, the pair used on a horizontal 2020
 wind_ear_d = 9.0
 wind_ear_angles = (60.0, 180.0, 300.0)
 gland_d = 12.5           # PG7 cable gland
+gland_flange = 19.0
+wind_gasket_t = 0.8      # TPU gasket between the wind housing and its lid
+port_gasket_t = 1.0      # TPU washers under connector and gland flanges
 wind_gland_angle = 120.0
 
 # -- cup rotor ----------------------------------------------------------------
@@ -169,9 +172,14 @@ brd_top_h = 10.5         # tallest part above the top face
 brd_bot_h = 2.0          # through-hole leads below the board
 sma_y = 26.11            # E220 SMA axis, from the board's connector-row edge
 sma_z = 7.1              # SMA axis above the board underside
-sma_clear_d = 11.5       # lets the antenna's connector body pass the wall
-brd_end_gap = 0.7        # board to the wall the SMA passes through
-brd_slack = 4.5          # room at the other end to tilt the board in
+sma_out = 3.96           # how far the SMA jack stands proud of the board edge (STEP)
+brd_slack = 2.0          # board to the left-hand wall
+# Antenna: a right-angle stubby that stays INSIDE the box, screwed onto the radio
+# and pointing up. ESTIMATED from the product photo - measure yours and correct.
+ant_elbow = 14.0         # SMA jack end to the centreline of the whip
+ant_d = 12.0             # fattest diameter of the whip
+ant_len = 50.0           # whip length, from the SMA centreline to the tip
+ant_clear = 4.0          # air between the whip and the side wall
 standoff_h = 5.0
 
 # Cell, loose in the box. 32700 = 32.2 x 70.5; for a 32650 set batt_l = 66.
@@ -183,22 +191,28 @@ enc_wall = 3.2
 enc_back = 3.0
 enc_lid_t = 3.0
 enc_bay = 34.0           # connector bay height below the board
-enc_groove_w = 1.6       # seal groove in the rim; lid tongue runs in it
+enc_groove_w = 1.6       # seal groove in the rim; holds the TPU gasket
 enc_groove_d = 1.8
+gasket_h = 1.4           # TPU lid gasket, as printed
+gasket_squeeze = 0.3     # how far the lid's ridge presses into it
+enc_tab_shift = 15.0     # mounting tabs sit this far left of centre, which moves
+                         # the aluminium mast away from the antenna end of the box
 enc_tab_len = 18.0       # mounting tabs
 enc_tab_w = 22.0
 enc_tab_t = 5.0
 enc_lr_tab_y = 28.0      # height of the left/right tab pair
 
 gx16_d = 16.2            # masthead (wind)
+gx16_flange = 21.0
 gx12_d = 12.2            # solar, rain
+gx12_flange = 16.0
 # (label, hole diameter, flange/nut diameter). Left to right seen from the front.
 enc_ports = (
-    ("ENV", gland_d, 19.0),
-    ("PMS", gland_d, 19.0),
-    ("SOLAR", gx12_d, 16.0),
-    ("RAIN", gx12_d, 16.0),
-    ("WIND", gx16_d, 21.0),
+    ("ENV", gland_d, gland_flange),
+    ("PMS", gland_d, gland_flange),
+    ("SOLAR", gx12_d, gx12_flange),
+    ("RAIN", gx12_d, gx12_flange),
+    ("WIND", gx16_d, gx16_flange),
 )
 enc_port_gap = 3.0       # minimum between neighbouring flanges
 # Port names engraved on the lid, above each entry. Skipped if the font is missing.
@@ -278,11 +292,20 @@ def _derive():
     g["scr_plates"] = scr_n_plates if scr_n_plates > 0 else max(3, need)
 
     # enclosure
-    g["enc_in_w"] = round(brd_l + brd_end_gap + brd_slack, 1)
+    g["ant_bay"] = sma_out + ant_elbow + ant_d / 2 + ant_clear
+    g["enc_in_w"] = round(brd_slack + brd_l + ant_bay, 1)
+    g["enc_ant_x"] = brd_slack + brd_l + sma_out + ant_elbow      # whip centreline
+    g["enc_batt_x"] = brd_slack + brd_l / 2                       # cell sits over the board
+    g["enc_tab_x"] = enc_in_w / 2 - enc_tab_shift
     g["enc_in_h"] = round(enc_bay + brd_w + 3.0 + batt_d + 2.4, 1)
     g["enc_in_d"] = round(max(standoff_h + brd_t + brd_top_h + 6.0,
                               batt_d + 3.0), 1)
     g["enc_brd_x"] = brd_slack
+    # the box grows upward if the whip is longer than the room above the radio
+    g["enc_in_h"] = round(max(enc_in_h, enc_bay + sma_y + ant_len + 3.0), 1)
+    g["enc_ant_to_cell"] = (enc_ant_x - ant_d / 2) - (enc_batt_x + batt_l / 2)
+    g["enc_ant_to_mast"] = math.hypot((enc_ant_x - ant_d / 2) - (enc_tab_x + profile / 2),
+                                      enc_back + standoff_h + sma_z)
     g["enc_brd_y"] = enc_bay
     g["enc_batt_y"] = enc_in_h - batt_d / 2 - 1.2
     g["enc_batt_z"] = batt_d / 2 + 1.0
@@ -382,6 +405,14 @@ def validate():
     # enclosure
     need(enc_ports_w <= enc_in_w - 4.0,
          f"connectors need {enc_ports_w:.0f} mm of the {enc_in_w:.0f} mm bottom wall")
+    need(pcb_standoff >= wind_gasket_t + 0.6,
+         "pcb_standoff must exceed wind_gasket_t by 0.6 or the vane PCB has no ledge")
+    need(enc_groove_d - gasket_h + gasket_squeeze >= 0.4,
+         "lid ridge would be under 0.4 mm tall; reduce gasket_h or deepen enc_groove_d")
+    need(enc_ant_to_cell >= 15.0,
+         f"antenna is only {enc_ant_to_cell:.0f} mm from the cell; it needs 15 mm or it detunes")
+    need(enc_batt_x - batt_l / 2 - batt_end_gap >= 1.5,
+         "cell and its end gap run into the left wall; shorten batt_end_gap")
     need(batt_l + 2 * batt_end_gap <= enc_in_w - 2.0,
          "cell plus end gaps is longer than the box interior")
     need(enc_in_d >= max(p[2] for p in enc_ports) + 6.0,

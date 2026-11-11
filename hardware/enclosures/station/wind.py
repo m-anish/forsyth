@@ -48,7 +48,8 @@ def body():
     shell.append(rz(pad, P.wind_gland_angle))
     s = fuse(shell)
 
-    rebate = P.vane_pcb_t + P.pcb_standoff
+    # the lid sits one gasket thickness above the rim, so the ledge is that much shallower
+    rebate = P.vane_pcb_t + P.pcb_standoff - P.wind_gasket_t
     s = cut(s, [
         cyl(2 * P.wind_r_in, h, (0, 0, P.wind_floor)),
         cyl(2 * P.wind_r_pcb, rebate + 0.01, (0, 0, h - rebate)),
@@ -102,6 +103,16 @@ def lid():
     if r1 - r0 > 3:
         cuts.append(prism([(-r0, -2.2), (-r0, 2.2), (-r1, 0)], 0.61, "xy", t - 0.6))
     return cut(s, cuts)
+
+
+def lid_gasket():
+    """TPU gasket between the housing rim and the lid. Print flat, 100 % infill."""
+    t = P.wind_gasket_t
+    parts = [tube(2 * P.wind_r_out, 2 * (P.wind_r_pcb + 0.2), t)]
+    parts += [cyl(P.wind_ear_d, t, (x, y, 0)) for x, y in _ear_xy()]
+    s = fuse(parts)
+    return cut(s, [cyl(P.m3_clear, t + 1, (x, y, -0.5)) for x, y in _ear_xy()]
+               + [cyl(2 * (P.wind_r_pcb + 0.2), t + 1, (0, 0, -0.5))])
 
 
 def pcb_ring():
@@ -257,6 +268,7 @@ def parts():
         "wind_pcb_ring": pcb_ring(),
         "wind_spacer": spacer(),
         "wind_shim": shim(),
+        "tpu_wind_lid_gasket": lid_gasket(),
         "vane_rotor": vane_rotor(),
         "cup_hub": cup_hub(),
         "cup_hub_cap": cup_hub_cap(),
@@ -267,10 +279,12 @@ def parts():
 def place(p):
     """Return [(name, shape)] positioned in the kit frame."""
     h = P.wind_body_h
+    hl = h + P.wind_gasket_t                    # underside of the lid
     out = [("wind_body", p["wind_body"]),
-           ("wind_lid", mv(p["wind_lid"], 0, 0, h)),
-           ("wind_pcb_ring", mv(p["wind_pcb_ring"], 0, 0, h - P.pcb_standoff))]
-    out.append(("vane_rotor", mv(vane_rotor_use(), 0, 0, h + P.wind_lid_t)))
+           ("tpu_wind_lid_gasket", mv(p["tpu_wind_lid_gasket"], 0, 0, h)),
+           ("wind_lid", mv(p["wind_lid"], 0, 0, hl)),
+           ("wind_pcb_ring", mv(p["wind_pcb_ring"], 0, 0, hl - P.pcb_standoff))]
+    out.append(("vane_rotor", mv(vane_rotor_use(), 0, 0, hl + P.wind_lid_t)))
     zh = -(_hub_h() + P.lip_h)
     out.append(("cup_hub", mv(p["cup_hub"], 0, 0, zh)))
     out.append(("cup_hub_cap", mv(p["cup_hub_cap"], 0, 0, zh - 2.4)))
@@ -283,7 +297,7 @@ def place(p):
 
 def reference():
     """Bought-in parts drawn for context: PCB, bearings, shaft screws."""
-    h = P.wind_body_h
+    h = P.wind_body_h + P.wind_gasket_t
     ref = [("vane_pcb", tube(P.vane_pcb_d, P.vane_pcb_hole, P.vane_pcb_t,
                              (0, 0, h - P.pcb_standoff - P.vane_pcb_t)))]
     for i, z in enumerate((0.0, P.brg_w + P.brg_sep, h, h + P.brg_w + P.brg_sep)):
