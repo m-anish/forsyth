@@ -9,7 +9,7 @@ Sizes are in print orientation (the meshes in `print/` are already turned that w
 | Part | Material | Qty | X | Y | Z | Volume cm3 | Solid mass g | Bed | Overhang mm2 | Checks |
 |---|---|---|---|---|---|---|---|---|---|---|
 | cup_arm | ASA | 3 | 77.3 | 54.0 | 23.5 | 4.8 | 5.2 | flat | 0 | ok |
-| cup_hub | ASA | 1 | 44.6 | 44.6 | 34.5 | 30.2 | 32.4 | flat | 408 | ok |
+| cup_hub | ASA | 1 | 44.6 | 44.6 | 34.5 | 30.0 | 32.1 | flat | 408 | ok |
 | cup_hub_cap | ASA | 1 | 30.0 | 30.0 | 2.4 | 1.6 | 1.7 | flat | 0 | ok |
 | enclosure_body | ASA | 1 | 188.2 | 159.0 | 38.5 | 141.5 | 151.4 | flat | 187 | ok |
 | enclosure_lid | ASA | 1 | 168.2 | 137.0 | 3.7 | 57.5 | 61.5 | flat | 141 | ok |
@@ -28,7 +28,7 @@ Sizes are in print orientation (the meshes in `print/` are already turned that w
 | tpu_washer_gx12 | TPU | 3 | 17.0 | 17.0 | 1.0 | 0.1 | 0.1 | flat | 0 | ok |
 | tpu_washer_gx16 | TPU | 1 | 22.0 | 22.0 | 1.0 | 0.2 | 0.2 | flat | 0 | ok |
 | tpu_wind_lid_gasket | TPU | 1 | 73.1 | 70.6 | 0.8 | 0.5 | 0.6 | flat | 0 | ok |
-| vane_rotor | ASA | 1 | 208.0 | 40.5 | 47.2 | 38.4 | 41.1 | flat | 126 | ok |
+| vane_rotor | ASA | 1 | 208.0 | 40.5 | 47.2 | 38.2 | 40.9 | flat | 126 | ok |
 | wind_body | ASA | 1 | 164.1 | 70.6 | 33.4 | 67.1 | 71.8 | flat | 473 | ok |
 | wind_lid | ASA | 1 | 76.1 | 72.6 | 18.0 | 11.8 | 12.6 | flat | 72 | ok |
 | wind_pcb_ring | ASA | 1 | 60.9 | 60.9 | 1.7 | 0.5 | 0.6 | flat | 0 | ok |
@@ -58,7 +58,7 @@ Overhang = down-facing surface shallower than 45 degrees that is not on the bed.
 - Screen: 3 louvres + cap, 78 mm tall, 124 mm diameter
 - Box inside: 145.8 x 116.6 x 35.5 mm
 - Cup rotor sweep radius: 82 mm; rotor axis to 2020 face: 124 mm
-- Vane rotor: 41 g solid, centre of gravity 22.1 mm toward the tail; about 15 g of ballast in the nose slot balances it
+- Vane rotor: 41 g solid, centre of gravity 22.2 mm toward the tail; about 15 g of ballast in the nose slot balances it
 - Magnet-to-reed distances (centre to centre): vane 8.8 mm through the lid; anemometer 7.6 mm through the floor; rain 6.0 mm passing, 9.3 mm at rest
 - Sky pod: opening 65 mm above the mast top, its lowest rim 7 mm above the top of the vane; vane tail passes 10 mm from the pod; view cone +/-40 deg, tilted 25 deg
 - Antenna (inside the box, whip up): 34 mm clear of the cell, 64 mm from the nearest face of the mast
@@ -68,20 +68,25 @@ Overhang = down-facing surface shallower than 45 degrees that is not on the bed.
 
 | Item | Qty | Where |
 |---|---|---|
-| Ball bearing 5x16x5 | 4 | wind: two per rotor |
-| M5 x 30 socket-head cap screw | 2 | wind: rotor shafts (stainless) |
-| M5 nut | 2 | wind: trapped in each rotor hub |
+| Ball bearing 5x16x5, shielded | 4 | wind: two per rotor |
+| M5 x 40 socket-head cap screw, stainless, part-threaded | 2 | wind: the two rotor shafts |
+| M5 hex nut, stainless | 8 | one trapped in each rotor hub; about six on the vane ballast screw |
+| M5 x 25 screw, stainless | 1 | vane nose ballast: add nuts until the rotor balances (10 to 15 g in all) |
 | Disc magnet 6x3 | 2 | vane 1, cups 1 |
-| Disc magnet 4x2 (small on purpose) | 2 | rain bucket: one working, one as counterweight |
-| Reed switch, 14 mm glass | 2 | anemometer 1, rain 1 (vane PCB carries its own) |
-| M5 x 16 screw + washers/nuts | 1 | vane nose ballast, in the slot |
-| M3 x 10 screw | 12 | wind lid 3, box lid 6, board 3 |
-| M3 heat-set insert | 12 | wind body 3, box rim 6, board standoffs 3 |
-| M3 x 8 self-tapping / machine screw | 8 | cup hub cap 3, rain funnel 3, sky pod head 2 |
-| M3 x 16 screw | 2 | rain bucket stops (their heads are the stops; screw in or out to calibrate) |
-| M3 x 45 screw + nyloc nut (or 3 mm rod) | 1 | rain bucket axle |
-| M3 x 55 screw or threaded rod + nut | 3 | screen stack |
-| M5 x 10 button head + 2020 T-nut | 12 | wind 2, rain 2, screen 2, box 2, solar 2, sky pod 2 (each foot has 4 holes; any opposite pair works) |
+| Disc magnet 4x2 | 2 | rain bucket: one working, one counterweight |
+| Reed switch, 14 mm glass | 2 | anemometer 1, rain 1 |
+| M3 heat-set insert, about 5 mm long | 12 | wind housing 3, box rim 6, board standoffs 3 |
+| M3 x 8 screw, stainless | 14 | into inserts: wind lid 3, box lid 6, Board A 3; sky pod head 2 (self-tapping) |
+| M3 x 10 screw, stainless | 3 | cup hub cap, self-tapping into plastic |
+| M3 x 6 screw, stainless | 3 | rain funnel to base, self-tapping |
+| M3 x 16 screw, stainless | 2 | rain bucket stops: the heads are the stops |
+| M3 x 50 screw + nyloc nut (or 3 mm rod) | 1 | rain bucket axle |
+| M3 x 50 screw + nut | 3 | clamps the screen stack |
+| M5 x 12 button head + 2020 T-nut | 6 | 6 mm feet: wind kit, sky pod, solar bracket (each foot has 4 holes; use an opposite pair) |
+| M5 x 10 button head + 2020 T-nut | 2 | box tabs, 5 mm thick |
+| M5 x 8 button head + 2020 T-nut | 4 | 3 mm bases: rain gauge, screen |
 | PG7 cable gland | 3 | wind housing 1, box 2 (screen pigtails) |
-| GX16-5, GX12-3, GX12-2, GX12-4 panel sockets | 1 | box bottom wall, one of each |
-| MLX90614 breakout + GX12-4 plug + 4-core cable | 1 | sky pod, to Board A's Qwiic port |
+| GX16-5 socket + plug | 1 | WIND |
+| GX12-3 socket + plug | 1 | RAIN |
+| GX12-2 socket + plug | 1 | SOLAR |
+| GX12-4 socket + plug | 1 | SKY, to Board A's Qwiic port |

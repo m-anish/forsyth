@@ -179,7 +179,7 @@ def vane_rotor_use():
     ml = P.vane_mag_len
     mw = P.mag_d + 0.2
     cuts = [
-        cyl(P.brg_id + 0.3, (nz + nh + 3.0) - ht, (0, 0, ht - 0.01)),         # shaft bore
+        cyl(P.brg_id + 0.3, P.vane_bore_top - ht, (0, 0, ht - 0.01)),         # shaft bore
         hexprism(af, nh, (0, 0, nz)),
         box(-af / 2, af / 2, 0, max(rh, rf) + 1, nz, nz + nh),                # nut slides in from +Y
         box(P.vane_reed_r - ml / 2, P.vane_reed_r + ml / 2, -mw / 2, mw / 2,
@@ -202,9 +202,7 @@ def vane_height():
 def _hub_h():
     """Hub length. Long enough for the nut and arm slots, and long enough that
     the tops of the cups pass under the housing floor with cup_floor_gap to spare."""
-    need = (P.cup_arm_h + 0.2) + 1.5 + 3.0 + (P.m5_nut_h + 0.4) + 3.5
-    drop = P.cup_d / 2 + P.cup_rim + P.cup_floor_gap + P.cup_arm_h / 2 - P.lip_h
-    return max(need, drop)
+    return P.cup_hub_h
 
 
 def cup_hub():
@@ -229,7 +227,8 @@ def cup_hub():
     af = P.m5_nut_af + 0.3
     ml = P.anemo_mag_len
     mw = P.mag_d + 0.2
-    cuts = [cyl(P.brg_id + 0.3, 3.5 + nh + 3.0 + P.lip_h + 0.02, (0, 0, nz - 3.0))]
+    bore = P.shaft_in_hub + 1.5
+    cuts = [cyl(P.brg_id + 0.3, bore + 0.02, (0, 0, H + P.lip_h - bore))]
     cuts.append(hexprism(af, nh, (0, 0, nz)))
     cuts.append(box(0, rf + 1, -af / 2, af / 2, nz, nz + nh))                 # nut from +X
     cuts.append(box(-(P.anemo_mag_r + ml / 2), -(P.anemo_mag_r - ml / 2), -mw / 2, mw / 2,

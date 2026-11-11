@@ -133,34 +133,46 @@ def frame_assembly(parts):
 
 
 def hardware():
-    scr_rod = P.scr_base_t + P.scr_plates * P.scr_pitch + 3.0 + P.m3_nut_h + 2
-    shaft = int(math.ceil((P.shaft_len_min + 1.0) / 5.0) * 5)
-    rows = [
-        ("Ball bearing %gx%gx%g" % (P.brg_id, P.brg_od, P.brg_w), 4, "wind: two per rotor"),
-        ("M5 x %d socket-head cap screw" % shaft, 2, "wind: rotor shafts (stainless)"),
-        ("M5 nut", 2, "wind: trapped in each rotor hub"),
+    """Bought-in parts the printed parts were sized for: (item, qty, where)."""
+    # screen: head seat to the far side of the nut that sits in the base
+    scr = P.scr_base_t + P.scr_plates * P.scr_pitch + 3.0 + (P.m3_nut_h - 0.4)
+    scr = int(math.ceil(round(scr, 1) / 5.0) * 5)
+    axle = 2 * (P.rain_bucket_w / 2 + P.rain_side_gap + P.rain_upright_t) + 8.0
+    axle = int(math.ceil(axle / 5.0) * 5)
+    n_ports = len(P.enc_ports)
+    return [
+        ("Ball bearing %gx%gx%g, shielded" % (P.brg_id, P.brg_od, P.brg_w), 4,
+         "wind: two per rotor"),
+        ("M5 x %d socket-head cap screw, stainless, part-threaded" % P.shaft_len, 2,
+         "wind: the two rotor shafts"),
+        ("M5 hex nut, stainless", 2 + 6,
+         "one trapped in each rotor hub; about six on the vane ballast screw"),
+        ("M5 x 25 screw, stainless", 1,
+         "vane nose ballast: add nuts until the rotor balances (10 to 15 g in all)"),
         ("Disc magnet %gx%g" % (P.mag_d, P.mag_t), P.vane_mag_n + P.anemo_mag_n,
          "vane %d, cups %d" % (P.vane_mag_n, P.anemo_mag_n)),
-        ("Disc magnet %gx%g (small on purpose)" % (P.rain_mag_d, P.rain_mag_t), 2,
-         "rain bucket: one working, one as counterweight"),
-        ("Reed switch, %g mm glass" % (P.reed_l - 0.5), 2, "anemometer 1, rain 1 (vane PCB carries its own)"),
-        ("M5 x 16 screw + washers/nuts", 1, "vane nose ballast, in the slot"),
-        ("M3 x 10 screw", 3 + 6 + 3, "wind lid 3, box lid 6, board 3"),
-        ("M3 heat-set insert", 3 + 6 + 3, "wind body 3, box rim 6, board standoffs 3"),
-        ("M3 x 8 self-tapping / machine screw", 3 + 3 + 2,
-         "cup hub cap 3, rain funnel 3, sky pod head 2"),
-        ("M3 x 16 screw", 2, "rain bucket stops (their heads are the stops; screw in or out to calibrate)"),
-        ("M3 x 45 screw + nyloc nut (or 3 mm rod)", 1, "rain bucket axle"),
-        ("M3 x %d screw or threaded rod + nut" % (int(math.ceil(scr_rod / 5.0)) * 5), 3,
-         "screen stack"),
-        ("M5 x 10 button head + 2020 T-nut", 2 + 2 + 2 + 2 + 2 + 2,
-         "wind 2, rain 2, screen 2, box 2, solar 2, sky pod 2 "
-         "(each foot has 4 holes; any opposite pair works)"),
+        ("Disc magnet %gx%g" % (P.rain_mag_d, P.rain_mag_t), 2,
+         "rain bucket: one working, one counterweight"),
+        ("Reed switch, %g mm glass" % (P.reed_l - 0.5), 2, "anemometer 1, rain 1"),
+        ("M3 heat-set insert, about %g mm long" % P.m3_insert_l, 3 + 6 + 3,
+         "wind housing 3, box rim 6, board standoffs 3"),
+        ("M3 x 8 screw, stainless", 3 + 6 + 3 + 2,
+         "into inserts: wind lid 3, box lid 6, Board A 3; sky pod head 2 (self-tapping)"),
+        ("M3 x 10 screw, stainless", 3, "cup hub cap, self-tapping into plastic"),
+        ("M3 x 6 screw, stainless", 3, "rain funnel to base, self-tapping"),
+        ("M3 x 16 screw, stainless", 2, "rain bucket stops: the heads are the stops"),
+        ("M3 x %d screw + nyloc nut (or 3 mm rod)" % axle, 1, "rain bucket axle"),
+        ("M3 x %d screw + nut" % scr, 3, "clamps the screen stack"),
+        ("M5 x 12 button head + 2020 T-nut", 2 + 2 + 2,
+         "6 mm feet: wind kit, sky pod, solar bracket (each foot has 4 holes; use an opposite pair)"),
+        ("M5 x 10 button head + 2020 T-nut", 2, "box tabs, %g mm thick" % P.enc_tab_t),
+        ("M5 x 8 button head + 2020 T-nut", 2 + 2, "3 mm bases: rain gauge, screen"),
         ("PG7 cable gland", 1 + 2, "wind housing 1, box 2 (screen pigtails)"),
-        ("GX16-5, GX12-3, GX12-2, GX12-4 panel sockets", 1, "box bottom wall, one of each"),
-        ("MLX90614 breakout + GX12-4 plug + 4-core cable", 1, "sky pod, to Board A's Qwiic port"),
+        ("GX16-5 socket + plug", 1, "WIND"),
+        ("GX12-3 socket + plug", 1, "RAIN"),
+        ("GX12-2 socket + plug", 1, "SOLAR"),
+        ("GX12-4 socket + plug", 1, "SKY, to Board A's Qwiic port"),
     ]
-    return rows
 
 
 def main():

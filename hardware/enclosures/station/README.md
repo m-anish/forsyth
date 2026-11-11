@@ -79,6 +79,19 @@ is 124 mm long so the vane tail clears the pod by 10 mm.
 
 ![sky pod](docs/sky-pod-section.png)
 
+**The rotor shaft is an M5 x 40 socket-head screw**, not a rod or a dowel
+pin. The screw does three jobs a plain shaft cannot: its head holds the rotor
+in, tightening it clamps both bearings' inner races and the hub into one rigid
+stack, and its 8.5 mm head is the only fastener that passes the 9.15 mm hole
+in the vane PCB (an M5 nut is 9.2 mm across its corners). Buy it part-threaded
+if you can, so the smooth shank sits in the bearings.
+- *Dowel pins* are the wrong part: hardened carbon steel rusts outdoors, they
+  are ground slightly oversize (to press into a hole) so a bearing will not
+  slide on, and they cannot be drilled or threaded to hold a rotor.
+- *5 mm stainless rod* would run truer than a screw, but needs a way to fix
+  the rotor and a collar under each bearing pair, and a standard 10 mm collar
+  does not pass the PCB hole. Worth revisiting only if the rotors visibly wobble.
+
 **Cups are cones, printed mouth-down**, one per arm, hooked into the hub and
 held by a cap. A 45 degree cone needs no support and the arm prints flat, so
 it is strong in the direction wind loads it. The vane rotor prints upside down
@@ -202,11 +215,32 @@ hold a 4 to 5 mm cable in the mast.
    it heats and cools. Fit a membrane vent plug in the bottom wall if
    condensation shows up.
 
+## Considered and left out: foam in the box
+
+Spraying PU foam into the box, or into a wall cavity, is not worth doing here.
+- The board dissipates 0.1 to 0.3 W. Insulation cannot keep a cell warm with
+  that little heat behind it, and in sun it only delays the peak.
+- Canned foam is partly open-cell: it takes up water and holds it against the
+  electronics, which is the opposite of what the gasket is for.
+- It expands hard enough to bow a printed wall or lift the lid seal, and it
+  makes the cell and board impossible to service.
+- It is flammable, around a lithium cell.
+
+What does the same jobs better: the solar bracket shading the box, white ASA,
+a silica gel sachet, a membrane vent, conformal coating on the board if
+condensation appears, and a sleeve of closed-cell foam round the cell alone if
+winter charging becomes a problem.
+
 ## Not designed yet
 
 - PMS7003 bay in the screen (the repo's architecture puts it beside the carrier).
 - Insect and leaf mesh for the rain funnel.
 - Frame joints: use standard metal 2020 corner brackets, not printed ones.
+
+## Buying
+
+[BOM.md](BOM.md) lists every bought-in part with quantities, shop listings and
+the filament estimate and source (two 1 kg spools of white ASA).
 
 ## Files
 

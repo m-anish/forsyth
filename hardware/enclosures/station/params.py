@@ -31,8 +31,8 @@ m5_nut_h = 4.0
 
 # ------------------------------------------------------------- M3 joints ---
 m3_clear = 3.4
-m3_insert_d = 4.0        # pilot for a brass heat-set insert (check your brand)
-m3_insert_l = 5.7        # insert length
+m3_insert_d = 4.0        # pilot for a brass heat-set insert: its OD minus 0.4
+m3_insert_l = 5.0        # insert length (OnlyScrews M3 x 5 knurled, OD 4.4)
 m3_tap_d = 2.5           # pilot when an M3 screw self-taps into plastic
 m3_nut_af = 5.5
 m3_nut_h = 2.4
@@ -54,6 +54,8 @@ brg_fit = 0.10           # added to the pocket diameter; 0.1 = light press
 brg_sep = 8.0            # plastic between the two bearings of one rotor
 shaft_head_d = 8.5       # M5 socket-head cap screw
 shaft_head_h = 5.0
+shaft_len = 40.0         # under-head length. Buy PART-threaded (DIN 912: 22 mm of
+                         # thread), so the smooth shank is what sits in the bearings
 lip_h = 1.0              # rotor lip that touches the bearing inner race only
 shim_h = 1.2             # printed ring between the screw head and the bearing
 rotor_gap = 0.8          # running clearance, rotor to housing
@@ -291,9 +293,14 @@ def _derive():
     g["cup_flange_r"] = max(anemo_mag_r + anemo_mag_len / 2 + 2.0, cup_hub_d / 2)
     g["cup_sweep_r"] = cup_arm_r + cup_d / 2 + cup_rim
     g["shaft_len_min"] = shim_h + tower_h + 0.3 + lip_h + 3.5 + m5_nut_h
+    g["shaft_in_hub"] = shaft_len - (shim_h + tower_h + 0.3)   # beyond the bearing stack
+    g["cup_hub_h"] = max((cup_arm_h + 0.2) + 1.5 + 3.0 + (m5_nut_h + 0.4) + 3.5,
+                         cup_d / 2 + cup_rim + cup_floor_gap + cup_arm_h / 2 - lip_h)
     # top of the vane rotor above the wind lid
     hub_top = (tower_h - wind_lid_t) + lip_h + 3.5 + (m5_nut_h + 0.4) + 3.0
     g["vane_top"] = max(hub_top + vane_hub_r - 1.0, vane_fin_clear + vane_fin_h)
+    g["vane_hub_top"] = hub_top
+    g["vane_bore_top"] = (tower_h - wind_lid_t) + shaft_in_hub + 1.5
 
     # sky pod
     ts = math.radians(sky_tilt)
@@ -395,6 +402,14 @@ def validate():
     need(vane_pcb_hole >= shaft_head_d + 0.4,
          "the vane shaft screw head will not pass the PCB centre hole "
          "(vane_pcb_hole vs shaft_head_d)")
+    need(shaft_len >= shaft_len_min + 1.0,
+         f"shaft_len must be at least {shaft_len_min + 1:.0f} to reach through the hub nut")
+    need(vane_bore_top <= vane_top - vane_boom,
+         "shaft screw would run up into the vane's spine; shorten shaft_len or raise vane_fin_h")
+    need(vane_hub_r - max(0.0, vane_bore_top - vane_hub_top) >= (brg_id + 0.3) / 2 + 1.0,
+         "shaft screw breaks out of the vane hub's cone; shorten shaft_len")
+    need(cup_hub_h + lip_h - (shaft_in_hub + 1.5) >= cup_arm_h + 0.2 + 1.5,
+         "shaft screw reaches the cup-arm slots in the hub; shorten shaft_len")
     need(tower_bore - race_od >= 1.0,
          "bearing too thin in section: the spacer sleeve would rub the tower bore")
     need(spacer_wall >= 0.4,
