@@ -6,7 +6,12 @@ This directory is reserved for:
 - links to the Onshape document(s), once they exist
 - exported files (STEP / STL / 3MF) for printing and archival
 
-Nothing to see yet. The leaves will need: a radiation-shielded pocket for the SHTC3/SHT4x,
+**[station/](station/README.md)** (2026-11-10): a first parametric pass at the whole
+outdoor kit on 2020 profile, built as FreeCAD scripts rather than in Onshape: combined
+wind kit, tipping-bucket rain gauge, Stevenson screen, core box and solar bracket.
+Unprinted; STEP exports in `station/out/step/` import into Onshape.
+
+The original brief still stands. The leaves will need: a radiation-shielded pocket for the SHTC3/SHT4x,
 airflow for the PMS7003, a clear-of-metal zone for the AS3935 and the LoRa antenna, and a
 mast mount that survives the subject matter of the project.
 

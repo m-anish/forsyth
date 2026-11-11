@@ -1,0 +1,308 @@
+"""Regenerate every printed part of the station from params.py.
+
+    ./build.sh            (or: freecadcmd build.py, run from this directory)
+
+Writes, under out/:
+    step/<part>.step     exact geometry, for other CAD tools
+    print/<part>.3mf     meshes already lying in their print orientation
+    station.FCStd        every part in place on a mock 2020 frame
+    report.md            sizes, masses, printability checks and the hardware list
+
+The build refuses to run if params.validate() finds a combination that cannot
+work, and it fails if any part comes out as anything but one valid solid that
+fits the printer.
+"""
+import math
+import os
+import sys
+import time
+
+HERE = os.environ.get("STATION_DIR") or os.getcwd()
+sys.path.insert(0, HERE)
+
+import FreeCAD as App  # noqa: E402
+import Mesh  # noqa: E402
+import MeshPart  # noqa: E402
+import Part  # noqa: E402
+
+import params as P  # noqa: E402
+
+# What-if runs: STATION_SET="name=value,name=value" overrides params.py for one build;
+# STATION_CHECK=1 runs every check but writes no files.
+_over = {}
+for _kv in filter(None, os.environ.get("STATION_SET", "").split(",")):
+    _k, _v = _kv.split("=")
+    _over[_k.strip()] = float(_v)
+if _over:
+    P.apply(**_over)
+CHECK_ONLY = bool(os.environ.get("STATION_CHECK"))
+from lib import *  # noqa: E402,F401,F403
+import wind  # noqa: E402
+import rain  # noqa: E402
+import screen  # noqa: E402
+import enclosure  # noqa: E402
+
+ASA_DENSITY = 1.07       # g/cm3
+OVERHANG_COS = math.cos(math.radians(45.0)) + 0.02   # facets steeper than 45 deg pass
+CLASH_MM3 = 0.5          # two placed parts sharing more volume than this is an error
+QTY = {}  # filled in main(), after any overrides
+COLORS = {
+    "wind": (0.92, 0.92, 0.90), "vane": (0.85, 0.33, 0.15), "cup": (0.85, 0.33, 0.15),
+    "rain": (0.90, 0.90, 0.88), "screen": (0.96, 0.96, 0.94), "enclosure": (0.80, 0.82, 0.80),
+    "solar": (0.80, 0.82, 0.80), "frame": (0.62, 0.64, 0.68), "ref": (0.15, 0.45, 0.25),
+}
+
+
+def log(msg):
+    print(msg)
+    sys.stdout.flush()
+
+
+def mesh_of(shape):
+    return MeshPart.meshFromShape(Shape=shape, LinearDeflection=0.01,
+                                  AngularDeflection=math.radians(2.0), Relative=False)
+
+
+def overhang_report(mesh):
+    """Area (mm2) of down-facing surface shallower than 45 deg and not on the bed,
+    and the same figure ignoring short spans that print as bridges."""
+    total = 0.0
+    by_z = {}
+    for f in mesh.Facets:
+        n = f.Normal
+        if n.z < -OVERHANG_COS:
+            zs = [p[2] for p in f.Points]
+            if min(zs) > 0.25:
+                total += f.Area
+                k = round(min(zs), 0)
+                by_z[k] = by_z.get(k, 0.0) + f.Area
+    worst = sorted(by_z.items(), key=lambda kv: -kv[1])[:3]
+    return total, worst
+
+
+def fits_bed(bb):
+    bx, by = P.bed_x - 2 * P.bed_margin, P.bed_y - 2 * P.bed_margin
+    lo, hi = sorted((bb.XLength, bb.YLength))
+    if bb.ZLength > P.bed_z - P.bed_margin:
+        return False, "too tall"
+    if hi <= bx and lo <= by:
+        return True, "flat"
+    # long thin parts go corner to corner
+    if (hi + lo) / math.sqrt(2.0) <= min(bx, by):
+        return True, "diagonal"
+    return False, "too big"
+
+
+def frame_assembly(parts):
+    """Everything in place on a mast + crossarm, for a look at the whole station."""
+    Lm = P.mast_len
+    za = Lm - P.arm_drop
+    items = [("frame_mast", box(-10, 10, -10, 10, 0, Lm)),
+             ("frame_crossarm", box(-P.arm_len / 2, P.arm_len / 2, 10, 30, za - 20, za))]
+
+    def add(group, dx, dy, dz, turn=None):
+        for name, s in group:
+            if turn:
+                s = turn(s)
+            items.append((name, mv(s, dx, dy, dz)))
+
+    # wind kit: foot plate on the mast's -X face, plate top level with the mast top
+    kit = wind.place(parts) + [("ref_" + n, s) for n, s in wind.reference()]
+    add(kit, -10 - P.wind_arm_len, 0, Lm - P.wind_body_h)
+    # rain gauge on one end of the crossarm, screen on the other
+    add(rain.place(parts), P.arm_len / 2 - 62, 20, za, lambda s: rz(s, 45))
+    scr = screen.place(parts) + [("ref_" + n, s) for n, s in screen.reference()]
+    add(scr, -P.arm_len / 2 + 66, 20, za)
+    # box on the mast's -Y face, solar bracket just above it
+    up = lambda s: rx(s, 90)   # box frame -> world: Y becomes up, depth runs along -Y
+    enc = enclosure.place(parts) + [("ref_" + n, s) for n, s in enclosure.reference()]
+    ez = Lm - P.enc_drop - P.enc_in_h / 2
+    add(enc, -P.enc_in_w / 2, -10, ez, up)
+    sol = [("solar_bracket", parts["solar_bracket"])] + \
+          [("ref_" + n, s) for n, s in enclosure.solar_reference()]
+    y_lo = -(P.solar_foot_pitch + P.m5_head_d / 2 + 3.0)
+    sz = ez + P.enc_in_h + P.enc_wall + P.enc_tab_len + 6.0 - y_lo
+    add(sol, 0, -10, sz, up)
+    return items
+
+
+def hardware():
+    scr_rod = P.scr_base_t + P.scr_plates * P.scr_pitch + 3.0 + P.m3_nut_h + 2
+    shaft = int(math.ceil((P.shaft_len_min + 1.0) / 5.0) * 5)
+    rows = [
+        ("Ball bearing %gx%gx%g" % (P.brg_id, P.brg_od, P.brg_w), 4, "wind: two per rotor"),
+        ("M5 x %d socket-head cap screw" % shaft, 2, "wind: rotor shafts (stainless)"),
+        ("M5 nut", 2, "wind: trapped in each rotor hub"),
+        ("Disc magnet %gx%g" % (P.mag_d, P.mag_t), P.vane_mag_n + P.anemo_mag_n,
+         "vane %d, cups %d" % (P.vane_mag_n, P.anemo_mag_n)),
+        ("Disc magnet %gx%g (small on purpose)" % (P.rain_mag_d, P.rain_mag_t), 2,
+         "rain bucket: one working, one as counterweight"),
+        ("Reed switch, %g mm glass" % (P.reed_l - 0.5), 2, "anemometer 1, rain 1 (vane PCB carries its own)"),
+        ("M5 x 16 screw + washers/nuts", 1, "vane nose ballast, in the slot"),
+        ("M3 x 10 screw", 3 + 6 + 3, "wind lid 3, box lid 6, board 3"),
+        ("M3 heat-set insert", 3 + 6 + 3, "wind body 3, box rim 6, board standoffs 3"),
+        ("M3 x 8 self-tapping / machine screw", 3 + 3, "cup hub cap 3, rain funnel 3"),
+        ("M3 x 16 screw", 2, "rain bucket stops (their heads are the stops; screw in or out to calibrate)"),
+        ("M3 x 45 screw + nyloc nut (or 3 mm rod)", 1, "rain bucket axle"),
+        ("M3 x %d screw or threaded rod + nut" % (int(math.ceil(scr_rod / 5.0)) * 5), 3,
+         "screen stack"),
+        ("M5 x 10 button head + 2020 T-nut", 2 + 2 + 2 + 2 + 2,
+         "wind 2, rain 2, screen 2, box 2, solar 2 (each foot has 4 holes; any opposite pair works)"),
+        ("PG7 cable gland", 1 + 2, "wind housing 1, box 2 (screen pigtails)"),
+        ("GX16-5, GX12-3, GX12-2 panel sockets", 1, "box bottom wall, one of each"),
+    ]
+    return rows
+
+
+def main():
+    t0 = time.time()
+    problems = P.validate()
+    if problems:
+        log("PARAMETER CHECK FAILED - nothing was built:")
+        for p in problems:
+            log("  - " + p)
+        return 2
+
+    out = os.path.join(HERE, "out")
+    for sub in ("step", "print"):
+        os.makedirs(os.path.join(out, sub), exist_ok=True)
+
+    QTY.update({"wind_spacer": 2, "wind_shim": 2, "cup_arm": int(P.n_cups), "screen_plate": int(P.scr_plates)})
+    parts = {}
+    for mod in (wind, rain, screen, enclosure):
+        log("building %s ..." % mod.__name__)
+        parts.update(mod.parts())
+
+    rows, failed = [], []
+    for name in sorted(parts):
+        s = parts[name]
+        bb = s.BoundBox
+        notes = []
+        if not s.isValid():
+            notes.append("INVALID SHAPE")
+        if len(s.Solids) != 1:
+            notes.append("%d solids" % len(s.Solids))
+        if abs(bb.ZMin) > 0.02:
+            notes.append("not on bed (zmin %.2f)" % bb.ZMin)
+        ok, how = fits_bed(bb)
+        if not ok:
+            notes.append(how)
+        m = mesh_of(s)
+        if not m.isSolid():
+            notes.append("mesh not watertight")
+        oh, worst = overhang_report(m)
+        ext = "3mf"
+        if not CHECK_ONLY:
+            s.exportStep(os.path.join(out, "step", name + ".step"))
+            try:
+                m.write(os.path.join(out, "print", name + ".3mf"))
+            except Exception:
+                ext = "stl"
+                m.write(os.path.join(out, "print", name + ".stl"))
+        if notes:
+            failed.append((name, notes))
+        rows.append((name, QTY.get(name, 1), bb.XLength, bb.YLength, bb.ZLength,
+                     s.Volume / 1000.0, how, oh, worst, notes, ext))
+        log("  %-16s %6.1f x %6.1f x %6.1f  %6.1f cm3  overhang %7.1f mm2  %s"
+            % (name, bb.XLength, bb.YLength, bb.ZLength, s.Volume / 1000.0, oh,
+               "; ".join(notes) or "ok"))
+
+    # vane balance: how much ballast the nose slot needs
+    vr = wind.vane_rotor_use()
+    cg = vr.CenterOfGravity
+    mass = vr.Volume / 1000.0 * ASA_DENSITY
+    slot_x = P.vane_nose - 17.0
+    ballast = mass * cg.x / slot_x if cg.x > 0 else 0.0
+
+    # assembly document, and a clash check between everything in it
+    doc = App.newDocument("station")
+    placed = frame_assembly(parts)
+    for name, s in placed:
+        o = doc.addObject("Part::Feature", name)
+        o.Shape = s
+    clashes = []
+    for i in range(len(placed)):
+        for j in range(i + 1, len(placed)):
+            (na, a), (nb, b) = placed[i], placed[j]
+            if not a.BoundBox.intersect(b.BoundBox):
+                continue
+            v = a.common(b).Volume
+            if v > CLASH_MM3:
+                clashes.append((na, nb, v))
+                log("  CLASH %s / %s: %.1f mm3" % (na, nb, v))
+    if clashes:
+        failed.append(("assembly", ["%s hits %s" % (a, b) for a, b, _ in clashes]))
+    doc.recompute()
+    if CHECK_ONLY:
+        log("check-only run%s: no files written" % (" with " + str(_over) if _over else ""))
+        log("vane rotor: %.0f g solid, CG %.1f mm tailward" % (mass, cg.x))
+        for name, notes in failed:
+            log("  FAILED %s: %s" % (name, "; ".join(notes)))
+        return 1 if failed else 0
+    doc.saveAs(os.path.join(out, "station.FCStd"))
+
+    with open(os.path.join(out, "report.md"), "w") as f:
+        f.write("# Station build report\n\n")
+        f.write("Generated by build.py from params.py. Do not edit by hand.\n\n")
+        f.write("## Printed parts\n\n")
+        f.write("Sizes are in print orientation (the meshes in `print/` are already "
+                "turned that way). Mass assumes solid ASA; expect roughly half with "
+                "3 walls and 15-20 % infill.\n\n")
+        f.write("| Part | Qty | X | Y | Z | Volume cm3 | Solid mass g | Bed | "
+                "Overhang mm2 | Checks |\n|---|---|---|---|---|---|---|---|---|---|\n")
+        for name, q, x, y, z, vol, how, oh, worst, notes, ext in rows:
+            f.write("| %s | %d | %.1f | %.1f | %.1f | %.1f | %.0f | %s | %.0f | %s |\n"
+                    % (name, q, x, y, z, vol, vol * ASA_DENSITY, how, oh,
+                       "; ".join(notes) or "ok"))
+        f.write("\nOverhang = down-facing surface shallower than 45 degrees that is not "
+                "on the bed. Where it is not zero, the biggest contributors are:\n\n")
+        for name, q, x, y, z, vol, how, oh, worst, notes, ext in rows:
+            if oh > 1.0:
+                f.write("- %s: %s\n" % (name, ", ".join("%.0f mm2 at z=%.0f" % (a, zz)
+                                                        for zz, a in worst)))
+        f.write("\n## Derived numbers\n\n")
+        f.write("- Rain collector area: %.1f cm2, so 1 mm of rain is %.2f ml\n"
+                % (P.rain_area_cm2, P.rain_area_cm2 / 10.0))
+        f.write("- Screen: %d louvres + cap, %.0f mm tall, %.0f mm diameter\n"
+                % (P.scr_plates, screen.height(), 2 * P.scr_r_out))
+        f.write("- Box inside: %.1f x %.1f x %.1f mm\n" % (P.enc_in_w, P.enc_in_h, P.enc_in_d))
+        f.write("- Cup rotor sweep radius: %.0f mm; rotor axis to 2020 face: %.0f mm\n"
+                % (P.cup_sweep_r, P.wind_arm_len))
+        f.write("- Vane rotor: %.0f g solid, centre of gravity %.1f mm toward the tail; "
+                "about %.0f g of ballast in the nose slot balances it\n"
+                % (mass, cg.x, ballast))
+        f.write("- Magnet-to-reed distances (centre to centre): vane %.1f mm through the lid; "
+                "anemometer %.1f mm through the floor; rain %.1f mm passing, %.1f mm at rest\n"
+                % (P.rotor_gap + P.wind_lid_t + P.pcb_standoff + P.vane_pcb_t / 2 + P.mag_d / 2,
+                   P.lip_h + P.wind_floor + 0.4 + P.reed_d / 2 + P.mag_d / 2,
+                   P.rain_reed_gap, math.hypot(P.rain_reed_gap, P.rain_mag_travel)))
+        if P.spacer_wall < 0.8:
+            f.write("- NOTE: with this bearing the spacer and shim walls are only %.2f mm. "
+                    "They print as a single pass; cut them from %.1f mm OD metal tube "
+                    "if they crush when the shaft screw is tightened\n"
+                    % (P.spacer_wall, P.race_od))
+        f.write("- Assembly clash check: %s\n"
+                % ("none" if not clashes else "; ".join("%s / %s" % (a, b) for a, b, _ in clashes)))
+        f.write("\n## Hardware\n\n| Item | Qty | Where |\n|---|---|---|\n")
+        for item, q, where in hardware():
+            f.write("| %s | %d | %s |\n" % (item, q, where))
+
+    log("vane rotor: %.0f g solid, CG %.1f mm tailward, ballast ~%.0f g" % (mass, cg.x, ballast))
+    log("done in %.0f s -> %s" % (time.time() - t0, out))
+    if failed:
+        log("FAILED CHECKS:")
+        for name, notes in failed:
+            log("  %s: %s" % (name, "; ".join(notes)))
+        return 1
+    return 0
+
+
+rc = main()
+if rc:
+    # freecadcmd swallows sys.exit codes on some builds; leave a marker as well
+    open(os.path.join(HERE, "out", "BUILD_FAILED") if os.path.isdir(os.path.join(HERE, "out"))
+         else os.path.join(HERE, "BUILD_FAILED"), "w").write(str(rc))
+else:
+    marker = os.path.join(HERE, "out", "BUILD_FAILED")
+    if os.path.exists(marker):
+        os.remove(marker)
