@@ -11,22 +11,25 @@ Sizes are in print orientation (the meshes in `print/` are already turned that w
 | cup_arm | ASA | 3 | 77.3 | 54.0 | 23.5 | 4.8 | 5.2 | flat | 0 | ok |
 | cup_hub | ASA | 1 | 44.6 | 44.6 | 34.5 | 30.2 | 32.4 | flat | 408 | ok |
 | cup_hub_cap | ASA | 1 | 30.0 | 30.0 | 2.4 | 1.6 | 1.7 | flat | 0 | ok |
-| enclosure_body | ASA | 1 | 188.2 | 159.0 | 38.5 | 141.8 | 151.8 | flat | 158 | ok |
-| enclosure_lid | ASA | 1 | 168.2 | 137.0 | 3.7 | 57.5 | 61.5 | flat | 123 | ok |
+| enclosure_body | ASA | 1 | 188.2 | 159.0 | 38.5 | 141.5 | 151.4 | flat | 187 | ok |
+| enclosure_lid | ASA | 1 | 168.2 | 137.0 | 3.7 | 57.5 | 61.5 | flat | 141 | ok |
 | rain_base | ASA | 1 | 113.2 | 113.2 | 27.3 | 40.8 | 43.6 | flat | 60 | ok |
 | rain_bucket | ASA | 1 | 64.0 | 37.6 | 20.0 | 5.7 | 6.1 | flat | 74 | ok |
 | rain_funnel | ASA | 1 | 113.2 | 113.2 | 127.8 | 93.0 | 99.5 | flat | 12 | ok |
 | screen_base | ASA | 1 | 124.0 | 124.0 | 62.0 | 29.4 | 31.5 | flat | 57 | ok |
 | screen_cap | ASA | 1 | 124.0 | 124.0 | 32.7 | 21.1 | 22.6 | flat | 124 | ok |
 | screen_plate | ASA | 3 | 124.0 | 124.0 | 32.7 | 17.9 | 19.1 | flat | 0 | ok |
+| sky_head | ASA | 1 | 30.5 | 30.5 | 22.8 | 7.3 | 7.8 | flat | 77 | ok |
+| sky_mount | ASA | 1 | 45.0 | 103.9 | 26.1 | 26.1 | 27.9 | flat | 196 | ok |
 | solar_bracket | ASA | 1 | 103.8 | 68.0 | 76.0 | 56.6 | 60.6 | flat | 139 | ok |
 | tpu_box_lid_gasket | TPU | 1 | 150.4 | 121.2 | 1.4 | 1.1 | 1.3 | flat | 0 | ok |
+| tpu_sky_can_seal | TPU | 1 | 13.2 | 13.2 | 1.9 | 0.2 | 0.2 | flat | 0 | ok |
 | tpu_washer_gland | TPU | 3 | 20.0 | 20.0 | 1.0 | 0.2 | 0.2 | flat | 0 | ok |
-| tpu_washer_gx12 | TPU | 2 | 17.0 | 17.0 | 1.0 | 0.1 | 0.1 | flat | 0 | ok |
+| tpu_washer_gx12 | TPU | 3 | 17.0 | 17.0 | 1.0 | 0.1 | 0.1 | flat | 0 | ok |
 | tpu_washer_gx16 | TPU | 1 | 22.0 | 22.0 | 1.0 | 0.2 | 0.2 | flat | 0 | ok |
 | tpu_wind_lid_gasket | TPU | 1 | 73.1 | 70.6 | 0.8 | 0.5 | 0.6 | flat | 0 | ok |
 | vane_rotor | ASA | 1 | 208.0 | 40.5 | 47.2 | 38.4 | 41.1 | flat | 126 | ok |
-| wind_body | ASA | 1 | 145.1 | 71.1 | 33.4 | 64.6 | 69.1 | flat | 473 | ok |
+| wind_body | ASA | 1 | 164.1 | 70.6 | 33.4 | 67.1 | 71.8 | flat | 473 | ok |
 | wind_lid | ASA | 1 | 76.1 | 72.6 | 18.0 | 11.8 | 12.6 | flat | 72 | ok |
 | wind_pcb_ring | ASA | 1 | 60.9 | 60.9 | 1.7 | 0.5 | 0.6 | flat | 0 | ok |
 | wind_shim | ASA | 2 | 7.6 | 7.6 | 1.2 | 0.0 | 0.0 | flat | 0 | ok |
@@ -35,16 +38,18 @@ Sizes are in print orientation (the meshes in `print/` are already turned that w
 Overhang = down-facing surface shallower than 45 degrees that is not on the bed. Where it is not zero, the biggest contributors are:
 
 - cup_hub: 202 mm2 at z=7, 192 mm2 at z=30, 15 mm2 at z=9
-- enclosure_body: 67 mm2 at z=27, 50 mm2 at z=26, 15 mm2 at z=28
-- enclosure_lid: 123 mm2 at z=1
+- enclosure_body: 80 mm2 at z=27, 63 mm2 at z=26, 15 mm2 at z=28
+- enclosure_lid: 141 mm2 at z=1
 - rain_base: 25 mm2 at z=24, 18 mm2 at z=6, 17 mm2 at z=9
 - rain_bucket: 74 mm2 at z=5
 - rain_funnel: 10 mm2 at z=124, 3 mm2 at z=125
 - screen_base: 57 mm2 at z=2
 - screen_cap: 124 mm2 at z=30
+- sky_head: 67 mm2 at z=8, 10 mm2 at z=18
+- sky_mount: 154 mm2 at z=16, 24 mm2 at z=14, 15 mm2 at z=25
 - solar_bracket: 106 mm2 at z=73, 12 mm2 at z=47, 11 mm2 at z=46
 - vane_rotor: 125 mm2 at z=28, 1 mm2 at z=17, 0 mm2 at z=18
-- wind_body: 234 mm2 at z=1, 72 mm2 at z=5, 50 mm2 at z=19
+- wind_body: 234 mm2 at z=1, 72 mm2 at z=5, 50 mm2 at z=17
 - wind_lid: 72 mm2 at z=5
 
 ## Derived numbers
@@ -52,9 +57,10 @@ Overhang = down-facing surface shallower than 45 degrees that is not on the bed.
 - Rain collector area: 95.0 cm2, so 1 mm of rain is 9.50 ml
 - Screen: 3 louvres + cap, 78 mm tall, 124 mm diameter
 - Box inside: 145.8 x 116.6 x 35.5 mm
-- Cup rotor sweep radius: 82 mm; rotor axis to 2020 face: 105 mm
+- Cup rotor sweep radius: 82 mm; rotor axis to 2020 face: 124 mm
 - Vane rotor: 41 g solid, centre of gravity 22.1 mm toward the tail; about 15 g of ballast in the nose slot balances it
 - Magnet-to-reed distances (centre to centre): vane 8.8 mm through the lid; anemometer 7.6 mm through the floor; rain 6.0 mm passing, 9.3 mm at rest
+- Sky pod: opening 65 mm above the mast top, its lowest rim 7 mm above the top of the vane; vane tail passes 10 mm from the pod; view cone +/-40 deg, tilted 25 deg
 - Antenna (inside the box, whip up): 34 mm clear of the cell, 64 mm from the nearest face of the mast
 - Assembly clash check: none
 
@@ -71,10 +77,11 @@ Overhang = down-facing surface shallower than 45 degrees that is not on the bed.
 | M5 x 16 screw + washers/nuts | 1 | vane nose ballast, in the slot |
 | M3 x 10 screw | 12 | wind lid 3, box lid 6, board 3 |
 | M3 heat-set insert | 12 | wind body 3, box rim 6, board standoffs 3 |
-| M3 x 8 self-tapping / machine screw | 6 | cup hub cap 3, rain funnel 3 |
+| M3 x 8 self-tapping / machine screw | 8 | cup hub cap 3, rain funnel 3, sky pod head 2 |
 | M3 x 16 screw | 2 | rain bucket stops (their heads are the stops; screw in or out to calibrate) |
 | M3 x 45 screw + nyloc nut (or 3 mm rod) | 1 | rain bucket axle |
 | M3 x 55 screw or threaded rod + nut | 3 | screen stack |
-| M5 x 10 button head + 2020 T-nut | 10 | wind 2, rain 2, screen 2, box 2, solar 2 (each foot has 4 holes; any opposite pair works) |
+| M5 x 10 button head + 2020 T-nut | 12 | wind 2, rain 2, screen 2, box 2, solar 2, sky pod 2 (each foot has 4 holes; any opposite pair works) |
 | PG7 cable gland | 3 | wind housing 1, box 2 (screen pigtails) |
-| GX16-5, GX12-3, GX12-2 panel sockets | 1 | box bottom wall, one of each |
+| GX16-5, GX12-3, GX12-2, GX12-4 panel sockets | 1 | box bottom wall, one of each |
+| MLX90614 breakout + GX12-4 plug + 4-core cable | 1 | sky pod, to Board A's Qwiic port |

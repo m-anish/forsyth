@@ -74,6 +74,11 @@ def body():
         d = P.m3_insert_l + 1.0
         cuts.append(cyl(P.m3_insert_d, d + 0.01, (x, y, h - d)))
     cuts.append(rz(cyl(P.gland_d, 14, (P.wind_r_in - 4, 0, gz), (1, 0, 0)), P.wind_gland_angle))
+    # cable-tie slots through one rail, between the cup sweep and the foot
+    x0 = max(P.cup_sweep_r + 6.0, P.wind_r_out + 12.0)
+    for x in (x0, (x0 + L - ft - 14.0) / 2 + 4.0):
+        if x + 5 < L - ft - (h - P.wind_rail_h):
+            cuts.append(box(x, x + 4.5, fw - rw + 2.0, fw - rw + 4.2, -0.5, P.wind_rail_h + 0.5))
     zc = h / 2
     for dy, dz in ((0, P.wind_foot_pv), (0, -P.wind_foot_pv),
                    (P.wind_foot_pitch_h, 0), (-P.wind_foot_pitch_h, 0)):
@@ -139,7 +144,7 @@ def _vane_dims():
     rh = P.vane_hub_r
     z_ht = zc + 3.5 + (P.m5_nut_h + 0.4) + 3.0
     cone_h = rh - 1.0
-    z_top = max(z_ht + cone_h, P.vane_fin_clear + P.vane_fin_h)
+    z_top = P.vane_top
     return g, ht, zc, rc, rh, z_ht, cone_h, z_top
 
 

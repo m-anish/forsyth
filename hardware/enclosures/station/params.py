@@ -78,7 +78,8 @@ anemo_mag_r = 18.7       # radius of the anemometer magnet and reed centre
 # -- housing ------------------------------------------------------------------
 wind_floor = 2.0
 wind_lid_t = 2.4
-wind_arm_len = 105.0     # rotor axis to the face of the 2020 it bolts to
+wind_arm_len = 124.0     # rotor axis to the face of the 2020 it bolts to (long enough
+                         # that the vane tail swings clear of the sky pod)
 wind_rail_w = 7.0        # the arm is two rails so the foot screws stay reachable
 wind_rail_h = 10.0
 wind_foot_w = 50.0
@@ -91,7 +92,7 @@ gland_d = 12.5           # PG7 cable gland
 gland_flange = 19.0
 wind_gasket_t = 0.8      # TPU gasket between the wind housing and its lid
 port_gasket_t = 1.0      # TPU washers under connector and gland flanges
-wind_gland_angle = 120.0
+wind_gland_angle = 0.0   # 0 = facing the mast, so the cable leaves between the arm rails
 
 # -- cup rotor ----------------------------------------------------------------
 n_cups = 3
@@ -213,12 +214,35 @@ enc_ports = (
     ("SOLAR", gx12_d, gx12_flange),
     ("RAIN", gx12_d, gx12_flange),
     ("WIND", gx16_d, gx16_flange),
+    ("SKY", gx12_d, gx12_flange),      # GX12-4: 1 VBAT, 2 GND, 3 SDA, 4 SCL -> Board A Qwiic
 )
 enc_port_gap = 3.0       # minimum between neighbouring flanges
 # Port names engraved on the lid, above each entry. Skipped if the font is missing.
 label_font = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
 label_h = 4.0            # letter height
 label_depth = 0.6
+
+# ================================================================= SKY ====
+# MLX90614 on the usual small breakout (GY-906). TYPICAL sizes - measure yours.
+sky_pcb_w = 11.5
+sky_pcb_l = 17.0
+sky_pcb_t = 1.6
+sky_can_off = 5.75       # centre of the sensor can from the nearer end of the board
+sky_can_d = 8.2          # can diameter
+sky_can_h = 4.2          # can height above the board
+sky_tilt = 25.0          # sensor axis leans this far from vertical, away from the mast
+sky_rise = 65.0          # centre of the opening above the mast top
+sky_snout = 8.0          # how deep the can sits below the rim of its cone
+sky_snout_half = 40.0    # half-angle of that cone; the 90 deg sensor sees +/-45
+sky_can_proud = 1.0      # can stands this far above the cone floor so water runs off it
+sky_floor = 1.6
+sky_wall = 2.0
+sky_plug_h = 8.0
+sky_neck = 10.0
+sky_foot_w = 45.0
+sky_foot_h = 45.0
+sky_foot_t = 6.0
+sky_foot_pitch = 12.5
 
 # =============================================================== SOLAR ====
 panel_l = 100.0          # long side, across the bracket
@@ -267,6 +291,26 @@ def _derive():
     g["cup_flange_r"] = max(anemo_mag_r + anemo_mag_len / 2 + 2.0, cup_hub_d / 2)
     g["cup_sweep_r"] = cup_arm_r + cup_d / 2 + cup_rim
     g["shaft_len_min"] = shim_h + tower_h + 0.3 + lip_h + 3.5 + m5_nut_h
+    # top of the vane rotor above the wind lid
+    hub_top = (tower_h - wind_lid_t) + lip_h + 3.5 + (m5_nut_h + 0.4) + 3.0
+    g["vane_top"] = max(hub_top + vane_hub_r - 1.0, vane_fin_clear + vane_fin_h)
+
+    # sky pod
+    ts = math.radians(sky_tilt)
+    g["sky_rc"] = math.hypot(sky_pcb_l - sky_can_off, sky_pcb_w / 2) + 0.6   # head cavity
+    g["sky_r1"] = sky_can_d / 2 + 0.8 + sky_snout * math.tan(math.radians(sky_snout_half))
+    g["sky_ro"] = max(sky_rc + sky_wall, sky_r1 + 1.2)
+    g["sky_rp"] = sky_rc - 0.15                                             # plug
+    g["sky_ring_c"] = sky_can_h - sky_can_proud - sky_floor                 # seal, squeezed
+    g["sky_ht"] = 2.0 + sky_plug_h + sky_pcb_t + sky_ring_c + sky_floor + sky_snout
+    g["sky_hdr_off"] = sky_pcb_l - sky_can_off - 1.75                       # header from the can
+    # plug centre: far enough out that the plug just flattens on the print bed
+    g["sky_pod_x"] = sky_rp * math.cos(ts) + (sky_plug_h / 2) * math.sin(ts) - 1.0
+    g["sky_zc"] = sky_rise - math.cos(ts) * (sky_ht - 2.0 - sky_plug_h / 2)
+    ox = sky_pod_x - (2.0 + sky_plug_h / 2) * math.sin(ts)
+    g["sky_head_xmin"] = ox - sky_ro * math.cos(ts)                         # nearest the vane
+    g["sky_rim_low"] = sky_rise - sky_ro * math.sin(ts)                     # lowest point of the rim
+    g["vane_tip_x"] = vane_tail - wind_arm_len - profile                    # in the pod's frame
 
     # rain
     t = math.radians(rain_tilt)
@@ -369,12 +413,25 @@ def validate():
          "anemometer reed does not fit inside the housing; lower anemo_mag_r")
     need(cup_hub_d / 2 >= 4.5 + cup_key + 3.0,
          "cup_hub_d too small for the arm hooks")
+    if abs(wind_gland_angle) < 1e-6:
+        need(gland_flange / 2 + 1.0 <= wind_foot_w / 2 - wind_rail_w,
+             "cable gland does not fit between the arm rails; widen wind_foot_w")
     need(wind_foot_pitch_h + m5_head_d / 2 + 0.5 <= wind_foot_w / 2 - wind_rail_w,
          "wind foot: horizontal screw pair collides with the arm rails")
     need(wind_foot_pv >= m5_head_d / 2 + 0.75,
          "wind housing too short for two screws one above the other on the foot")
     need(vane_tail + vane_nose + 6 <= bed_x * math.sqrt(2) - 30,
          "vane rotor is too long for the bed even on the diagonal")
+
+    # sky pod
+    need(sky_ring_c >= 1.0,
+         "sky pod: no room for a seal round the can; reduce sky_floor or sky_can_proud")
+    need(0 <= sky_tilt <= 35, "sky_tilt above 35 deg stops the pod printing cleanly")
+    need(sky_head_xmin - vane_tip_x >= 8.0,
+         f"vane tail passes {sky_head_xmin - vane_tip_x:.0f} mm from the sky pod; "
+         "it needs 8. Lengthen wind_arm_len or shorten vane_tail")
+    need(sky_rim_low >= wind_lid_t + wind_gasket_t + vane_top + 2.0,
+         "sky pod opening is not above the vane, which would then be in its view; raise sky_rise")
 
     # rain
     need(rain_bucket_w / 2 + rain_side_gap + rain_upright_t + 3 < rain_r - 4,

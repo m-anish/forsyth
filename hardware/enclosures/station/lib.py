@@ -124,9 +124,19 @@ def pol(r, deg, z=0.0):
     return (r * math.cos(a), r * math.sin(a), z)
 
 
+def bbox(s):
+    """Tight bounding box. Shape.BoundBox can keep the extent of material that a
+    boolean cut has since removed from a curved face, so never size or seat a
+    part from it."""
+    try:
+        return s.optimalBoundingBox(False, False)
+    except Exception:
+        return s.BoundBox
+
+
 def to_bed(s):
     """Drop a shape so its lowest point sits on z = 0."""
-    return mv(s, 0, 0, -s.BoundBox.ZMin)
+    return mv(s, 0, 0, -bbox(s).ZMin)
 
 
 def flip(s):
@@ -155,5 +165,5 @@ def text_solid(text, height, depth, font):
     if not faces:
         return None
     s = Part.makeCompound(faces).extrude(V(0, 0, depth))
-    bb = s.BoundBox
+    bb = bbox(s)
     return mv(s, -(bb.XMin + bb.XMax) / 2, -(bb.YMin + bb.YMax) / 2, 0)

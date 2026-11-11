@@ -41,6 +41,7 @@ import wind  # noqa: E402
 import rain  # noqa: E402
 import screen  # noqa: E402
 import enclosure  # noqa: E402
+import sky  # noqa: E402
 
 ASA_DENSITY = 1.07       # g/cm3
 TPU_DENSITY = 1.21
@@ -110,20 +111,24 @@ def frame_assembly(parts):
     # wind kit: foot plate on the mast's -X face, plate top level with the mast top
     kit = wind.place(parts) + [("ref_" + n, s) for n, s in wind.reference()]
     add(kit, -10 - P.wind_arm_len, 0, Lm - P.wind_body_h - P.wind_gasket_t)
+    # sky pod on the opposite mast face, standing above everything else
+    pod = sky.place(parts) + [("ref_" + n, s) for n, s in sky.reference()]
+    add(pod, 10, 0, Lm)
     # rain gauge on one end of the crossarm, screen on the other
     add(rain.place(parts), P.arm_len / 2 - 62, 20, za, lambda s: rz(s, 45))
     scr = screen.place(parts) + [("ref_" + n, s) for n, s in screen.reference()]
     add(scr, -P.arm_len / 2 + 66, 20, za)
-    # box on the mast's -Y face, solar bracket just above it
-    up = lambda s: rx(s, 90)   # box frame -> world: Y becomes up, depth runs along -Y
+    # Box and solar bracket on the same face as the wind arm (-X). With the sky pod's
+    # face turned north, that face looks south: sun on the panel, panel shading the box.
+    up = lambda s: rz(rx(s, 90), -90)   # part frame -> world: Y becomes up, depth runs along -X
     enc = enclosure.place(parts) + [("ref_" + n, s) for n, s in enclosure.reference()]
     ez = Lm - P.enc_drop - P.enc_in_h / 2
-    add(enc, -P.enc_tab_x, -10, ez, up)
+    add(enc, -10, P.enc_tab_x, ez, up)
     sol = [("solar_bracket", parts["solar_bracket"])] + \
           [("ref_" + n, s) for n, s in enclosure.solar_reference()]
     y_lo = -(P.solar_foot_pitch + P.m5_head_d / 2 + 3.0)
     sz = ez + P.enc_in_h + P.enc_wall + P.enc_tab_len + 6.0 - y_lo
-    add(sol, 0, -10, sz, up)
+    add(sol, -10, 0, sz, up)
     return items
 
 
@@ -142,15 +147,18 @@ def hardware():
         ("M5 x 16 screw + washers/nuts", 1, "vane nose ballast, in the slot"),
         ("M3 x 10 screw", 3 + 6 + 3, "wind lid 3, box lid 6, board 3"),
         ("M3 heat-set insert", 3 + 6 + 3, "wind body 3, box rim 6, board standoffs 3"),
-        ("M3 x 8 self-tapping / machine screw", 3 + 3, "cup hub cap 3, rain funnel 3"),
+        ("M3 x 8 self-tapping / machine screw", 3 + 3 + 2,
+         "cup hub cap 3, rain funnel 3, sky pod head 2"),
         ("M3 x 16 screw", 2, "rain bucket stops (their heads are the stops; screw in or out to calibrate)"),
         ("M3 x 45 screw + nyloc nut (or 3 mm rod)", 1, "rain bucket axle"),
         ("M3 x %d screw or threaded rod + nut" % (int(math.ceil(scr_rod / 5.0)) * 5), 3,
          "screen stack"),
-        ("M5 x 10 button head + 2020 T-nut", 2 + 2 + 2 + 2 + 2,
-         "wind 2, rain 2, screen 2, box 2, solar 2 (each foot has 4 holes; any opposite pair works)"),
+        ("M5 x 10 button head + 2020 T-nut", 2 + 2 + 2 + 2 + 2 + 2,
+         "wind 2, rain 2, screen 2, box 2, solar 2, sky pod 2 "
+         "(each foot has 4 holes; any opposite pair works)"),
         ("PG7 cable gland", 1 + 2, "wind housing 1, box 2 (screen pigtails)"),
-        ("GX16-5, GX12-3, GX12-2 panel sockets", 1, "box bottom wall, one of each"),
+        ("GX16-5, GX12-3, GX12-2, GX12-4 panel sockets", 1, "box bottom wall, one of each"),
+        ("MLX90614 breakout + GX12-4 plug + 4-core cable", 1, "sky pod, to Board A's Qwiic port"),
     ]
     return rows
 
@@ -168,17 +176,17 @@ def main():
     for sub in ("step", "print"):
         os.makedirs(os.path.join(out, sub), exist_ok=True)
 
-    QTY.update({"tpu_washer_gland": 3, "tpu_washer_gx12": 2,
+    QTY.update({"tpu_washer_gland": 3, "tpu_washer_gx12": 3,
                 "wind_spacer": 2, "wind_shim": 2, "cup_arm": int(P.n_cups), "screen_plate": int(P.scr_plates)})
     parts = {}
-    for mod in (wind, rain, screen, enclosure):
+    for mod in (wind, rain, screen, enclosure, sky):
         log("building %s ..." % mod.__name__)
         parts.update(mod.parts())
 
     rows, failed = [], []
     for name in sorted(parts):
         s = parts[name]
-        bb = s.BoundBox
+        bb = bbox(s)
         notes = []
         if not s.isValid():
             notes.append("INVALID SHAPE")
@@ -226,7 +234,7 @@ def main():
     for i in range(len(placed)):
         for j in range(i + 1, len(placed)):
             (na, a), (nb, b) = placed[i], placed[j]
-            if not a.BoundBox.intersect(b.BoundBox):
+            if not bbox(a).intersect(bbox(b)):
                 continue
             if na.startswith("tpu_") or nb.startswith("tpu_"):
                 continue          # gaskets are squeezed on purpose
@@ -287,6 +295,11 @@ def main():
                     "They print as a single pass; cut them from %.1f mm OD metal tube "
                     "if they crush when the shaft screw is tightened\n"
                     % (P.spacer_wall, P.race_od))
+        f.write("- Sky pod: opening %.0f mm above the mast top, its lowest rim %.0f mm above the "
+                "top of the vane; vane tail passes %.0f mm from the pod; view cone +/-%.0f deg, "
+                "tilted %.0f deg\n"
+                % (P.sky_rise, P.sky_rim_low - (P.wind_lid_t + P.wind_gasket_t + P.vane_top),
+                   P.sky_head_xmin - P.vane_tip_x, P.sky_snout_half, P.sky_tilt))
         f.write("- Antenna (inside the box, whip up): %.0f mm clear of the cell, %.0f mm from the "
                 "nearest face of the mast\n" % (P.enc_ant_to_cell, P.enc_ant_to_mast))
         f.write("- Assembly clash check: %s\n"

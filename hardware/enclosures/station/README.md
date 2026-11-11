@@ -2,7 +2,7 @@
 
 Parametric models for everything a leaf needs outdoors: a combined wind kit
 (vane above, cups below, one housing), a tipping-bucket rain gauge, a Stevenson
-screen for the 4 x 6 cm sensor carrier, the core box for Board A and a loose
+screen for the 4 x 6 cm sensor carrier, a sky pod for an MLX90614 cloud sensor, the core box for Board A and a loose
 32xxx cell, and a bracket for a solar panel up to 70 x 100 mm.
 
 **Status (2026-11-10): first design pass. Every part passes the automatic
@@ -65,6 +65,20 @@ the cups (lower starting threshold). De-grease the cup bearings and use light oi
 
 ![wind section](docs/wind-section.png)
 
+![mast top](docs/mast-top-section.png)
+
+**Sky pod (cloud cover).** The MLX90614 reads the average temperature of
+everything in its view, so it has to see only sky. The one place on the station
+with nothing above it is just over the mast top. The pod bolts to the mast face
+opposite the wind arm and holds the sensor 65 mm above the mast top, 7 mm above
+the highest point of the vane, leaning 25 degrees away from the mast. The can
+sits 8 mm down a cone that trims its view to +/-40 degrees and keeps sun off the
+can body; it stands 1 mm proud of the cone floor, which drains both ways, so
+water does not sit on the window. A TPU ring seals round the can. The wind arm
+is 124 mm long so the vane tail clears the pod by 10 mm.
+
+![sky pod](docs/sky-pod-section.png)
+
 **Cups are cones, printed mouth-down**, one per arm, hooked into the hub and
 held by a cap. A 45 degree cone needs no support and the arm prints flat, so
 it is strong in the direction wind loads it. The vane rotor prints upside down
@@ -102,11 +116,40 @@ product photo and need measuring.
 **Seals (TPU).** `tpu_box_lid_gasket` lies in the rim groove and a narrow
 ridge on the lid presses 0.3 mm into it. `tpu_wind_lid_gasket` sits between
 the wind housing and its lid. `tpu_washer_*` go under the flange of each GX
-socket and gland. Nothing else needs one: the rain gauge and screen are meant
+socket and gland. `tpu_sky_can_seal` goes round the thermopile's can. Nothing else needs one: the rain gauge and screen are meant
 to be open, and the wind rotors are sealed by overlap, not by contact.
 
 **Solar bracket** is separate from the box (no holes through the box top) and
 mounts on the mast just above it, which also shades the box.
+
+## Which way round
+
+Turn the mast so the sky pod's face points north (in the northern hemisphere).
+Everything else follows from that:
+
+| Mast face | What goes on it |
+|---|---|
+| North | sky pod, at the very top |
+| South | wind arm at the top; lower down the solar bracket, with the box under it |
+| East / west | the crossarm, with the rain gauge on one end and the screen on the other |
+
+The pod then leans away from the sun's path, the panel faces the sun, and the
+box sits in the panel's shade. Hang the box so its antenna end is on the side
+toward the coordinator.
+
+## Cables
+
+| From | Leaves through | Route | Box port |
+|---|---|---|---|
+| Wind kit | PG7 gland in the housing wall, facing the mast between the two arm rails | along a rail (tie slot provided), down past the foot, then down the mast's slot | WIND, GX16-5 |
+| Sky pod | slot through the plug, out under the head | down the riser (tie notches), down the mast's slot | SKY, GX12-4 to Board A's Qwiic port: 1 VBAT, 2 GND, 3 SDA, 4 SCL |
+| Rain gauge | the drain opening beside the reed post | along the crossarm slot, down the mast | RAIN, GX12-3 |
+| Screen | hole in the base | along the crossarm slot, down the mast | ENV and PMS glands |
+| Solar | hole in the tray floor | straight down | SOLAR, GX12-2 |
+
+Every entry is in the box's bottom wall. Leave a drip loop below each plug so
+water running down the cable falls off before the connector. 2020 slot covers
+hold a 4 to 5 mm cable in the mast.
 
 ## Printing
 
@@ -119,7 +162,9 @@ mounts on the mast just above it, which also shades the box.
   draught shield against ASA warping.
 - Print `wind_spacer` x2, `wind_shim` x2, `cup_arm` x3, `screen_plate` x3.
 - TPU parts (`tpu_*`): 95A, 100 % infill, flat on the bed, slow. Quantities are
-  in the report (`tpu_washer_gland` x3, `tpu_washer_gx12` x2).
+  in the report (`tpu_washer_gland` x3, `tpu_washer_gx12` x3).
+- `sky_mount` prints with the mast face down, `sky_head` upside down. Print
+  both in white.
 - Bearing pockets are modelled 0.1 mm over nominal. Print one `wind_lid` first
   and check the fit before printing the body.
 
@@ -144,7 +189,16 @@ mounts on the mast just above it, which also shades the box.
    bulkhead pigtail through the bottom wall.
 7. **Gasket squeeze.** 0.3 mm into 95A TPU is a guess at what six M3 screws
    close comfortably. If the lid bows between screws, lower `gasket_squeeze`.
-8. **The box is now airtight**, so it will breathe through its weakest seal as
+8. **Sky sensor.** (a) Read the letters on the can: BAA is 3 V with a 90 degree
+   view, which this pod assumes; AAA needs 5 V and will not run from the
+   battery rail; BCC sees 35 degrees. (b) The breakout's sizes in `params.py`
+   are the usual ones, not measured. (c) The sensor draws about 1 to 2 mA
+   whenever powered, far above this leaf's budget; sleep it over SMBus (3 V
+   versions only) or gate its supply, and check the breakout's own regulator
+   and pull-ups against the one-set-of-pull-ups rule. (d) Compare its reading
+   with the screen's air temperature, not its own body temperature. (e) Rain
+   or dew on the window reads as cloud; gate on the rain gauge as planned.
+9. **The box is now airtight**, so it will breathe through its weakest seal as
    it heats and cools. Fit a membrane vent plug in the bottom wall if
    condensation shows up.
 
@@ -157,5 +211,5 @@ mounts on the mast just above it, which also shades the box.
 ## Files
 
 `params.py` dimensions and checks, `lib.py` modelling helpers, `wind.py`,
-`rain.py`, `screen.py`, `enclosure.py` (box and solar bracket), `build.py`
+`rain.py`, `screen.py`, `enclosure.py` (box and solar bracket), `sky.py`, `build.py`
 build, checks and report, `docs/` renders.
