@@ -187,9 +187,31 @@ def _handle_frame(radio, up, payload, rssi):
                     "rssi_dbm": rssi})
 
 
+# Monotonic seconds since boot. NOT time.time(): this firmware deliberately
+# JUMPS the wall clock after boot — seed_from_rtc() reads the DS3231 at start-up
+# and every NTP resync moves it again — so anything measured by subtracting two
+# time.time() readings across one of those is wrong. boot_t used to be captured
+# before both corrections, which turned a 30 s uptime into ~26 years the moment
+# the DS3231 answered, because MicroPython starts near its own epoch base.
+#
+# ticks_ms() is immune to clock sets but WRAPS (2^30 ms, ~12.4 days on ESP32),
+# so this accumulates wrap-safe deltas instead of subtracting two readings. It
+# must therefore be called more often than half the wrap period; the main loop
+# calls it every pass, which is many times a second.
+_up_ms = 0
+_up_last = time.ticks_ms()
+
+
+def _uptime_s():
+    global _up_ms, _up_last
+    t = time.ticks_ms()
+    _up_ms += time.ticks_diff(t, _up_last)
+    _up_last = t
+    return _up_ms // 1000
+
+
 def run():
     global _panel
-    boot_t = time.time()
     print("forsyth coordinator — %s" % config.COORDINATOR_ID)
     _led.set(led_mod.BOOT)
     _led.boot_glow()                  # calm fade-up, held white through boot
@@ -228,7 +250,7 @@ def run():
         return {
             "id": config.COORDINATOR_ID,
             "mode": "bench" if bench_on else "normal",
-            "uptime_s": int(time.time() - boot_t),
+            "uptime_s": _uptime_s(),
             "net": net.status(),
             "clock": clock.status(),
             "uplink": {"connected": up.connected, "spooled": up.spooled,
@@ -257,7 +279,11 @@ def run():
 
     _led.from_status(_status())       # settle straight from 'booting' to the
     _led.tick()                       # real state — no lingering white
-    last_ping = last_retry = last_led = last_locsync = time.time()
+    # Cadences run off the monotonic counter too. On the wall clock a forward
+    # NTP jump fires all of these once in a burst, and a BACKWARD one stalls
+    # them until the clock catches up — a ping that goes quiet for hours looks
+    # exactly like a dead uplink.
+    last_ping = last_retry = last_led = last_locsync = _uptime_s()
     while True:
         if radio is not None:
             payload, rssi = radio.recv()
@@ -287,7 +313,7 @@ def run():
         net.ensure()                  # one repair-ladder rung when needed
         clock.maybe_resync(net.isconnected)
         _led.tick()                   # render this instant's colour every pass
-        now = time.time()
+        now = _uptime_s()             # also ticks the wrap accumulator
         if now - last_led >= 1:       # re-derive the base state once a second —
             _led.from_status(_status())  # cheaper than rebuilding status at 50 Hz
             last_led = now

@@ -166,16 +166,30 @@ function poll(){
  }).catch(function(){});
 }
 function n0(b){return b?'yes':'no'}
+/* The device sends the INSTANT (ISO-8601 UTC), not a rendering, so the zone
+   is decided here — in the reader's browser — rather than on a box that has
+   no idea where the reader is. 24-hour and zero-padded regardless of locale:
+   a log wants fixed-width stamps that line up, and 'PM' in the gutter makes
+   every row a different length. '+Ns' means the clock has not been set yet
+   and is passed through untouched. */
+var TZ=(function(){try{return new Intl.DateTimeFormat([],{timeZoneName:'short'})
+ .formatToParts(new Date()).find(function(p){return p.type==='timeZoneName'}).value}
+ catch(e){return''}})();
+function ts(v){
+ if(!v||v.charAt(0)==='+')return v;
+ var d=new Date(v); if(isNaN(d.getTime()))return v;
+ try{return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',
+   second:'2-digit',hour12:false})}catch(e){return v}}
 function polllog(){
  if(document.getElementById('pause').checked)return;
  fetch('/api/logs?after='+lastId).then(function(r){return r.json()}).then(function(d){
-  if(!d.lines.length){document.getElementById('count').textContent=lastId+' lines';return}
+  if(!d.lines.length){document.getElementById('count').textContent=lastId+' lines'+(TZ?' · '+TZ:'');return}
   var atBot=logEl.scrollHeight-logEl.scrollTop-logEl.clientHeight<30;
   var html='';
   d.lines.forEach(function(x){lastId=x[0];
-   html+='<span class="l'+cls(x[2])+'"><span class=t>'+x[1]+'</span> '+esc(x[2])+'</span>'});
+   html+='<span class="l'+cls(x[2])+'"><span class=t>'+ts(x[1])+'</span> '+esc(x[2])+'</span>'});
   logEl.insertAdjacentHTML('beforeend',html);
-  document.getElementById('count').textContent=lastId+' lines';
+  document.getElementById('count').textContent=lastId+' lines'+(TZ?' · '+TZ:'');
   if(document.getElementById('follow').checked||atBot)
     logEl.scrollTop=logEl.scrollHeight;
  }).catch(function(){});

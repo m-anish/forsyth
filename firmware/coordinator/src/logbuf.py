@@ -19,9 +19,26 @@ _orig_print = builtins.print
 
 
 def _stamp():
+    """ISO-8601 UTC once the clock is real, so the BROWSER can localise it.
+
+    This used to format "%02d:%02d:%02d" from gmtime() here, which baked UTC
+    into the string before it ever left the device: a reader in India watching
+    the log saw times five and a half hours behind their own watch, with
+    nothing on the page to say so. Sending the instant instead of a rendering
+    lets Date.toLocaleTimeString() put it in whatever zone the reader is in,
+    which is the only zone they can check against.
+
+    Deliberately not an epoch integer: MicroPython's epoch base differs by
+    port (2000-01-01 on several, 1970 on others) and nothing else in this
+    firmware depends on it, since every other use of time.time() here is a
+    duration. An ISO string sidesteps the question entirely.
+
+    Pre-NTP it stays "+Ns" since boot — a wall clock that has not been set is
+    worse than useless, and the client tells the two apart by the leading +."""
     t = time.gmtime()
-    if t[0] >= 2024:                       # NTP has landed → wall clock
-        return "%02d:%02d:%02d" % (t[3], t[4], t[5])
+    if t[0] >= 2024:                       # NTP (or the DS3231) has landed
+        return "%04d-%02d-%02dT%02d:%02d:%02dZ" % (t[0], t[1], t[2],
+                                                   t[3], t[4], t[5])
     return "+%ds" % (time.ticks_ms() // 1000)  # pre-NTP → uptime, still meaningful
 
 
