@@ -31,8 +31,8 @@ m5_nut_h = 4.0
 
 # ------------------------------------------------------------- M3 joints ---
 m3_clear = 3.4
-m3_insert_d = 4.0        # pilot for a brass heat-set insert: its OD minus 0.4
-m3_insert_l = 5.0        # insert length (OnlyScrews M3 x 5 knurled, OD 4.4)
+m3_insert_d = 3.8        # pilot for a brass heat-set insert: its OD minus 0.4
+m3_insert_l = 6.0        # insert length (Quartz Components M3 x 6 x 4.2 heat-set)
 m3_tap_d = 2.5           # pilot when an M3 screw self-taps into plastic
 m3_nut_af = 5.5
 m3_nut_h = 2.4
@@ -70,7 +70,7 @@ pcb_standoff = 1.8       # gap PCB to lid, room for solder joints
 
 # -- magnets and reeds -------------------------------------------------------
 mag_d = 6.0              # disc magnet diameter
-mag_t = 3.0              # disc magnet thickness
+mag_t = 2.0              # disc magnet thickness (6 x 2 is what Omrook stocks; 6 x 3 is stronger)
 vane_mag_n = 1           # discs stacked for the vane (stood on edge, axis radial)
 anemo_mag_n = 1          # discs for the cup rotor
 reed_d = 2.4             # reed glass diameter, with a little room

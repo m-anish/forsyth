@@ -5,48 +5,61 @@ For one station, built from `params.py` as it stands. Quantities in the
 build and is the source of truth for sizes and counts; if you change a
 parameter, check this file against it.
 
-Prices and links were read from the shops on 2026-11-11 and will drift.
-Shops checked: OnlyScrews, Flyrobo, Quartz Components, 3D Master India. "Omrook" could not be
-found by search, so nothing here points at it.
+Prices and links were read from the shops on 2026-11-12 and will drift.
+Omrook prices include 18 % GST; the other shops' prices are as listed.
 
-Not listed because you already have them: Board A, the wind-vane PCB, the
-MLX90614 breakout, the antenna, reed switches, the solar panel.
+Not listed because you already have them: the 2020 profile, Board A, the
+wind-vane PCB, the MLX90614 breakout, the antenna, reed switches, the solar
+panel.
 
-## Fasteners and small hardware (OnlyScrews, all SS 304 unless noted)
+## Fasteners, bearings, magnets (Omrook)
 
-| Item | Need | Order | Each (Rs) | Link |
-|---|---|---|---|---|
-| M5 x 40 socket head cap screw (rotor shafts) | 2 | 4 | 9.00 | [listing](https://onlyscrews.in/products/m5-x-40mm-hex-allen-socket-head-ss-304-screw-dia-5mm-length-40mm) |
-| M5 x 12 button head (6 mm feet) | 6 | 10 | 3.40 | [listing](https://onlyscrews.in/products/hex-allen-button-head-m5-x-12-screw-pack-of-20) |
-| M5 x 10 button head (box tabs) | 2 | 4 | 3.20 | [listing](https://onlyscrews.in/products/hex-allen-button-head-m5-x-10-screw-pack-of-20) |
-| M5 x 8 button head (3 mm bases) | 4 | 6 | 3.20 | [listing](https://onlyscrews.in/products/hex-allen-button-head-m5-x-8-screw-pack-of-20) |
-| M5 x 25 socket head (vane ballast) | 1 | 2 | not read | [listing](https://onlyscrews.in/products/m5-x-25mm-hex-allen-socket-head-ss-304-screw) |
-| M5 hex nut | 8 | 12 | 1.40 | [listing](https://onlyscrews.in/products/m5-nut-ss-304) |
-| M5 T-nut for 2020 (nickel-plated steel) | 12 | 16 | 9.00 | [listing](https://onlyscrews.in/products/m4-profile-nuts-mild-steel-with-nickel-plating-for-3030-series-t-nut-hammer-nut-1) |
-| M3 x 8 socket head | 14 | 20 | 3.20 | [listing](https://onlyscrews.in/products/hex-allen-socket-head-m3-x-8-screw-pack-of-20) |
-| M3 x 10 socket head | 3 | 5 | 3.20 | [listing](https://onlyscrews.in/products/hex-allen-socket-head-m3-x-10-screw-pack-of-20) |
-| M3 x 6 socket head | 3 | 5 | 3.00 | [listing](https://onlyscrews.in/products/hex-allen-socket-head-m3-x-6-screw-pack-of-20) |
-| M3 x 16 socket head (rain stops) | 2 | 4 | 3.62 | [listing](https://onlyscrews.in/products/hex-allen-socket-head-m3-x-16-screw-pack-of-20) |
-| M3 x 50 socket head (screen stack 3, rain axle 1) | 4 | 5 | 14.00 | [listing](https://onlyscrews.in/products/m3-x-50mm-hex-allen-socket-head-ss-304-screw-dia-3mm-length-50mm-din-912) |
-| M3 hex nut | 3 | 10 | 0.90 | [listing](https://onlyscrews.in/products/m3-nut-ss-304) |
-| M3 nyloc nut | 1 | 4 | 2.20 | [listing](https://onlyscrews.in/products/m3-nyloc-nuts-ss304) |
-| M3 x 5 brass knurled insert, OD 4.4 | 12 | 16 | 4.60 | [listing](https://onlyscrews.in/products/m3-x-5mm-3d-printing-brass-threaded-inserts-dia-3mm-length-5mm) |
-| 625 ZZ bearing, 5 x 16 x 5 | 4 | 6 | 20.00 | [listing](https://onlyscrews.in/products/625-zz-deep-groove-ball-bearing-8x22x7) |
-| Neodymium disc 6 x 3 mm, N35 (choose the 3 mm variant) | 2 | 4 | 8.80 | [listing](https://onlyscrews.in/products/6mm-x-3mm-neodymium-disc-magnets-n35-dia-6mm-thickness-3mm) |
-| Neodymium disc 4 mm dia, 2 mm thick (check the variant exists) | 2 | 4 | from 4.40 | [listing](https://onlyscrews.in/products/4mm-diameter-neodymium-disc-magnets-n35) |
-| 2020 V-slot profile, 975 mm | 2 | 2 | 460.00 | [listing](https://onlyscrews.in/products/20-20-mm-v-slot-aluminium-extrusion-profile-990mm) |
+| Item | Need | Order | Each (Rs) | Line (Rs) | Link |
+|---|---|---|---|---|---|
+| M5 x 40 socket head, SS202, full thread (rotor shafts) | 2 | 4 | 5.66 | 22.64 | [listing](https://omrook.com/ss-allen-bolt-m5-x-40mm-dia-5mm-length-40mm-stainless-steel-ss202-socket-head-cap-screws/) |
+| M5 x 25 socket head, SS202 (vane ballast) | 1 | 2 | 3.42 | 6.84 | [listing](https://omrook.com/ss-allen-bolt-m5-x-25mm-dia-5mm-length-25mm-stainless-steel-ss202-socket-head-cap-screws/) |
+| M5 x 12 button head, SS202 (6 mm feet) | 6 | 10 | 2.01 | 20.10 | [listing](https://omrook.com/ss-button-allen-m5-x-12mm-dia-5mm-length-12mm-stainless-steel-ss202-allen-socket-button-screws/) |
+| M5 x 10 button head, SS202 (box tabs) | 2 | 4 | 1.89 | 7.56 | [listing](https://omrook.com/ss-button-allen-m5-x-10mm-dia-5mm-length-10mm-stainless-steel-ss202-allen-socket-button-screws/) |
+| M5 x 8 button head, SS202 (3 mm bases) | 4 | 6 | 1.77 | 10.62 | [listing](https://omrook.com/ss-button-allen-m5-x-8mm-dia-5mm-length-8mm-stainless-steel-ss202-allen-socket-button-screws/) |
+| M5 hex nut, SS304, pack of 50 | 8 | 1 pack | 47.20 | 47.20 | [listing](https://omrook.com/ss-m5-5mm-hex-nut-stainless-steel-ss304-pack-50pcs/) |
+| M5 washer, SS304, pack of 100 (under the foot-screw heads) | 12 | 1 pack | 47.20 | 47.20 | [listing](https://omrook.com/ss-washer-m5-for-5mm-bolts-and-screws-stainless-steel-washer-grade-ss304-100pcs/) |
+| M5 profile nut for 2020, pack of 10 | 12 | 2 packs | 59.00 | 118.00 | [listing](https://omrook.com/m5-20-profile-nuts-ms-with-nickel-plating-for-2020-series-t-sliding-nut-hammer-nut-10pcs/) |
+| M3 x 8 socket head, SS202 | 14 | 20 | 1.65 | 33.00 | [listing](https://omrook.com/ss-allen-bolt-m3-x-8mm-dia-3mm-length-8mm-stainless-steel-ss202-socket-head-cap-screws/) |
+| M3 x 10 socket head, SS202 | 3 | 5 | 1.65 | 8.25 | [listing](https://omrook.com/ss-allen-bolt-m3-x-10mm-dia-3mm-length-10mm-stainless-steel-ss202-socket-head-cap-screws/) |
+| M3 x 6 socket head, SS202 | 3 | 5 | 1.42 | 7.10 | [listing](https://omrook.com/ss-allen-bolt-m3-x-6mm-dia-3mm-length-6mm-stainless-steel-ss202-socket-head-cap-screws/) |
+| M3 x 16 socket head, SS202 (rain stops) | 2 | 4 | 1.89 | 7.56 | [listing](https://omrook.com/ss-allen-bolt-m3-x-16mm-dia-3mm-length-16mm-stainless-steel-ss202-socket-head-cap-screws/) |
+| M3 x 50 socket head, SS202 (screen stack 3, rain axle 1) | 4 | 5 | 5.90 | 29.50 | [listing](https://omrook.com/ss-allen-bolt-m3-x-50mm-dia-3mm-length-50mm-stainless-steel-ss202-socket-head-cap-screws/) |
+| M3 hex nut, SS304, pack of 100 | 3 | 1 pack | 61.36 | 61.36 | [listing](https://omrook.com/ss-m3-3mm-hex-nut-stainless-steel-ss304-100-pcs/) |
+| M3 nyloc nut, SS202 | 1 | 4 | 2.48 | 9.92 | [listing](https://omrook.com/m3-nyloc-nut-ss-dia-3mm-stainless-steel/) |
+| 625 ZZ bearing, 5 x 16 x 5 | 4 | 6 | 14.16 | 84.96 | [listing](https://omrook.com/625zz-ball-bearing-5x16x5mm/) |
+| Neodymium disc 6 x 2 mm (vane, cups) | 2 | 4 | 7.08 | 28.32 | [listing](https://omrook.com/6mm-x-2mm-neodymium-disc-magnets-dia-6mm-thickness-2mm/) |
+| Neodymium disc 4 x 2 mm (rain bucket) | 2 | 4 | 4.72 | 18.88 | [listing](https://omrook.com/4mm-x-2mm-neodymium-disc-magnets-dia-4mm-thickness-2mm/) |
 
-Subtotal about Rs 1,650, of which Rs 920 is the two profiles.
+Subtotal **Rs 569**, which clears Omrook's free-shipping line of Rs 500 per
+seller. The same list at OnlyScrews comes to about Rs 750 with GST, before
+shipping (free only above Rs 799).
 
 Notes
-- **Shaft screws.** The listing does not say how much of the M5 x 40 is
-  threaded. A DIN 912 screw of this length has 22 mm of thread and an 18 mm
-  smooth shank, which is what you want in the bearings. A fully threaded one
-  still works. Do not substitute dowel pins or plain rod: see the README.
+- **SS202, not SS304.** Omrook's stainless screws are grade 202, which has
+  less nickel and stains or spots outdoors sooner than 304, especially in
+  coastal or polluted air. Almost every screw here sits inside plastic or
+  under its own head, so expect cosmetic staining at worst. The nuts and
+  washers are 304. If the exposed foot screws ever rust, they are a few
+  rupees each to replace; OnlyScrews sells the same sizes in 304.
+- **Shaft screws are fully threaded** at Omrook. That works (the README
+  explains); a part-threaded one would only be slightly better. Omrook's
+  part-threaded M5 x 40 is black mild steel and would rust, so skip it.
+- **Magnets.** Omrook has no 6 x 3 disc, so the model now takes the 6 x 2
+  (`mag_t = 2`). It is weaker. If a reed does not close reliably on the
+  bench, buy 6 x 3 from
+  [OnlyScrews](https://onlyscrews.in/products/6mm-x-3mm-neodymium-disc-magnets-n35-dia-6mm-thickness-3mm),
+  set `mag_t = 3` and reprint only the vane rotor and the cup hub.
+- **Profile nuts.** Skip them if your 2020 came with T-nuts.
 - **Bearings.** Skip these if a 5 mm-bore size is already in your drawer, and
   set `brg_od` and `brg_w` to match.
-- **Profiles.** One length is the mast, the other gives the 420 mm crossarm
-  with offcut to spare. Mast height is a site decision; the model draws 900 mm.
+- **Heat-set inserts** are not here: Omrook's brass inserts do not state an
+  outside diameter, and the pilot holes depend on it. They are in the Quartz
+  order below.
 
 ## Connectors, glands, frame brackets (Flyrobo)
 
@@ -59,18 +72,21 @@ Notes
 | PG7 nylon cable gland | 3 | 5 | 7.19 | [listing](https://www.flyrobo.in/pg7-waterproof-ip68-nylon-plastic-cable-gland-connector) |
 | 2020 right-angle connector (mast to crossarm) | 2 | 4 | 26 | [listing](https://www.flyrobo.in/2020-aluminum-profile-right-angle-connector) |
 
-Subtotal about Rs 450. The repo's notes say the GX12-2, GX12-3 and GX16-5 were
-ordered with Board A; if they arrived, only the GX12-4 is new (Rs 85).
+Subtotal about Rs 455. The repo's notes say the GX12-2, GX12-3 and GX16-5 were
+ordered with Board A; if they arrived, only the GX12-4 is new (Rs 85). Skip
+the right-angle connectors if you have brackets for your profile.
 
-## Cell, vent (Quartz Components)
+## Cell, vent, inserts (Quartz Components)
 
-| Item | Need | Each (Rs) | Link |
-|---|---|---|---|
-| 32700 LiFePO4 cell, 6000 mAh | 1 | 216 | [listing](https://quartzcomponents.com/products/32700-lfp-6000mah-rechargable-battery) |
-| Pressure vent, M12 x 1.5 screw type (optional, see README item on the airtight box) | 1 | 43 | [listing](https://quartzcomponents.com/products/pressure-vent-screw-type-m12x1-5) |
+| Item | Need | Order | Each (Rs) | Link |
+|---|---|---|---|---|
+| 32700 LiFePO4 cell, 6000 mAh | 1 | 1 | 216 | [listing](https://quartzcomponents.com/products/32700-lfp-6000mah-rechargable-battery) |
+| M3 x 6 brass heat-set insert, OD 4.2, pack of 10 | 12 | 2 packs | 58 | [listing](https://quartzcomponents.com/products/m3-x-6mm-brass-heat-set-threaded-round-insert-nut-10-pcs) |
+| Pressure vent, M12 x 1.5 screw type (optional, see README on the airtight box) | 1 | 1 | 43 | [listing](https://quartzcomponents.com/products/pressure-vent-screw-type-m12x1-5) |
 
-Quartz also stocks the 625 ZZ (Rs 20) and PG7 glands (Rs 6 to 9) if you would
-rather combine orders. It does not list GX12 connectors.
+Subtotal Rs 375. The model's insert holes are sized for this insert
+(`m3_insert_d = 3.8`, `m3_insert_l = 6`). Print one test coupon first; a
+different insert needs those two values changed.
 
 ## Filament (3D Master India)
 
@@ -90,7 +106,7 @@ below uses the usual 1.07 g/cm3 for ASA.
 | TPU filament, 95A | under 10 g | a sample coil is enough |
 | Shielded 5-core outdoor cable (wind) | mast height + 0.5 m | local electrical shop: alarm or security cable, as the architecture notes |
 | 4-core cable (sky pod), 3-core (rain), 2-core (solar) | about 1.5 m each | same |
-| UV-stable nylon cable ties, 2.5 mm | 20 | local |
+| UV-stable black nylon cable ties, 2.5 mm | 20 | local; Omrook's ties are white, which goes brittle in sun |
 | Neutral-cure silicone | small tube | local; for the gland threads and the cable exit under the sky pod |
 | 3 mm closed-cell foam, 40 x 12 mm | 1 piece | offcut; goes on the lid pad over the cell |
 | Silica gel sachet | 1 | inside the box |
@@ -115,7 +131,14 @@ TPU: all five kinds of seal together are 3 cm3, about 4 g.
 
 ## Rough total
 
-About Rs 4,150 for everything listed with a price: Rs 2,350 of hardware and
-Rs 1,800 for two spools of ASA. It is about Rs 3,700 if the three older GX
-connectors and the cell are already on your bench. Add the cable, a little
-TPU and shipping from four shops.
+| Shop | Rs |
+|---|---|
+| Omrook | 569 |
+| Flyrobo | 455 |
+| Quartz Components | 375 |
+| 3D Master India (two spools) | 1,798 |
+| **Total** | **about 3,200** |
+
+About Rs 2,750 if the three older GX connectors and the cell are already on
+your bench. Add the cable, a little TPU, and shipping where an order falls
+below a shop's free-shipping line.

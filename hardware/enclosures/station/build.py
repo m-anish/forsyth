@@ -163,6 +163,7 @@ def hardware():
         ("M3 x 16 screw, stainless", 2, "rain bucket stops: the heads are the stops"),
         ("M3 x %d screw + nyloc nut (or 3 mm rod)" % axle, 1, "rain bucket axle"),
         ("M3 x %d screw + nut" % scr, 3, "clamps the screen stack"),
+        ("M5 washer", 12, "one under each foot and tab screw head, to spread the load on ASA"),
         ("M5 x 12 button head + 2020 T-nut", 2 + 2 + 2,
          "6 mm feet: wind kit, sky pod, solar bracket (each foot has 4 holes; use an opposite pair)"),
         ("M5 x 10 button head + 2020 T-nut", 2, "box tabs, %g mm thick" % P.enc_tab_t),
