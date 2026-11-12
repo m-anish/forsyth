@@ -156,11 +156,12 @@ function poll(){
   g+=tile('wifi rssi', n.rssi!=null?n.rssi+' dBm':'—');
   g+=tile('uplink', u.connected?'connected':'spooling ('+u.spooled+')',
        u.connected?'ok':'warn');
-  g+=tile('clock (utc)', c.utc+(c.ntp_synced?'':' ⚠'), c.ntp_synced?'':'warn');
+  g+=tile('clock'+(TZ?' ('+TZ+')':''), dts(c.utc)+(c.ntp_synced?'':' ⚠'),
+       c.ntp_synced?'':'warn');
   g+=tile('rtc chip', c.ds3231?'DS3231':'internal only');
   g+=tile('peripherals','lora '+n0(s.peripherals.lora)+'<br>eth '+n0(s.peripherals.eth));
   g+=tile('chip temp', s.mcu_temp!=null?s.mcu_temp+' °C':'—');
-  g+=tile('uptime', s.uptime_s+' s');
+  g+=tile('uptime', dur(s.uptime_s));
   if(n.ap) g+=tile('setup ap', esc(n.ap.ssid)+'<br>'+n.ap.ip,'warn');
   document.getElementById('grid').innerHTML=g;
  }).catch(function(){});
@@ -180,6 +181,18 @@ function ts(v){
  var d=new Date(v); if(isNaN(d.getTime()))return v;
  try{return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',
    second:'2-digit',hour12:false})}catch(e){return v}}
+function dts(v){
+ if(!v)return'—';
+ var d=new Date(v); if(isNaN(d.getTime()))return v;
+ try{return d.toLocaleDateString([],{day:'2-digit',month:'short'})+'<br>'+
+   d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',
+     second:'2-digit',hour12:false})}catch(e){return v}}
+function dur(s){
+ if(s==null)return'—';
+ var d=Math.floor(s/86400),h=Math.floor(s%86400/3600),
+     m=Math.floor(s%3600/60),x=s%60;
+ if(d)return d+'d '+h+'h'; if(h)return h+'h '+m+'m';
+ if(m)return m+'m '+x+'s'; return x+'s'}
 function polllog(){
  if(document.getElementById('pause').checked)return;
  fetch('/api/logs?after='+lastId).then(function(r){return r.json()}).then(function(d){
