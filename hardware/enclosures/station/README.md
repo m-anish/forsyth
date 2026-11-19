@@ -24,6 +24,9 @@ The build protects you in three layers:
   and fits the printer.
 - All parts are placed in the assembly and checked against each other for
   collisions.
+- Fit checks for what no single part shows: each rotor's M5 nut is moved
+  along its slot and onto the bore, and the gland's locknut is seated in the
+  wind housing; any plastic in the way fails the build.
 
 To try a change without touching `params.py` or writing files:
 
@@ -37,6 +40,31 @@ To try a change without touching `params.py` or writing files:
 | `step/*.step` | Exact geometry, for Onshape or any other CAD tool. |
 | `station.FCStd` | Every part in place on a mock mast and crossarm. Objects open hidden because the file is written headless: select all and press space. |
 | `report.md` | Sizes, masses, overhang audit, magnet-to-reed distances, hardware list. |
+
+## Assembly guide (`docs/`)
+
+Step-by-step instructions for the whole kit, drawn from this model: every
+picture is rendered from the parts and every number read from `params.py`, so
+they follow a parameter change. `./build.sh` regenerates them after the parts
+(add about 4 minutes; `STATION_GUIDE=0 ./build.sh` skips it), or run
+`assembly.py` and `make-pdfs.sh` on their own.
+
+| Path | What |
+|---|---|
+| [`docs/assembly.html`](docs/assembly.html) | The guide, for a phone or a desktop: parts at a glance, 37 steps in ten sections, what the model leaves open, hardware checked against `BOM.md`. |
+| [`docs/assembly-app.html`](docs/assembly-app.html) | Assembly manager: the same steps with a tick, notes and measurements for each, plus printed-part and hardware checklists, per build. Opened from disk it keeps progress in the browser; the published copy keeps it in a shared store. |
+| [`docs/forsyth-assembly-guide.pdf`](docs/forsyth-assembly-guide.pdf) | The guide on A4, to print. |
+| [`docs/forsyth-assembly-record.pdf`](docs/forsyth-assembly-record.pdf) | A record to fill in by hand: parts, hardware, every step, bench results. |
+| [`web/`](web/README.md) | Publishes all of it at build.forsyth.starstucklab.com: the guide and PDFs for everyone, and the tracker with sign-in, a build per person and sharing with a team. |
+
+Writing the guide turned up three faults, fixed on 2026-11-19 (the print fixes
+above came the same day, from the first `wind_body` print) and now covered
+by the fit checks: the vane's hub nut could not be slid in (its hex pocket was
+30 degrees out), the wind housing's 7 mm wall left a PG7 gland's 8 to 9 mm
+thread nothing for its locknut (which also met the floor), and the lid's
+north arrow pointed south. The screen's posts also moved to 75, 195 and
+315 degrees, so the nuts standing proud under its base never sit on the 2020,
+whichever pair of foot holes is used.
 
 ## Design decisions
 
@@ -96,6 +124,16 @@ if you can, so the smooth shank sits in the bearings.
 held by a cap. A 45 degree cone needs no support and the arm prints flat, so
 it is strong in the direction wind loads it. The vane rotor prints upside down
 in one piece, spine on the bed.
+
+**Small assembly decisions (2026-11-19).** Magnets are fixed in their pockets
+with epoxy (the pockets are clearance fits). Reed switches are held with
+neutral-cure silicone on their leads, never on the glass. The solar panel is
+held by a bead of the same silicone along the tray's side rims. The vane PCB
+(Board D) can go either face up, since its reeds sit in slots level with the
+board's middle; its N reed lines up with the lid's arrow, which points along
+the arm at the mast, north once the mast is turned as below. The gland sits
+on a flat seat cut inside the housing wall, 3 mm under the flange. The two
+crossarm connectors take one M5 x 10 and a profile nut per leg.
 
 **Rain gauge.** 110 mm collector (95 cm2, so 1 mm of rain is 9.5 ml). The
 funnel prints upside down so its cone closes in at 45 degrees. The magnet
@@ -177,6 +215,17 @@ hold a 4 to 5 mm cable in the mast.
 
 - No part needs supports. The report's overhang column lists what is left:
   small holes, nut-slot ceilings and short bridges.
+- `out/print/*.3mf` are written with fixed timestamps, so a rebuild that does not
+  change a part leaves its file byte for byte the same: the print tracker only flags
+  plates whose parts really changed.
+- Wherever a pocket opens toward the bed and a smaller hole carries on past
+  its roof (the lower bearing pockets in `wind_body` and `wind_lid`, the nut
+  slots in `cup_hub` and `vane_rotor`, the nut pockets under `screen_base`,
+  the screw seats in `screen_cap`), the first two layers of the roof are a
+  strip and then a square of the hole's width (`lib.bridged_roof`), so they
+  print as bridges instead of loops in the air. The large horizontal holes
+  (GX ports, the gland) are flat-topped teardrops, and each louvre has a 2 mm
+  foot ring so its cone does not start on a knife edge.
 - `vane_rotor` is 208 mm long and just fits the bed straight.
 - `enclosure_body` is the largest footprint (163 x 159 mm): use a brim and a
   draught shield against ASA warping.
@@ -243,8 +292,10 @@ winter charging becomes a problem.
 
 ## Not designed yet
 
-- Insect and leaf mesh for the rain funnel.
 - Frame joints: use standard metal 2020 corner brackets, not printed ones.
+
+The funnel's insect and leaf screen is `rain_mesh`, a perforated 40 mm disc
+that drops into the funnel and rests on its cone above the nozzle.
 
 ## Buying
 

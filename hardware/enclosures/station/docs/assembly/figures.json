@@ -1,0 +1,1515 @@
+{
+ "overview": {
+  "name": "overview",
+  "w": 1100,
+  "h": 1400,
+  "labels": [
+   "2020 mast",
+   "2020 crossarm",
+   "wind kit",
+   "sky pod",
+   "rain gauge",
+   "Stevenson screen",
+   "core box",
+   "solar bracket"
+  ],
+  "anchors": {
+   "2020 mast": [
+    542.8888888888888,
+    286.22222222222223
+   ],
+   "2020 crossarm": [
+    581.0,
+    601.2222222222222
+   ],
+   "wind kit": [
+    391.2222222222222,
+    192.88888888888889
+   ],
+   "sky pod": [
+    572.4444444444445,
+    138.44444444444443
+   ],
+   "rain gauge": [
+    724.1111111111111,
+    505.55555555555554
+   ],
+   "Stevenson screen": [
+    391.99999999999994,
+    496.2222222222222
+   ],
+   "core box": [
+    475.99999999999994,
+    969.1111111111111
+   ],
+   "solar bracket": [
+    490.7777777777777,
+    822.1111111111111
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": true
+ },
+ "wind-01-inserts": {
+  "name": "wind-01-inserts",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "wind_body",
+   "M3 heat-set insert"
+  ],
+  "anchors": {
+   "wind_body": [
+    501.5,
+    403.5
+   ],
+   "M3 heat-set insert": [
+    570.0,
+    307.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": true
+ },
+ "wind-02-bearings": {
+  "name": "wind-02-bearings",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "bearing",
+   "wind_spacer"
+  ],
+  "anchors": {
+   "bearing": [
+    612.0,
+    303.0
+   ],
+   "wind_spacer": [
+    591.0,
+    415.0
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "wind-03-reed": {
+  "name": "wind-03-reed",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "reed switch"
+  ],
+  "anchors": {
+   "reed switch": [
+    439.0,
+    402.0
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "wind-04-gland": {
+  "name": "wind-04-gland",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "PG7 gland",
+   "tpu_washer_gland",
+   "gland locknut"
+  ],
+  "anchors": {
+   "PG7 gland": [
+    852.5,
+    523.0
+   ],
+   "tpu_washer_gland": [
+    739.5,
+    437.5
+   ],
+   "gland locknut": [
+    504.0,
+    403.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "cups-01-hub": {
+  "name": "cups-01-hub",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "cup_hub",
+   "magnet 6 x 2",
+   "M5 nut"
+  ],
+  "anchors": {
+   "cup_hub": [
+    558.5,
+    415.0
+   ],
+   "magnet 6 x 2": [
+    350.0,
+    91.5
+   ],
+   "M5 nut": [
+    893.0,
+    561.0
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": true
+ },
+ "cups-02-arms": {
+  "name": "cups-02-arms",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "cup_arm",
+   "cup_hub_cap",
+   "M3 x 10"
+  ],
+  "anchors": {
+   "cup_arm": [
+    883.0,
+    554.0
+   ],
+   "cup_hub_cap": [
+    548.0,
+    600.0
+   ],
+   "M3 x 10": [
+    604.0,
+    675.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "cups-03-shaft": {
+  "name": "cups-03-shaft",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "wind_shim",
+   "M5 x 40 shaft",
+   "cup rotor (2.2)"
+  ],
+  "anchors": {
+   "wind_shim": [
+    614.5,
+    306.5
+   ],
+   "M5 x 40 shaft": [
+    599.5,
+    241.5
+   ],
+   "cup rotor (2.2)": [
+    798.5,
+    701.0
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "vane-01-lid": {
+  "name": "vane-01-lid",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "wind_lid",
+   "bearing",
+   "wind_spacer"
+  ],
+  "anchors": {
+   "wind_lid": [
+    752.0,
+    532.0
+   ],
+   "bearing": [
+    614.5,
+    738.0
+   ],
+   "wind_spacer": [
+    572.5,
+    333.0
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": true
+ },
+ "vane-02-rotor": {
+  "name": "vane-02-rotor",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "vane_rotor",
+   "magnet 6 x 2",
+   "M5 nut (hub)",
+   "M5 x 25 ballast screw",
+   "M5 nuts (ballast)"
+  ],
+  "anchors": {
+   "vane_rotor": [
+    271.0,
+    376.5
+   ],
+   "magnet 6 x 2": [
+    643.5,
+    613.5
+   ],
+   "M5 nut (hub)": [
+    779.0,
+    426.0
+   ],
+   "M5 x 25 ballast screw": [
+    971.5,
+    341.0
+   ],
+   "M5 nuts (ballast)": [
+    972.0,
+    567.0
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "vane-03-shaft": {
+  "name": "vane-03-shaft",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "vane_rotor (3.2)",
+   "wind_shim",
+   "M5 x 40 shaft"
+  ],
+  "anchors": {
+   "vane_rotor (3.2)": [
+    795.5,
+    291.0
+   ],
+   "wind_shim": [
+    494.0,
+    554.5
+   ],
+   "M5 x 40 shaft": [
+    480.5,
+    632.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "vane-04-balance": {
+  "name": "vane-04-balance",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "wind_lid",
+   "vane_rotor",
+   "ballast screw and nuts"
+  ],
+  "anchors": {
+   "wind_lid": [
+    421.0,
+    475.5
+   ],
+   "vane_rotor": [
+    672.0,
+    663.5
+   ],
+   "ballast screw and nuts": [
+    527.5,
+    104.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "close-01-pcb": {
+  "name": "close-01-pcb",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "wind-vane PCB",
+   "wind_pcb_ring"
+  ],
+  "anchors": {
+   "wind-vane PCB": [
+    665.0,
+    317.5
+   ],
+   "wind_pcb_ring": [
+    593.5,
+    177.0
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": true
+ },
+ "close-02-lid": {
+  "name": "close-02-lid",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "tpu_wind_lid_gasket",
+   "wind_lid with vane (3.3)",
+   "M3 x 8"
+  ],
+  "anchors": {
+   "tpu_wind_lid_gasket": [
+    633.0,
+    443.5
+   ],
+   "wind_lid with vane (3.3)": [
+    619.5,
+    400.5
+   ],
+   "M3 x 8": [
+    500.5,
+    364.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "rain-01-base": {
+  "name": "rain-01-base",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "rain_base",
+   "M3 x 16 stop screw",
+   "reed switch"
+  ],
+  "anchors": {
+   "rain_base": [
+    778.5,
+    422.5
+   ],
+   "M3 x 16 stop screw": [
+    666.0,
+    380.5
+   ],
+   "reed switch": [
+    741.5,
+    316.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": true
+ },
+ "rain-02-mount": {
+  "name": "rain-02-mount",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "2020 crossarm",
+   "M5 x 8 button head",
+   "M5 washer",
+   "profile nut"
+  ],
+  "anchors": {
+   "2020 crossarm": [
+    903.5,
+    584.0
+   ],
+   "M5 x 8 button head": [
+    697.5,
+    311.5
+   ],
+   "M5 washer": [
+    522.5,
+    304.5
+   ],
+   "profile nut": [
+    696.5,
+    464.0
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "rain-03-bucket": {
+  "name": "rain-03-bucket",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "rain_bucket",
+   "magnet 4 x 2",
+   "M3 x 50 axle",
+   "M3 nyloc nut"
+  ],
+  "anchors": {
+   "rain_bucket": [
+    625.5,
+    235.0
+   ],
+   "magnet 4 x 2": [
+    364.5,
+    90.5
+   ],
+   "M3 x 50 axle": [
+    328.5,
+    622.0
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "rain-04-funnel": {
+  "name": "rain-04-funnel",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "rain_funnel",
+   "rain_mesh",
+   "M3 x 6"
+  ],
+  "anchors": {
+   "rain_funnel": [
+    636.5,
+    448.5
+   ],
+   "rain_mesh": [
+    634.0,
+    206.0
+   ],
+   "M3 x 6": [
+    348.5,
+    559.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "rain-05-section": {
+  "name": "rain-05-section",
+  "w": 1200,
+  "h": 1000,
+  "labels": [
+   "rain_base",
+   "rain_bucket",
+   "rain_funnel",
+   "rain_mesh",
+   "stop screw"
+  ],
+  "anchors": {
+   "rain_base": [
+    411.1111111111111,
+    822.2222222222222
+   ],
+   "rain_bucket": [
+    663.3333333333334,
+    765.5555555555555
+   ],
+   "rain_funnel": [
+    724.4444444444445,
+    277.77777777777777
+   ],
+   "rain_mesh": [
+    611.1111111111111,
+    505.55555555555554
+   ],
+   "stop screw": [
+    488.88888888888886,
+    838.3333333333333
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "screen-01-nuts": {
+  "name": "screen-01-nuts",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "screen_base",
+   "M4 nut"
+  ],
+  "anchors": {
+   "screen_base": [
+    579.5,
+    532.0
+   ],
+   "M4 nut": [
+    870.5,
+    734.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": true
+ },
+ "screen-02-mount": {
+  "name": "screen-02-mount",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "2020 crossarm",
+   "M5 x 8 button head",
+   "M5 washer",
+   "profile nut"
+  ],
+  "anchors": {
+   "2020 crossarm": [
+    889.0,
+    641.5
+   ],
+   "M5 x 8 button head": [
+    507.0,
+    341.5
+   ],
+   "M5 washer": [
+    710.0,
+    454.5
+   ],
+   "profile nut": [
+    504.5,
+    472.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "screen-03-carrier": {
+  "name": "screen-03-carrier",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "Board B",
+   "PMS7003"
+  ],
+  "anchors": {
+   "Board B": [
+    649.5,
+    244.0
+   ],
+   "PMS7003": [
+    611.5,
+    338.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "screen-04-plates": {
+  "name": "screen-04-plates",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "screen_plate"
+  ],
+  "anchors": {
+   "screen_plate": [
+    598.5,
+    496.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "screen-05-lightning": {
+  "name": "screen-05-lightning",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "screen_cap",
+   "M3 heat-set insert",
+   "lightning module",
+   "M3 x 6"
+  ],
+  "anchors": {
+   "screen_cap": [
+    688.5,
+    353.5
+   ],
+   "M3 heat-set insert": [
+    524.5,
+    427.5
+   ],
+   "lightning module": [
+    599.0,
+    576.0
+   ],
+   "M3 x 6": [
+    524.5,
+    626.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "screen-06-cap": {
+  "name": "screen-06-cap",
+  "w": 1200,
+  "h": 1050,
+  "labels": [
+   "screen_cap (6.5)",
+   "M4 x 80"
+  ],
+  "anchors": {
+   "screen_cap (6.5)": [
+    497.0,
+    404.83333333333337
+   ],
+   "M4 x 80": [
+    621.25,
+    230.41666666666669
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "box-01-inserts": {
+  "name": "box-01-inserts",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "enclosure_body",
+   "M3 heat-set insert"
+  ],
+  "anchors": {
+   "enclosure_body": [
+    553.5,
+    478.0
+   ],
+   "M3 heat-set insert": [
+    857.5,
+    352.0
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": true
+ },
+ "box-02-ports": {
+  "name": "box-02-ports",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "ENV GX16-8",
+   "SOLAR GX12-2",
+   "RAIN GX12-3",
+   "WIND GX16-5",
+   "SKY GX12-4",
+   "tpu_washer_gx16",
+   "tpu_washer_gx12",
+   "socket nuts"
+  ],
+  "anchors": {
+   "ENV GX16-8": [
+    259.5,
+    638.0
+   ],
+   "SOLAR GX12-2": [
+    377.0,
+    660.0
+   ],
+   "RAIN GX12-3": [
+    484.5,
+    679.0
+   ],
+   "WIND GX16-5": [
+    603.5,
+    698.0
+   ],
+   "SKY GX12-4": [
+    721.0,
+    720.0
+   ],
+   "tpu_washer_gx16": [
+    324.0,
+    598.0
+   ],
+   "tpu_washer_gx12": [
+    729.0,
+    647.0
+   ],
+   "socket nuts": [
+    351.0,
+    473.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "box-03-board": {
+  "name": "box-03-board",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "Board A",
+   "antenna",
+   "M3 x 8"
+  ],
+  "anchors": {
+   "Board A": [
+    400.5,
+    350.0
+   ],
+   "antenna": [
+    858.0,
+    467.0
+   ],
+   "M3 x 8": [
+    743.5,
+    434.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "box-04-cell": {
+  "name": "box-04-cell",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "cell"
+  ],
+  "anchors": {
+   "cell": [
+    549.0,
+    185.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "box-05-lid": {
+  "name": "box-05-lid",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "tpu_box_lid_gasket",
+   "enclosure_lid",
+   "M3 x 8"
+  ],
+  "anchors": {
+   "tpu_box_lid_gasket": [
+    239.0,
+    512.5
+   ],
+   "enclosure_lid": [
+    512.0,
+    354.0
+   ],
+   "M3 x 8": [
+    423.0,
+    55.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "solar-01-panel": {
+  "name": "solar-01-panel",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "solar_bracket",
+   "solar panel"
+  ],
+  "anchors": {
+   "solar_bracket": [
+    733.5,
+    606.0
+   ],
+   "solar panel": [
+    488.0,
+    330.0
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": true
+ },
+ "sky-01-exploded": {
+  "name": "sky-01-exploded",
+  "w": 1000,
+  "h": 1100,
+  "labels": [
+   "sky_mount",
+   "MLX90614 breakout",
+   "tpu_sky_can_seal",
+   "sky_head",
+   "M3 x 8"
+  ],
+  "anchors": {
+   "sky_mount": [
+    462.6111111111111,
+    479.1111111111111
+   ],
+   "MLX90614 breakout": [
+    503.55555555555554,
+    399.66666666666663
+   ],
+   "tpu_sky_can_seal": [
+    518.8333333333333,
+    342.8333333333333
+   ],
+   "sky_head": [
+    559.1666666666666,
+    297.0
+   ],
+   "M3 x 8": [
+    498.66666666666663,
+    368.5
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": true
+ },
+ "sky-02-section": {
+  "name": "sky-02-section",
+  "w": 1200,
+  "h": 900,
+  "labels": [
+   "sky_mount",
+   "MLX90614 can",
+   "tpu_sky_can_seal",
+   "sky_head"
+  ],
+  "anchors": {
+   "sky_mount": [
+    557.5,
+    285.5
+   ],
+   "MLX90614 can": [
+    586.0,
+    210.0
+   ],
+   "tpu_sky_can_seal": [
+    555.5,
+    200.5
+   ],
+   "sky_head": [
+    551.0,
+    159.0
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "mast-01-crossarm": {
+  "name": "mast-01-crossarm",
+  "w": 1100,
+  "h": 1300,
+  "labels": [
+   "2020 crossarm",
+   "right-angle connector"
+  ],
+  "anchors": {
+   "2020 crossarm": [
+    589.3333333333334,
+    584.2777777777778
+   ],
+   "right-angle connector": [
+    561.1666666666666,
+    567.6666666666666
+   ]
+  },
+  "dims": [
+   {
+    "a": [
+     541.3532963239772,
+     304.8860368728296
+    ],
+    "b": [
+     541.3532963239772,
+     577.6656316794567
+    ],
+    "text": "320",
+    "off": -70
+   }
+  ],
+  "compass": null,
+  "text": true
+ },
+ "mast-02-box": {
+  "name": "mast-02-box",
+  "w": 1100,
+  "h": 1300,
+  "labels": [
+   "core box",
+   "solar bracket",
+   "M5 x 10 button head",
+   "M5 washer",
+   "profile nut",
+   "M5 x 12 button head"
+  ],
+  "anchors": {
+   "core box": [
+    558.2777777777778,
+    928.7777777777778
+   ],
+   "solar bracket": [
+    543.8333333333334,
+    774.2222222222223
+   ],
+   "M5 x 10 button head": [
+    564.0555555555555,
+    839.2222222222223
+   ],
+   "M5 washer": [
+    567.6666666666666,
+    835.6111111111111
+   ],
+   "M5 x 12 button head": [
+    564.0555555555555,
+    815.3888888888889
+   ]
+  },
+  "dims": [
+   {
+    "a": [
+     558.6770758494189,
+     156.24947707204075
+    ],
+    "b": [
+     558.6770758494189,
+     920.507729234959
+    ],
+    "text": "640",
+    "off": 70
+   }
+  ],
+  "compass": null,
+  "text": false
+ },
+ "mast-03-wind": {
+  "name": "mast-03-wind",
+  "w": 1200,
+  "h": 820,
+  "labels": [
+   "wind kit",
+   "M5 x 12 button head",
+   "M5 washer",
+   "profile nut"
+  ],
+  "anchors": {
+   "wind kit": [
+    485.5,
+    462.5
+   ],
+   "M5 x 12 button head": [
+    771.0,
+    381.0
+   ],
+   "M5 washer": [
+    779.0,
+    375.0
+   ],
+   "profile nut": [
+    795.5,
+    359.0
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "mast-04-sky": {
+  "name": "mast-04-sky",
+  "w": 1200,
+  "h": 820,
+  "labels": [
+   "sky pod",
+   "M5 x 12 button head",
+   "M5 washer",
+   "profile nut"
+  ],
+  "anchors": {
+   "sky pod": [
+    861.5,
+    299.0
+   ],
+   "M5 x 12 button head": [
+    842.5,
+    547.0
+   ],
+   "M5 washer": [
+    832.5,
+    474.0
+   ]
+  },
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "mast-05-plan": {
+  "name": "mast-05-plan",
+  "w": 1100,
+  "h": 1000,
+  "labels": [
+   "2020 mast",
+   "2020 crossarm",
+   "wind kit",
+   "sky pod",
+   "rain gauge",
+   "Stevenson screen",
+   "core box",
+   "solar bracket"
+  ],
+  "anchors": {
+   "2020 mast": [
+    545.5555555555555,
+    495.55555555555554
+   ],
+   "2020 crossarm": [
+    515.0,
+    358.3333333333333
+   ],
+   "wind kit": [
+    549.4444444444445,
+    731.6666666666666
+   ],
+   "sky pod": [
+    549.4444444444445,
+    450.55555555555554
+   ],
+   "rain gauge": [
+    515.0,
+    243.33333333333331
+   ],
+   "Stevenson screen": [
+    450.55555555555554,
+    777.7777777777777
+   ],
+   "core box": [
+    675.5555555555555,
+    552.7777777777777
+   ],
+   "solar bracket": [
+    616.1111111111111,
+    540.0
+   ]
+  },
+  "dims": [],
+  "compass": [
+   0.0,
+   -1.0
+  ],
+  "text": false
+ },
+ "part-cup_arm": {
+  "name": "part-cup_arm",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-cup_hub": {
+  "name": "part-cup_hub",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-cup_hub_cap": {
+  "name": "part-cup_hub_cap",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-enclosure_body": {
+  "name": "part-enclosure_body",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-enclosure_lid": {
+  "name": "part-enclosure_lid",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-rain_base": {
+  "name": "part-rain_base",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-rain_bucket": {
+  "name": "part-rain_bucket",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-rain_funnel": {
+  "name": "part-rain_funnel",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-rain_mesh": {
+  "name": "part-rain_mesh",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-screen_base": {
+  "name": "part-screen_base",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-screen_cap": {
+  "name": "part-screen_cap",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-screen_plate": {
+  "name": "part-screen_plate",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-sky_head": {
+  "name": "part-sky_head",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-sky_mount": {
+  "name": "part-sky_mount",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-solar_bracket": {
+  "name": "part-solar_bracket",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-tpu_box_lid_gasket": {
+  "name": "part-tpu_box_lid_gasket",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-tpu_sky_can_seal": {
+  "name": "part-tpu_sky_can_seal",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-tpu_washer_gland": {
+  "name": "part-tpu_washer_gland",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-tpu_washer_gx12": {
+  "name": "part-tpu_washer_gx12",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-tpu_washer_gx16": {
+  "name": "part-tpu_washer_gx16",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-tpu_wind_lid_gasket": {
+  "name": "part-tpu_wind_lid_gasket",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-vane_rotor": {
+  "name": "part-vane_rotor",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-wind_body": {
+  "name": "part-wind_body",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-wind_lid": {
+  "name": "part-wind_lid",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-wind_pcb_ring": {
+  "name": "part-wind_pcb_ring",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-wind_shim": {
+  "name": "part-wind_shim",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "part-wind_spacer": {
+  "name": "part-wind_spacer",
+  "w": 480,
+  "h": 360,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "hw-bearing": {
+  "name": "hw-bearing",
+  "w": 360,
+  "h": 300,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "hw-shaft": {
+  "name": "hw-shaft",
+  "w": 360,
+  "h": 300,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "hw-m3": {
+  "name": "hw-m3",
+  "w": 360,
+  "h": 300,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "hw-button": {
+  "name": "hw-button",
+  "w": 360,
+  "h": 300,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "hw-insert": {
+  "name": "hw-insert",
+  "w": 360,
+  "h": 300,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "hw-nut": {
+  "name": "hw-nut",
+  "w": 360,
+  "h": 300,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "hw-washer": {
+  "name": "hw-washer",
+  "w": 360,
+  "h": 300,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "hw-tnut": {
+  "name": "hw-tnut",
+  "w": 360,
+  "h": 300,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "hw-magnet": {
+  "name": "hw-magnet",
+  "w": 360,
+  "h": 300,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "hw-gland": {
+  "name": "hw-gland",
+  "w": 360,
+  "h": 300,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "hw-gx": {
+  "name": "hw-gx",
+  "w": 360,
+  "h": 300,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ },
+ "hw-reed": {
+  "name": "hw-reed",
+  "w": 360,
+  "h": 300,
+  "labels": [],
+  "anchors": {},
+  "dims": [],
+  "compass": null,
+  "text": false
+ }
+}

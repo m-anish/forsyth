@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Forsyth Assembly Manager</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a workbench. Step list on the left (a drawer on phones), the current step on the right;
+   progress for the chosen build lives in the header. */
+:root {
+  --bg: #eef1f4; --panel: #ffffff; --fg: #1d2530; --muted: #5b6676; --rule: #d6dce4;
+  --accent: #33597f; --accent-fg: #ffffff; --accent-soft: #e3ecf5; --done: #2f7a46; --done-soft: #e3f3e8;
+  --warn: #8a4b08; --warn-bg: #fdf3e4; --warn-rule: #e9c48f; --bad: #a12020; --bad-bg: #fdecec;
+  --display: "Fraunces", Georgia, serif;
+  --body: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11151b; --panel: #1a2029; --fg: #e3e8ef; --muted: #9aa6b6; --rule: #2d3745;
+  --accent: #8fb4d6; --accent-fg: #0f1823; --accent-soft: #213246; --done: #7fd39a; --done-soft: #1c3426;
+  --warn: #f0c27a; --warn-bg: #2d2416; --warn-rule: #6b5124; --bad: #ff9b9b; --bad-bg: #351c1c; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #11151b; --panel: #1a2029; --fg: #e3e8ef; --muted: #9aa6b6; --rule: #2d3745;
+  --accent: #8fb4d6; --accent-fg: #0f1823; --accent-soft: #213246; --done: #7fd39a; --done-soft: #1c3426;
+  --warn: #f0c27a; --warn-bg: #2d2416; --warn-rule: #6b5124; --bad: #ff9b9b; --bad-bg: #351c1c; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code { font: 0.88em var(--mono); background: var(--accent-soft); padding: 0.05em 0.3em; border-radius: 3px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--panel); }
+
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--panel);
+  border-bottom: 1px solid var(--rule);
+  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.toprow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.brand { font: 600 1.15rem var(--display); margin-right: auto; display: flex; align-items: center; gap: 10px; }
+.mark-f { width: 2.3rem; height: 2.3rem; flex: none; }
+.mark-sl { width: 1.2rem; height: 1.2rem; flex: none; color: var(--fg); }
+.mark-sl .sl-sprout { fill: var(--bg); }
+footer.made { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-size: 0.85rem;
+  padding-block: 0 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+footer.made a { color: inherit; }
+.brand small { display: block; font: 500 0.7rem var(--body); letter-spacing: 0.09em; text-transform: uppercase; color: var(--accent); }
+.buildpick { display: flex; gap: 6px; align-items: center; }
+.buildpick select { padding: 6px 8px; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel); max-width: 14rem; }
+.btn { border: 1px solid var(--rule); background: var(--panel); border-radius: 6px; padding: 6px 12px; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); font-weight: 600; }
+.btn.done { background: var(--done); color: var(--panel); border-color: var(--done); font-weight: 600; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.progress { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: 0.85rem; color: var(--muted);
+  font-variant-numeric: tabular-nums; }
+.bar { flex: 1; height: 8px; background: var(--accent-soft); border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--done); width: 0; transition: width 0.3s; }
+.links { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin-top: 8px; font-size: 0.88rem; }
+.links a { color: var(--accent); }
+.links .who { margin-left: auto; color: var(--muted); }
+.team { list-style: none; margin: 0 0 16px; padding: 0; }
+.team li { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+.team li .em { flex: 1 1 14rem; min-width: 0; overflow-wrap: anywhere; }
+.team .role { font: 600 0.75rem var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.formrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin: 8px 0 16px; }
+.formrow label.f { flex: 1 1 14rem; }
+.formrow select { padding: 7px 9px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); }
+.btn.danger { color: var(--bad); border-color: var(--bad); }
+nav.tabs { display: flex; gap: 4px; margin-top: 8px; overflow-x: auto; }
+nav.tabs button { border: 0; background: transparent; padding: 6px 10px; border-radius: 6px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { background: var(--accent-soft); color: var(--fg); }
+.status { font-size: 0.8rem; color: var(--muted); }
+.status.warn { color: var(--warn); }
+
+main { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; max-width: 1280px; margin: 0 auto;
+  padding-block: 16px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+aside.steps { position: sticky; top: 150px; align-self: start; max-height: calc(100vh - 170px); overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 6px 0; }
+aside.steps details { border-bottom: 1px solid var(--rule); }
+aside.steps details:last-child { border-bottom: 0; }
+aside.steps summary { list-style: none; cursor: pointer; padding: 8px 12px; display: flex; justify-content: space-between; gap: 8px; font-weight: 600; font-size: 0.92rem; }
+aside.steps summary::-webkit-details-marker { display: none; }
+aside.steps summary span { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+aside.steps summary.complete span { color: var(--done); }
+aside.steps ol { list-style: none; margin: 0 0 6px; padding: 0; }
+aside.steps li button { width: 100%; text-align: left; border: 0; background: transparent; padding: 5px 12px 5px 14px;
+  display: grid; grid-template-columns: 1.3rem 2.4rem minmax(0, 1fr); gap: 4px; font-size: 0.88rem; align-items: baseline; }
+aside.steps li button:hover { background: var(--accent-soft); }
+aside.steps li button[aria-current="step"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.tick { width: 1rem; height: 1rem; border: 1.5px solid var(--muted); border-radius: 4px; display: inline-grid; place-items: center;
+  font-size: 0.7rem; line-height: 1; color: var(--panel); align-self: center; }
+.tick.on { background: var(--done); border-color: var(--done); }
+.tick.warn { border-color: var(--bad); }
+.sno { font: 500 0.8rem var(--mono); color: var(--muted); }
+#drawerBtn { display: none; }
+
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 18px; min-width: 0; }
+.stephead { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; margin-bottom: 12px; }
+.stephead .no { font: 600 1rem var(--mono); color: var(--accent); }
+.stephead h2 { font: 600 1.45rem/1.2 var(--display); margin: 0; text-wrap: balance; flex: 1 1 16rem; }
+.secname { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); width: 100%; }
+figure { margin: 0 0 12px; }
+figure .pic { background: #fff; border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+figure svg { display: block; width: 100%; height: auto; }
+figcaption { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; font-size: 0.88rem; }
+figcaption span { display: inline-flex; gap: 6px; align-items: center; }
+.ball { display: inline-grid; place-items: center; width: 1.45em; height: 1.45em; border-radius: 50%; background: #2b4766;
+  color: #fff; font: 600 0.75rem var(--body); flex: none; }
+.cols { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); gap: 18px; }
+h4 { font: 600 0.72rem/1.3 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.4em; }
+.need ul { list-style: none; padding: 0; margin: 0 0 12px; font-size: 0.9rem; }
+.need li { padding: 3px 0; border-bottom: 1px dotted var(--rule); display: flex; justify-content: space-between; gap: 8px; }
+.need li b { font: 600 0.82rem var(--mono); white-space: nowrap; }
+.do ol { margin: 0; padding-left: 1.3em; }
+.do li { margin-bottom: 0.45em; }
+dl.nums { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr); gap: 4px 14px; margin: 14px 0 0; padding: 10px 12px;
+  background: var(--accent-soft); border-radius: 6px; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+dl.nums dt { color: var(--muted); } dl.nums dd { margin: 0; }
+.flag { margin: 10px 0 0; padding: 8px 12px; border-left: 3px solid var(--warn-rule); background: var(--warn-bg); font-size: 0.9rem; border-radius: 0 6px 6px 0; }
+.flag::before { content: "Open in the model: "; font-weight: 600; color: var(--warn); }
+.flag.bench { border-left-color: var(--accent); background: var(--accent-soft); }
+.flag.bench::before { content: "Check on the bench: "; color: var(--accent); }
+.flag.bad { border-left-color: var(--bad); background: var(--bad-bg); }
+.flag.bad::before { content: "Problem: "; color: var(--bad); }
+.log { margin-top: 16px; border-top: 1px solid var(--rule); padding-top: 14px; display: grid; gap: 10px; }
+.recgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+label.f { display: grid; gap: 3px; font-size: 0.85rem; color: var(--muted); }
+label.f input, textarea { width: 100%; padding: 7px 9px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); color: var(--fg); }
+textarea { min-height: 4.5em; resize: vertical; }
+.calc { font-size: 0.9rem; color: var(--done); font-variant-numeric: tabular-nums; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.actions .stamp { font-size: 0.85rem; color: var(--muted); margin-right: auto; }
+.nav2 { display: flex; justify-content: space-between; gap: 8px; margin-top: 14px; }
+
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.card { border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; background: var(--panel); display: grid; }
+.card .img { background: #fff; } .card img { display: block; width: 100%; height: auto; }
+.card .meta { padding: 8px 10px; display: grid; gap: 6px; font-size: 0.86rem; }
+.card .meta code { background: transparent; padding: 0; font-weight: 600; word-break: break-all; }
+.stepper { display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.stepper button { width: 1.9rem; height: 1.9rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); }
+.stepper .n { min-width: 3.2rem; text-align: center; }
+.stepper .n.full { color: var(--done); font-weight: 600; }
+.chk { display: flex; gap: 6px; align-items: center; font-size: 0.86rem; }
+.hwlist { list-style: none; margin: 0; padding: 0; }
+.hwlist li { display: flex; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--rule); }
+.hwlist li span { flex: 1; min-width: 0; } .hwlist li b { font: 600 0.85rem var(--mono); }
+.hwlist small { color: var(--muted); }
+.empty { text-align: center; padding: 40px 16px; }
+.empty h2 { font: 600 1.4rem var(--display); }
+.empty .row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+.empty input { padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--bg); }
+.issues li { margin-bottom: 10px; }
+
+@media (max-width: 860px) {
+  main { grid-template-columns: minmax(0, 1fr); }
+  aside.steps { position: static; max-height: none; display: none; }
+  aside.steps.open { display: block; }
+  #drawerBtn { display: inline-block; }
+  .cols { grid-template-columns: minmax(0, 1fr); }
+  dl.nums { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style></head><body>
+<header class="top">
+  <div class="toprow">
+    <div class="brand"><!--FORSYTH_MARK--><div><small>Forsyth weather station</small>Assembly manager</div></div>
+    <div class="buildpick">
+      <label for="buildSel" class="status">Build</label>
+      <select id="buildSel" aria-label="Build"></select>
+      <button class="btn" id="newBuildBtn" type="button">New build</button>
+    </div>
+  </div>
+  <div class="links" id="links" hidden>
+    <a data-doc href="assembly.html">Full guide</a>
+    <a data-doc href="forsyth-assembly-guide.pdf">Guide (PDF, A4)</a>
+    <a data-doc href="forsyth-assembly-record.pdf">Record sheet (PDF)</a>
+    <span class="who" id="who" hidden></span>
+    <a id="signOut" href="/cdn-cgi/access/logout" hidden>Sign out</a>
+  </div>
+  <div class="progress"><span id="progTxt">0 of 0 steps</span><div class="bar"><i id="progBar"></i></div><span id="saveState" class="status"></span></div>
+  <nav class="tabs" role="tablist">
+    <button type="button" id="drawerBtn" class="btn">☰ Step list</button>
+    <button type="button" role="tab" data-tab="steps" aria-selected="true">Steps</button>
+    <button type="button" role="tab" data-tab="parts">Printed parts</button>
+    <button type="button" role="tab" data-tab="hardware">Hardware</button>
+    <button type="button" role="tab" data-tab="issues">Checks</button>
+    <button type="button" role="tab" data-tab="team" id="teamTab" hidden>Team</button>
+  </nav>
+</header>
+<main>
+  <aside class="steps" id="stepList" aria-label="Steps"></aside>
+  <section class="panel" id="view"></section>
+</main>
+<footer class="made"><!--SL_MARK--><span>Forsyth is a <a href="https://starstucklab.com" target="_blank" rel="noopener">starstucklab</a> project. Steps and pictures are generated from the station's parametric model.</span></footer>
+<script>
+const DATA = /*STEPS_JSON*/null;
+const STEPS = [], SECTION_OF = {};
+DATA.sections.forEach(sec => sec.steps.forEach(st => { STEPS.push(st); SECTION_OF[st.id] = sec; }));
+const BY_ID = Object.fromEntries(STEPS.map(s => [s.id, s]));
+const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "x";
+const $ = id => document.getElementById(id);
+const el = (tag, attrs = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") n.className = v; else if (k === "html") n.innerHTML = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else if (v !== false && v != null) n.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids) if (k != null) n.append(k);
+  return n;
+};
+
+/* ------------------------------------------------------------------ state */
+const state = {
+  builds: {}, build: null, steps: {}, parts: {}, hw: {},
+  tab: "steps", current: STEPS[0].id, canWrite: true, kind: "local", me: null, names: {}, loaded: false,
+};
+try { const t = localStorage.getItem("forsyth-asm-tab"); if (t) state.tab = t; } catch (e) {}
+if (location.hash && BY_ID[location.hash.slice(1)]) state.current = location.hash.slice(1);
+
+/* ---------------------------------------------------------------- storage */
+// Two back ends with one shape: the artifact's shared db, or this browser's localStorage.
+const LOCAL_KEY = "forsyth-assembly-v1";
+const local = {
+  read() { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}"); } catch (e) { return {}; } },
+  write(all) { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(all)); return true; } catch (e) { return false; } },
+};
+let db = null, user = null, unsubs = [];
+// Third back end: the site's own API on build.forsyth.starstucklab.com, where Cloudflare
+// Access signs people in and each build has an owner, editors and viewers.
+let pending = 0, pollTimer = null, lastStamp = "";
+async function api(path, opts = {}) {
+  const r = await fetch("/api/" + path, { cache: "no-store", credentials: "same-origin", ...opts,
+    headers: { "content-type": "application/json", ...(opts.headers || {}) } });
+  if (!r.ok) {
+    let msg = ""; try { msg = (await r.json()).error || ""; } catch (e) {}
+    const e = new Error(msg || "http " + r.status); e.status = r.status; throw e;
+  }
+  return r.status === 204 ? null : r.json();
+}
+const queues = {};
+function writeDoc(path, body) {          // one write at a time per document
+  const run = async () => {
+    setSave("Saving…");
+    pending++;
+    try {
+      if (state.kind === "api") await api(path, { method: "PUT", body: JSON.stringify(body) });
+      else await db.doc(path).set(body);
+      setSave("Saved");
+    } catch (e) {
+      if (e && e.status === 401) setSave("Not saved: you are signed out. Reload the page to sign in again", true);
+      else if (e && e.status === 403) { state.canWrite = false; setSave("Not saved: " + e.message, true); render(); }
+      else if (e && e.code === "invalid_argument") { state.canWrite = false; setSave("Read only: you can view this build but not change it", true); render(); }
+      else if (e && e.code === "quota_exceeded") setSave("The store is full; nothing more can be saved", true);
+      else if (state.kind === "api" && !(e && e.status)) setSave("Not saved: the tracker can't be reached. If the page has been open a while, reload it to sign in again", true);
+      else setSave("Not saved (" + ((e && (e.code || e.status)) || "error") + "); try again", true);
+    } finally { pending--; }
+  };
+  queues[path] = (queues[path] || Promise.resolve()).then(run);
+  return queues[path];
+}
+function setSave(t, warn) { const s = $("saveState"); s.textContent = t || ""; s.classList.toggle("warn", !!warn); }
+const shared = () => state.kind === "db" || state.kind === "api";
+
+function saveLocal(kind, key, body) {
+  const all = local.read(); all.builds = all.builds || {};
+  const b = all.builds[state.build] = all.builds[state.build] || { name: state.builds[state.build].name, steps: {}, parts: {}, hw: {} };
+  b[kind] = b[kind] || {}; b[kind][key] = body;
+  setSave(local.write(all) ? "Saved in this browser" : "Not saved: this browser blocks storage", !local.write(all));
+}
+function saveItem(kind, key) {
+  const body = state[kind][key] || {};
+  if (shared()) return writeDoc(`builds/${state.build}/${kind}/${key}`, body);
+  saveLocal(kind, key, body);
+}
+const saveStep = id => saveItem("steps", id);
+const savePart = name => saveItem("parts", name);
+const saveHw = key => saveItem("hw", key);
+async function createBuild(name) {
+  name = (name || "").trim() || "Station " + String(Object.keys(state.builds).length + 1).padStart(3, "0");
+  const id = slug(name) + "-" + Math.random().toString(36).slice(2, 6);
+  const body = { name, createdAt: new Date().toISOString(), createdBy: state.me || null };
+  if (state.kind === "api") {
+    try {
+      const r = await api("builds", { method: "POST", body: JSON.stringify({ name }) });
+      await pullBuilds(); selectBuild(r.id);
+    } catch (e) { setSave("Couldn't start the build: " + e.message, true); }
+  } else if (shared()) {
+    state.builds[id] = body; selectBuild(id);
+    await writeDoc(`builds/${id}`, body);
+  } else {
+    const all = local.read(); all.builds = all.builds || {};
+    all.builds[id] = { ...body, steps: {}, parts: {}, hw: {} }; local.write(all);
+    state.builds[id] = body; selectBuild(id);
+  }
+}
+async function pullBuild(id) {               // api mode: fetch one build's records
+  if (pending > 0 || id !== state.build) return;
+  try {
+    const r = await api("builds/" + id);
+    if (pending > 0 || id !== state.build) return;
+    state.steps = r.steps || {}; state.parts = r.parts || {}; state.hw = r.hw || {};
+    state.role = r.role; state.members = r.members || [];
+    lastStamp = r.stamp || "";
+    state.canWrite = r.role !== "viewer";
+    if (r.build) state.builds[id] = { ...state.builds[id], name: r.build.name, owner: r.build.owner };
+    render();
+  } catch (e) {
+    if (e.status === 404) { delete state.builds[id]; selectBuild(Object.keys(state.builds)[0] || null); }
+    else setSave("Saved progress can't be reached right now", true);
+  }
+}
+async function pullBuilds() {
+  const r = await api("builds");
+  const b = {};
+  for (const x of r.builds) b[x.id] = { name: x.name, owner: x.owner, role: x.role, createdAt: x.created };
+  state.builds = b;
+  return b;
+}
+function selectBuild(id) {
+  state.build = id;
+  try { localStorage.setItem("forsyth-asm-build", id); } catch (e) {}
+  unsubs.forEach(u => u()); unsubs = [];
+  state.steps = {}; state.parts = {}; state.hw = {};
+  if (!id) return render();
+  if (state.kind === "db") {
+    const sub = (coll, into) => unsubs.push(db.collection(`builds/${id}/${coll}`).onSnapshot(
+      snap => { const o = {}; snap.docs.forEach(d => { o[d.id] = d.data(); }); state[into] = o; render(); },
+      e => setSave("Lost the connection to the saved progress; reopen the page", true)));
+    sub("steps", "steps"); sub("parts", "parts"); sub("hw", "hw");
+  } else if (state.kind === "api") {
+    pullBuild(id);
+  } else {
+    const b = (local.read().builds || {})[id] || {};
+    state.steps = b.steps || {}; state.parts = b.parts || {}; state.hw = b.hw || {};
+  }
+  render();
+}
+
+async function boot() {
+  render();
+  const c = window.claude;
+  if (c && c.use) {
+    [db, user] = await Promise.all([c.use("db"), c.use("user")]);
+  }
+  if (db) {
+    state.kind = "db";
+    if (user) {
+      state.me = await user.id();
+      const w = await user.can("data.write");
+      if (w === false) { state.canWrite = false; setSave("Read only: you can view progress but not change it"); }
+    }
+    const timer = setTimeout(() => { if (!state.loaded) setSave("Saved progress can't be reached yet", true); }, 10000);
+    unsubs.length = 0;
+    db.collection("builds").onSnapshot(snap => {
+      const b = {}; snap.docs.forEach(d => { b[d.id] = d.data(); });
+      state.builds = { ...state.builds, ...b };
+      for (const k of Object.keys(state.builds)) if (!b[k] && !snap.metadata.hasPendingWrites && !snap.metadata.fromCache && k !== state.build) delete state.builds[k];
+      if (!snap.metadata.fromCache) { state.loaded = true; clearTimeout(timer); if ($("saveState").textContent.startsWith("Saved progress")) setSave(""); }
+      if (!state.build || !state.builds[state.build]) {
+        let pick = null; try { pick = localStorage.getItem("forsyth-asm-build"); } catch (e) {}
+        const ids = Object.keys(state.builds).sort((a, z) => String(state.builds[a].createdAt).localeCompare(String(state.builds[z].createdAt)));
+        selectBuild(state.builds[pick] ? pick : ids[0] || null);
+      } else render();
+    }, e => { clearTimeout(timer); setSave("Saved progress can't be reached", true); });
+    return;
+  }
+  let signedIn = null, apiThere = false;
+  if (location.protocol.startsWith("http")) {
+    try { signedIn = await api("me"); apiThere = true; } catch (e) { apiThere = e.status === 401; }
+  }
+  if (apiThere && !signedIn) {
+    state.kind = "signin"; state.loaded = true; state.canWrite = false;
+    $("links").hidden = false; render(); return;
+  }
+  if (signedIn) {
+    state.kind = "api";
+    state.me = signedIn.email;
+    $("links").hidden = false;
+    document.querySelectorAll("#links a[data-doc]").forEach(a => { a.href = "/" + a.getAttribute("href"); });
+    $("who").textContent = "Signed in as " + signedIn.email; $("who").hidden = false; $("signOut").hidden = false;
+    $("teamTab").hidden = false;
+    try { await pullBuilds(); }
+    catch (e) { state.loaded = true; setSave("Your builds can't be loaded right now; reload the page to try again", true); render(); return; }
+    state.loaded = true;
+    let pick = null; try { pick = localStorage.getItem("forsyth-asm-build"); } catch (e) {}
+    const ids = Object.keys(state.builds).sort((a, z) => String(state.builds[a].createdAt).localeCompare(String(state.builds[z].createdAt)));
+    selectBuild(state.builds[pick] ? pick : ids[0] || null);
+    // Other people's changes: every 3 s while the page is in view, ask whether this build's
+    // stamp moved and reload it only if so; the list of builds (newly shared ones) every 30 s.
+    let checking = false, lastList = Date.now();
+    const check = async (force) => {
+      if (checking || pending > 0 || (document.hidden && !force)) return;
+      checking = true;
+      try {
+        if (force || Date.now() - lastList > 30000) {
+          lastList = Date.now();
+          await pullBuilds();
+          if (state.build && !state.builds[state.build]) { await pullBuild(state.build); return; }
+          if (!state.build) { render(); return; }
+        }
+        if (state.build) {
+          const r = await api(`builds/${state.build}/stamp`);
+          if (r.stamp !== lastStamp) await pullBuild(state.build);
+        }
+      } catch (e) { /* offline or signed out: the next save says so */ }
+      finally { checking = false; }
+    };
+    pollTimer = setInterval(() => check(false), 3000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) check(true); });
+    window.addEventListener("focus", () => check(true));
+    return;
+  }
+  {
+    state.kind = "local"; state.loaded = true;
+    $("links").hidden = false;
+    const all = local.read();
+    for (const [k, v] of Object.entries(all.builds || {})) state.builds[k] = { name: v.name, createdAt: v.createdAt };
+    let pick = null; try { pick = localStorage.getItem("forsyth-asm-build"); } catch (e) {}
+    const ids = Object.keys(state.builds);
+    setSave("Progress is kept in this browser only");
+    selectBuild(state.builds[pick] ? pick : ids[0] || null);
+  }
+}
+
+/* ------------------------------------------------------------------ names */
+async function namesFor(ids) {
+  ids = ids.filter(Boolean);
+  if (!user || !ids.length) return;
+  const ps = await user.profiles(ids);
+  let changed = false;
+  for (const id of ids) { const n = (ps[id] && ps[id].isMe) ? "you" : ((ps[id] && ps[id].name) || "someone"); if (state.names[id] !== n) { state.names[id] = n; changed = true; } }
+  if (changed) render();
+}
+
+/* ----------------------------------------------------------------- render */
+const doneCount = () => STEPS.filter(s => state.steps[s.id] && state.steps[s.id].done).length;
+function render() {
+  // build picker
+  const sel = $("buildSel"); sel.textContent = "";
+  const ids = Object.keys(state.builds).sort((a, z) => String(state.builds[a].createdAt).localeCompare(String(state.builds[z].createdAt)));
+  if (!ids.length) sel.append(el("option", { value: "" }, "No build yet"));
+  for (const id of ids) {
+    const b = state.builds[id], o = el("option", { value: id });
+    o.textContent = (b.name || id) + (state.kind === "api" && b.role !== "owner" ? " (shared by " + (b.owner || "?") + ")" : "");
+    if (id === state.build) o.selected = true; sel.append(o);
+  }
+  sel.disabled = !ids.length;
+  $("newBuildBtn").disabled = state.kind === "api" ? false : (!state.canWrite || state.kind === "signin");
+  const d = doneCount();
+  $("progTxt").textContent = `${d} of ${STEPS.length} steps done`;
+  $("progBar").style.width = (100 * d / STEPS.length).toFixed(1) + "%";
+  document.querySelectorAll("nav.tabs [data-tab]").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === state.tab)));
+  renderList();
+  const v = $("view");
+  const keepScroll = v.dataset.for === state.tab + ":" + state.current + ":" + state.build;
+  const focusId = document.activeElement && document.activeElement.id;
+  const typed = focusId && /INPUT|TEXTAREA/.test(document.activeElement.tagName) ? document.activeElement.value : null;
+  v.textContent = "";
+  if (state.kind === "signin") v.append(signInView());
+  else if (!state.build) v.append(emptyView());
+  else if (state.tab === "team" && state.kind === "api") v.append(teamView());
+  else if (state.tab === "parts") v.append(partsView());
+  else if (state.tab === "hardware") v.append(hwView());
+  else if (state.tab === "issues") v.append(issuesView());
+  else v.append(stepView(BY_ID[state.current]));
+  v.dataset.for = state.tab + ":" + state.current + ":" + state.build;
+  if (keepScroll && focusId && $(focusId)) { const f = $(focusId); if (typed != null && f.type !== "checkbox") f.value = typed; f.focus(); if (f.setSelectionRange && f.value != null) { try { f.setSelectionRange(f.value.length, f.value.length); } catch (e) {} } }
+  namesFor(Object.values(state.steps).map(s => s.by));
+}
+
+function renderList() {
+  const list = $("stepList"); list.textContent = "";
+  for (const sec of DATA.sections) {
+    const n = sec.steps.filter(s => state.steps[s.id] && state.steps[s.id].done).length;
+    const det = el("details", { open: sec.steps.some(s => s.id === state.current) || n < sec.steps.length ? true : false });
+    const sum = el("summary", { class: n === sec.steps.length ? "complete" : "" }, `${sec.no}. ${sec.title}`, el("span", {}, `${n}/${sec.steps.length}`));
+    det.append(sum);
+    const ol = el("ol");
+    for (const st of sec.steps) {
+      const on = state.steps[st.id] && state.steps[st.id].done;
+      const bad = st.flags.some(f => f.bad);
+      const b = el("button", { type: "button", "aria-current": st.id === state.current && state.tab === "steps" ? "step" : false,
+        onclick: () => go(st.id) },
+        el("span", { class: "tick" + (on ? " on" : "") + (bad && !on ? " warn" : ""), "aria-label": on ? "done" : "not done" }, on ? "✓" : ""),
+        el("span", { class: "sno" }, st.no), el("span", {}, st.title));
+      ol.append(el("li", {}, b));
+    }
+    det.append(ol); list.append(det);
+  }
+}
+
+function go(id) {
+  state.current = id; state.tab = "steps";
+  try { localStorage.setItem("forsyth-asm-tab", "steps"); } catch (e) {}
+  if (location.hash.slice(1) !== id) history.replaceState(null, "", "#" + id);
+  $("stepList").classList.remove("open");
+  render(); window.scrollTo({ top: 0 });
+}
+
+function stepView(st) {
+  const sec = SECTION_OF[st.id];
+  const rec = state.steps[st.id] || {};
+  const frag = el("div");
+  frag.append(el("div", { class: "stephead" }, el("span", { class: "secname" }, `${sec.no}. ${sec.title}`),
+    el("span", { class: "no" }, st.no), el("h2", {}, st.title)));
+  if (st.svg) {
+    const cap = el("figcaption");
+    st.legend.forEach((lab, i) => { if (!st.svg.includes(">" + (i + 1) + "</text>")) return; const s = el("span", {}, el("span", { class: "ball" }, String(i + 1))); s.append(lab); cap.append(s); });
+    frag.append(el("figure", {}, el("div", { class: "pic", html: st.svg }), cap));
+  }
+  const need = el("div", { class: "need" });
+  if (st.printed.length) { need.append(el("h4", {}, "Printed")); const ul = el("ul"); st.printed.forEach(([n, q]) => ul.append(el("li", {}, el("span", {}, el("code", {}, n)), el("b", {}, "×" + q)))); need.append(ul); }
+  if (st.hw.length) { need.append(el("h4", {}, "Hardware")); const ul = el("ul"); st.hw.forEach(([n, q]) => ul.append(el("li", {}, el("span", {}, n), el("b", {}, "×" + q)))); need.append(ul); }
+  if (!st.printed.length && !st.hw.length) need.append(el("h4", {}, "Nothing new"));
+  const ol = el("ol"); st.do.forEach(h => ol.append(el("li", { html: h })));
+  frag.append(el("div", { class: "cols" }, need, el("div", { class: "do" }, ol)));
+  if (st.nums.length) { const dl = el("dl", { class: "nums" }); st.nums.forEach(([a, b]) => { dl.append(el("dt", { html: a }), el("dd", { html: b })); }); frag.append(dl); }
+  st.flags.forEach(f => frag.append(el("p", { class: "flag" + (f.bad ? " bad" : "") + (f.bench ? " bench" : ""), html: f.html })));
+
+  // the log: measurements, note, done
+  const log = el("div", { class: "log" });
+  const ro = !state.canWrite;
+  if (st.record.length) {
+    const g = el("div", { class: "recgrid" });
+    st.record.forEach(([k, lab, unit]) => {
+      const inp = el("input", { id: `rec-${st.id}-${k}`, type: "text", value: (rec.values && rec.values[k]) || "", disabled: ro, placeholder: unit || "" });
+      inp.addEventListener("change", () => { const r = state.steps[st.id] = { ...(state.steps[st.id] || {}) }; r.values = { ...(r.values || {}), [k]: inp.value.trim() }; saveStep(st.id); render(); });
+      g.append(el("label", { class: "f", for: inp.id }, lab + (unit ? ` (${unit})` : ""), inp));
+    });
+    log.append(el("h4", {}, "Record"), g);
+    if (st.id === "rain-05-section") {
+      const v = rec.values || {}, ml = parseFloat(v.ml), tips = parseFloat(v.tips);
+      if (ml > 0 && tips > 0) { const per = ml / tips; log.append(el("div", { class: "calc" }, `${per.toFixed(2)} ml per tip = ${(per / DATA.rain_ml_per_mm).toFixed(3)} mm of rain per tip`)); }
+    }
+  }
+  const note = el("textarea", { id: `note-${st.id}`, disabled: ro, placeholder: "Notes for this step" });
+  note.value = rec.note || "";
+  note.addEventListener("change", () => { state.steps[st.id] = { ...(state.steps[st.id] || {}), note: note.value }; saveStep(st.id); });
+  log.append(el("label", { class: "f", for: note.id }, "Notes", note));
+  const stamp = el("span", { class: "stamp" });
+  const whoId = rec._by || rec.by;
+  const whoName = state.kind === "api" ? (whoId === state.me ? "you" : whoId) : state.names[whoId];
+  const when = rec.at || rec._updated;
+  if (rec.done) stamp.textContent = "Done " + (when ? new Date(when).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "") + (whoName ? " by " + whoName : "");
+  else stamp.textContent = "Not done yet";
+  const btn = el("button", { type: "button", class: "btn " + (rec.done ? "" : "primary"), disabled: ro,
+    onclick: () => {
+      const r = { ...(state.steps[st.id] || {}) };
+      r.done = !r.done; r.at = r.done ? new Date().toISOString() : null; r.by = r.done ? (state.me || null) : null;
+      state.steps[st.id] = r; saveStep(st.id);
+      if (r.done) { const i = STEPS.indexOf(st); if (i + 1 < STEPS.length) return go(STEPS[i + 1].id); }
+      render();
+    } }, rec.done ? "Undo done" : "Mark done and go to the next step");
+  log.append(el("div", { class: "actions" }, stamp, btn));
+  frag.append(log);
+  const i = STEPS.indexOf(st);
+  frag.append(el("div", { class: "nav2" },
+    el("button", { type: "button", class: "btn", disabled: i === 0, onclick: () => go(STEPS[i - 1].id) }, "← Previous"),
+    el("button", { type: "button", class: "btn", disabled: i === STEPS.length - 1, onclick: () => go(STEPS[i + 1].id) }, "Next →")));
+  return frag;
+}
+
+function partsView() {
+  const frag = el("div");
+  const tot = DATA.parts.reduce((a, p) => a + p.qty, 0);
+  const have = DATA.parts.reduce((a, p) => a + Math.min(p.qty, (state.parts[p.name] || {}).printed || 0), 0);
+  frag.append(el("div", { class: "stephead" }, el("h2", {}, "Printed parts"), el("span", { class: "status" }, `${have} of ${tot} printed`)));
+  const g = el("div", { class: "gallery" });
+  for (const p of DATA.parts) {
+    const r = state.parts[p.name] || {};
+    const n = r.printed || 0;
+    const set = (patch) => { state.parts[p.name] = { ...(state.parts[p.name] || {}), ...patch }; savePart(p.name); render(); };
+    const fit = el("input", { type: "checkbox", id: "fit-" + p.name, checked: !!r.fit, disabled: !state.canWrite, onchange: e => set({ fit: e.target.checked }) });
+    g.append(el("div", { class: "card" },
+      el("div", { class: "img" }, el("img", { src: `assembly/part-${p.name}.png`, alt: p.name, loading: "lazy" })),
+      el("div", { class: "meta" }, el("code", {}, p.name),
+        el("span", { class: "status" }, { white: "white ASA", accent: "accent ASA", tpu: "TPU" }[p.color] + " · need " + p.qty),
+        el("div", { class: "stepper" },
+          el("button", { type: "button", "aria-label": "One fewer", disabled: !state.canWrite || n <= 0, onclick: () => set({ printed: n - 1 }) }, "−"),
+          el("span", { class: "n" + (n >= p.qty ? " full" : "") }, `${n} / ${p.qty}`),
+          el("button", { type: "button", "aria-label": "One more", disabled: !state.canWrite, onclick: () => set({ printed: n + 1 }) }, "+")),
+        el("label", { class: "chk", for: fit.id }, fit, "Fit checked"))));
+  }
+  frag.append(g);
+  return frag;
+}
+
+function hwView() {
+  const frag = el("div");
+  const n = DATA.hardware.filter(h => (state.hw[slug(h.name)] || {}).have).length;
+  frag.append(el("div", { class: "stephead" }, el("h2", {}, "Hardware on hand"), el("span", { class: "status" }, `${n} of ${DATA.hardware.length} items`)));
+  const ul = el("ul", { class: "hwlist" });
+  for (const h of DATA.hardware) {
+    const key = slug(h.name);
+    const cb = el("input", { type: "checkbox", id: "hw-" + key, checked: !!(state.hw[key] || {}).have, disabled: !state.canWrite,
+      onchange: e => { state.hw[key] = { have: e.target.checked }; saveHw(key); render(); } });
+    const lab = el("label", { for: cb.id }, h.name);
+    ul.append(el("li", {}, cb, el("span", {}, lab, h.owned ? el("small", {}, " · already owned") : null), el("b", {}, "×" + h.qty)));
+  }
+  frag.append(ul);
+  return frag;
+}
+
+function issuesView() {
+  const frag = el("div");
+  frag.append(el("div", { class: "stephead" }, el("h2", {}, "Checks")));
+  frag.append(el("p", {}, STEPS.some(s => s.flags.some(f => !f.bench))
+    ? "What the model leaves open, then what only the real parts can answer. Each links to its step."
+    : "Nothing is left open in the model. These are the checks only the real parts can answer; each links to its step."));
+  const ul = el("ul", { class: "issues" });
+  for (const st of STEPS) for (const f of st.flags) {
+    const a = el("button", { type: "button", class: "btn", onclick: () => go(st.id) }, st.no);
+    ul.append(el("li", {}, a, " ", el("span", { class: "flag" + (f.bad ? " bad" : "") + (f.bench ? " bench" : ""), html: f.html })));
+  }
+  frag.append(ul);
+  return frag;
+}
+
+function emptyView() {
+  const frag = el("div", { class: "empty" });
+  frag.append(el("h2", {}, "Start a build"));
+  frag.append(el("p", {}, "A build is one station. Name it, then tick off the " + STEPS.length + " steps as you go; the printed parts and hardware lists are kept per build too."));
+  if (DATA.overview) frag.append(el("figure", {}, el("div", { class: "pic", html: DATA.overview })));
+  const can = state.kind === "api" || state.canWrite;
+  const inp = el("input", { id: "newName", type: "text", value: "Station 001", "aria-label": "Build name", disabled: !can });
+  frag.append(el("div", { class: "row" }, inp, el("button", { type: "button", class: "btn primary", disabled: !can || !state.loaded, onclick: () => createBuild(inp.value) }, "Start this build")));
+  if (state.kind === "api") frag.append(el("p", { class: "status" }, "Builds you start are yours; share one from its Team tab. Builds others share with you appear in the Build list."));
+  if (!state.loaded) frag.append(el("p", { class: "status" }, "Loading saved builds…"));
+  return frag;
+}
+
+function signInView() {
+  const frag = el("div", { class: "empty" });
+  frag.append(el("h2", {}, "Sign in to track a build"));
+  frag.append(el("p", {}, "The tracker keeps each person's builds and shares them with their team, so it needs to know who you are. The guide and PDFs above stay open to everyone."));
+  frag.append(el("div", { class: "row" }, el("a", { class: "btn primary", href: "https://build.forsyth.starstucklab.com/app/" }, "Sign in")));
+  return frag;
+}
+
+function teamView() {
+  const frag = el("div");
+  const b = state.builds[state.build] || {};
+  const owner = state.role === "owner";
+  const act = async (fn, okMsg) => {
+    try { await fn(); setSave(okMsg); await pullBuilds(); await pullBuild(state.build); }
+    catch (e) { setSave(e.message || "Didn't work; try again", true); }
+  };
+  frag.append(el("div", { class: "stephead" }, el("h2", {}, "Team"), el("span", { class: "status" }, b.name || "")));
+  frag.append(el("p", {}, "People on this build see it in their Build list once they sign in with the email you add here. Editors can tick steps and record measurements; viewers can only look. Every tick records who made it."));
+  const ul = el("ul", { class: "team" });
+  for (const m of state.members || []) {
+    const li = el("li", {}, el("span", { class: "em" }, m.email + (m.email === state.me ? " (you)" : "")), el("span", { class: "role" }, m.role));
+    if (owner && m.role !== "owner") {
+      const sel = el("select", { "aria-label": "Role for " + m.email });
+      for (const r of ["editor", "viewer"]) { const o = el("option", { value: r }, r); if (r === m.role) o.selected = true; sel.append(o); }
+      sel.addEventListener("change", () => act(() => api(`builds/${state.build}/members`, { method: "POST", body: JSON.stringify({ email: m.email, role: sel.value }) }), "Role changed"));
+      li.append(sel, el("button", { type: "button", class: "btn", onclick: () => act(() => api(`builds/${state.build}/members/${encodeURIComponent(m.email)}`, { method: "DELETE" }), "Removed " + m.email) }, "Remove"));
+    }
+    if (!owner && m.email === state.me) {
+      li.append(el("button", { type: "button", class: "btn", onclick: () => act(async () => {
+        await api(`builds/${state.build}/members/${encodeURIComponent(m.email)}`, { method: "DELETE" });
+        delete state.builds[state.build]; selectBuild(Object.keys(state.builds)[0] || null);
+      }, "You left the build") }, "Leave this build"));
+    }
+    ul.append(li);
+  }
+  frag.append(ul);
+  if (owner) {
+    const em = el("input", { id: "addEmail", type: "email", placeholder: "name@example.com", autocomplete: "off" });
+    const role = el("select", { id: "addRole" }, el("option", { value: "editor" }, "editor"), el("option", { value: "viewer" }, "viewer"));
+    frag.append(el("h4", {}, "Add someone"));
+    frag.append(el("div", { class: "formrow" }, el("label", { class: "f", for: "addEmail" }, "Email", em),
+      el("label", { class: "f", for: "addRole", style: "flex: 0 0 auto" }, "Role", role),
+      el("button", { type: "button", class: "btn primary", onclick: () => {
+        const v = em.value.trim(); if (!v) return em.focus();
+        act(() => api(`builds/${state.build}/members`, { method: "POST", body: JSON.stringify({ email: v, role: role.value }) }), "Shared with " + v);
+      } }, "Share")));
+    const nm = el("input", { id: "renameInp", type: "text", value: b.name || "" });
+    frag.append(el("h4", {}, "This build"));
+    frag.append(el("div", { class: "formrow" }, el("label", { class: "f", for: "renameInp" }, "Name", nm),
+      el("button", { type: "button", class: "btn", onclick: () => act(() => api(`builds/${state.build}`, { method: "PATCH", body: JSON.stringify({ name: nm.value }) }), "Renamed") }, "Rename")));
+    const del = el("button", { type: "button", class: "btn danger" }, "Delete this build");
+    del.addEventListener("click", () => {
+      if (del.dataset.armed) {
+        act(async () => { await api(`builds/${state.build}`, { method: "DELETE" }); delete state.builds[state.build]; selectBuild(Object.keys(state.builds)[0] || null); }, "Build deleted");
+      } else { del.dataset.armed = "1"; del.textContent = "Delete it and all its progress, for everyone? Click again"; }
+    });
+    frag.append(del);
+  }
+  return frag;
+}
+
+/* ----------------------------------------------------------------- events */
+$("buildSel").addEventListener("change", e => selectBuild(e.target.value));
+$("newBuildBtn").addEventListener("click", () => {
+  state.build = null; unsubs.forEach(u => u()); unsubs = []; state.steps = {}; render();
+  const i = $("newName"); if (i) { i.value = "Station " + String(Object.keys(state.builds).length + 1).padStart(3, "0"); i.focus(); i.select(); }
+});
+document.querySelectorAll("nav.tabs [data-tab]").forEach(b => b.addEventListener("click", () => {
+  state.tab = b.dataset.tab; try { localStorage.setItem("forsyth-asm-tab", state.tab); } catch (e) {} render();
+}));
+$("drawerBtn").addEventListener("click", () => $("stepList").classList.toggle("open"));
+window.addEventListener("hashchange", () => { const id = location.hash.slice(1); if (BY_ID[id] && id !== state.current) go(id); });
+document.addEventListener("keydown", e => {
+  if (state.tab !== "steps" || /INPUT|TEXTAREA|SELECT/.test((e.target || {}).tagName || "")) return;
+  const i = STEPS.findIndex(s => s.id === state.current);
+  if (e.key === "ArrowRight" && i < STEPS.length - 1) go(STEPS[i + 1].id);
+  if (e.key === "ArrowLeft" && i > 0) go(STEPS[i - 1].id);
+});
+boot();
+</script>
+</body></html>

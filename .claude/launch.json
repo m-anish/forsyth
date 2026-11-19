@@ -20,6 +20,19 @@
       "port": 4181
     },
     {
+      "name": "station-docs",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4190", "--directory", "hardware/enclosures/station/docs"],
+      "port": 4190
+    },
+    {
+      "name": "station-build-site",
+      "runtimeExecutable": "/usr/local/opt/node@24/bin/node",
+      "runtimeArgs": ["/usr/local/bin/wrangler", "pages", "dev", "dist", "--port", "8788", "--binding", "DEV_USER_EMAIL=you@example.com"],
+      "cwd": "hardware/enclosures/station/web",
+      "port": 8788
+    },
+    {
       "name": "starstucklab-hub",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "/Users/anish/Documents/GitHub/starstucklab"],
