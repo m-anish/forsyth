@@ -10,7 +10,9 @@ if [ ! -x "$CHROME" ]; then
 fi
 for pair in "assembly-print.html:forsyth-assembly-guide.pdf" "assembly-sheet.html:forsyth-assembly-record.pdf"; do
     src="${pair%%:*}"; dst="${pair##*:}"
+    # --generate-pdf-document-outline: the headings become the PDF's bookmarks (its contents sidebar)
     "$CHROME" --headless=new --disable-gpu --no-pdf-header-footer --run-all-compositor-stages-before-draw \
+        --generate-pdf-document-outline \
         --virtual-time-budget=15000 --print-to-pdf="$PWD/$dst" "file://$PWD/$src" >/dev/null 2>&1
     echo "make-pdfs: docs/$dst"
 done

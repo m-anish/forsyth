@@ -129,7 +129,8 @@ def frame_assembly(parts):
     Lm = P.mast_len
     za = Lm - P.arm_drop
     items = [("frame_mast", box(-10, 10, -10, 10, 0, Lm)),
-             ("frame_crossarm", box(-P.arm_len / 2, P.arm_len / 2, 10, 30, za - 20, za))]
+             # crossarm on the mast's north face (+X), running east-west (along Y)
+             ("frame_crossarm", box(10, 30, -P.arm_len / 2, P.arm_len / 2, za - 20, za))]
 
     def add(group, dx, dy, dz, turn=None):
         for name, s in group:
@@ -143,10 +144,13 @@ def frame_assembly(parts):
     # sky pod on the opposite mast face, standing above everything else
     pod = sky.place(parts) + [("ref_" + n, s) for n, s in sky.reference()]
     add(pod, 10, 0, Lm)
-    # rain gauge on one end of the crossarm, screen on the other
-    add(rain.place(parts), P.arm_len / 2 - 62, 20, za, lambda s: rz(s, 45))
+    # Rain gauge on the east end of the crossarm (-Y), screen on the west end (+Y). The crossarm
+    # runs east-west on the north face so that neither stands between the midday sun and the
+    # solar panel on the south face: on a north-south arm the screen shaded the panel from late
+    # February to October (shade study, 2026-11-19, at 32 N). Each keeps its old angle to the arm.
+    add(rain.place(parts), 20, -(P.arm_len / 2 - 62), za, lambda s: rz(s, 45 - 90))
     scr = screen.place(parts) + [("ref_" + n, s) for n, s in screen.reference()]
-    add(scr, -P.arm_len / 2 + 66, 20, za)
+    add(scr, 20, P.arm_len / 2 - 66, za, lambda s: rz(s, -90))
     # Box and solar bracket on the same face as the wind arm (-X). With the sky pod's
     # face turned north, that face looks south: sun on the panel, panel shading the box.
     up = lambda s: rz(rx(s, 90), -90)   # part frame -> world: Y becomes up, depth runs along -X

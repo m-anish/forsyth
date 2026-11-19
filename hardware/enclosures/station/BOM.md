@@ -131,11 +131,14 @@ The "Need" column above was corrected against the model on 2026-11-19; the
 | TPU filament, 95A | under 10 g | a sample coil is enough |
 | Shielded 5-core outdoor cable (wind) | mast height + 0.5 m | local electrical shop: alarm or security cable, as the architecture notes |
 | 4-core cable (sky pod), 3-core (rain), 2-core (solar) | about 1.5 m each | same |
+| 8-core cable (screen, ENV) | about 1.5 m | same; Board B's J1 to the GX16-8 (README, Cables) |
 | UV-stable black nylon cable ties, 2.5 mm | 20 | local; Omrook's ties are white, which goes brittle in sun |
 | Two-part epoxy (5-minute) | small pack | local; fixes the four magnets in their pockets (clearance fits) |
 | Neutral-cure silicone | small tube | local; for the gland threads and the cable exit under the sky pod |
 | 3 mm closed-cell foam, 40 x 12 mm | 1 piece | offcut; goes on the lid pad over the cell |
 | Silica gel sachet | 1 | inside the box |
+| Isopropyl alcohol, 99% | small bottle | chemist or electronics shop; cleans the grease out of the two cup bearings (not 70%: its water rusts them) |
+| Light oil (sewing-machine, clock or instrument) | a few drops | local; goes back into the cleaned cup bearings |
 | 2020 end caps and slot covers | 3 caps | optional; easy to print |
 
 ## Printed material

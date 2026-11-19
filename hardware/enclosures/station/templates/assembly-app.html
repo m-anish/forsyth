@@ -192,7 +192,7 @@ textarea { min-height: 4.5em; resize: vertical; }
   <aside class="steps" id="stepList" aria-label="Steps"></aside>
   <section class="panel" id="view"></section>
 </main>
-<footer class="made"><!--SL_MARK--><span>Forsyth is a <a href="https://starstucklab.com" target="_blank" rel="noopener">starstucklab</a> project. Steps and pictures are generated from the station's parametric model.</span></footer>
+<footer class="made"><!--SL_MARK--><span>Forsyth is a <a href="https://starstucklab.com" target="_blank" rel="noopener">starstucklab</a> project. Steps and pictures are drawn from the station's parametric model, which has never once been rained on.</span></footer>
 <script>
 const DATA = /*STEPS_JSON*/null;
 const STEPS = [], SECTION_OF = {};
@@ -596,7 +596,8 @@ function hwView() {
     const cb = el("input", { type: "checkbox", id: "hw-" + key, checked: !!(state.hw[key] || {}).have, disabled: !state.canWrite,
       onchange: e => { state.hw[key] = { have: e.target.checked }; saveHw(key); render(); } });
     const lab = el("label", { for: cb.id }, h.name);
-    ul.append(el("li", {}, cb, el("span", {}, lab, h.owned ? el("small", {}, " · already owned") : null), el("b", {}, "×" + h.qty)));
+    const where = (h.where || []).length ? " · step" + (h.where.length > 1 ? "s " : " ") + h.where.join(", ") : "";
+    ul.append(el("li", {}, cb, el("span", {}, lab, el("small", {}, (h.owned ? " · already owned" : "") + where)), el("b", {}, "×" + h.qty)));
   }
   frag.append(ul);
   return frag;
@@ -620,7 +621,7 @@ function issuesView() {
 function emptyView() {
   const frag = el("div", { class: "empty" });
   frag.append(el("h2", {}, "Start a build"));
-  frag.append(el("p", {}, "A build is one station. Name it, then tick off the " + STEPS.length + " steps as you go; the printed parts and hardware lists are kept per build too."));
+  frag.append(el("p", {}, "A build is one station. Name it, then tick off the " + STEPS.length + " steps as you go. Printed parts and hardware are kept per build, so two stations never borrow each other's screws."));
   if (DATA.overview) frag.append(el("figure", {}, el("div", { class: "pic", html: DATA.overview })));
   const can = state.kind === "api" || state.canWrite;
   const inp = el("input", { id: "newName", type: "text", value: "Station 001", "aria-label": "Build name", disabled: !can });

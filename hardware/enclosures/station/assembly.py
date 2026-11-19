@@ -724,8 +724,15 @@ def catalogue(n):
         "foam": ("3 mm closed-cell foam, 40 x 12 mm", "closed-cell foam"),
         "epoxy": ("Two-part epoxy (for the magnets)", "epoxy"),
         "silica": ("Silica gel sachet", "Silica gel"),
+        "ipa": ("Isopropyl alcohol, 99% (cleans the cup bearings)", "Isopropyl alcohol"),
+        "oil": ("Light oil: sewing-machine, clock or instrument", "Light oil"),
         "silicone": ("Neutral-cure silicone", "silicone"),
         "ties": ("UV-stable black cable ties", "cable ties"),
+        "cable5": ("Shielded 5-core outdoor cable (wind), mast height + 0.5 m", "Shielded 5-core"),
+        "cable8": ("8-core cable (screen), about 1.5 m", "8-core cable (screen"),
+        "cable4": ("4-core cable (sky pod), about 1.5 m", "4-core cable"),
+        "cable3": ("3-core cable (rain), about 1.5 m", "3-core"),
+        "cable2": ("2-core cable (solar), about 1.5 m", "2-core"),
         # already owned: deliberately not in BOM.md
         "reed": ("Reed switch, %g mm glass" % (P.reed_l - 0.5), None),
         "vanepcb": ("Wind-vane PCB, %g mm disc" % P.vane_pcb_d, None),
@@ -895,8 +902,20 @@ def wind_steps(p, n):
         Scene("wind-02-bearings", items, view=(1, -1.3, 0.9), section=SECTION_Y,
               dashes=[((0, 0, -30), (0, 0, h + 52))],
               fit=_box_pts(-40, 45, -40, 40, -26, h + 50)),
-        printed=[("wind_spacer", 1)], hw=[("brg", 2)],
-        do=["Press the first bearing into the pocket that opens under the floor, until its outer "
+        printed=[("wind_spacer", 1)], hw=[("brg", 2), ("ipa", 1), ("oil", 1)],
+        do=["These two carry the cups. They arrive packed with grease, which is enough to stall a "
+            "light breeze, so clean them before they go in. The vane's pair (step 3.1) can stay as "
+            "they come.",
+            "Leave the shields on. A ZZ shield does not touch the inner race, so solvent gets in "
+            "round it; prising one off usually bends it, and outdoors it keeps the grit out.",
+            "Thread each bearing onto an M5 screw and spin it under 99% isopropyl alcohol (naphtha "
+            "also works) in a small jar. Change the alcohol two or three times, until it stays clear "
+            "and the bearing runs on instead of slowing at once. Not 70%: its water rusts the races.",
+            "Let them dry for 15 to 30 minutes, or under a hairdryer on low. If you use compressed "
+            "air, hold the inner race: a dry bearing spun up by air wears its own races.",
+            "Oil them straight away, before the air does its work: one small drop of light oil on each "
+            "side, a spin to spread it, the excess wiped off. More oil is only more drag and more dust.",
+            "Press the first bearing into the pocket that opens under the floor, until its outer "
             "race stops on the shoulder inside the tower.",
             "Drop a %s into the tower from above. It stands on the lower bearing's inner race." % c("wind_spacer"),
             "Press the second bearing in from above, again down to the shoulder.",
@@ -907,6 +926,8 @@ def wind_steps(p, n):
             "to print %s first and check the fit." % c("wind_lid")],
         nums=[("Bearing pocket", "&Oslash;%s for a %s bearing (%s over), %s deep" %
                (fmt(n["pocket"], 2), mm(P.brg_od), mm(P.brg_fit, 2), mm(P.brg_w))),
+              ("A clean, oiled bearing", "runs for several seconds after a flick on a screw, smooth, "
+               "not gritty"),
               ("Shoulder between the pockets", "&Oslash;%s" % mm(P.tower_bore, 2)),
               ("Bearing faces apart", mm(P.brg_sep)),
               ("Spacer", "&Oslash;%s outside, &Oslash;%s bore, %s long" %
@@ -919,7 +940,7 @@ def wind_steps(p, n):
         Scene("wind-03-reed", items, view=(0.35, -0.75, 1.0),
               dashes=[((-P.anemo_mag_r, 0, rz_), (-P.anemo_mag_r, 0, rz_ + 12))],
               fit=housing_fit),
-        hw=[("reed", 1)],
+        hw=[("reed", 1), ("silicone", 1)],
         do=["Solder two wires to the reed switch. Bend its leads well away from the glass, never "
             "at the seal.",
             "Lay it in the channel on the housing floor, on the side away from the arm, between the "
@@ -945,7 +966,7 @@ def wind_steps(p, n):
         Scene("wind-04-gland", items, view=(0.55, -1, 0.45), section=SECTION_Y,
               dashes=[((P.wind_r_in - 18, 0, n["gz"]), (gx0 + 40, 0, n["gz"]))],
               fit=_box_pts(-12, 75, -30, 30, -2, h + 4)),
-        printed=[("tpu_washer_gland", 1)], hw=[("gland", 1)],
+        printed=[("tpu_washer_gland", 1)], hw=[("gland", 1), ("cable5", 1)],
         do=["The gland goes in the wall that faces the mast, between the arm's two rails.",
             "From outside: the TPU washer, then the gland through the wall. From inside: its locknut, "
             "flat against the seat cut into the wall.",
@@ -1018,8 +1039,8 @@ def wind_steps(p, n):
             "Hold the rotor and turn the screw from inside with a 4 mm hex key until it catches the "
             "nut and pulls the stack together. Stop at snug: shim, both inner races, spacer and hub "
             "lip clamped into one piece.",
-            "Spin it. It should coast to a stop, not stop dead. The README says to de-grease the "
-            "cup bearings and use light oil, for a lower starting speed."],
+            "Spin it. It should coast to a stop, not stop dead. If it stops dead, the bearings still "
+            "hold their grease (step 1.2) or the screw is past snug."],
         nums=[("Shim", "&Oslash;%s, &Oslash;%s bore, %s thick" %
                (fmt(P.race_od), fmt(P.brg_id + 0.3), mm(P.shim_h))),
               ("Screw past the bearing stack", "%s, into a %s bore through the nut" %
@@ -1041,6 +1062,8 @@ def wind_steps(p, n):
         do=["The same as step 1.2: one bearing into the pocket that opens under the lid, the "
             "spacer, then the second bearing into the top of the tower. Outer races only, each "
             "pushed to the shoulder.",
+            "These two can keep their factory grease: the README only asks for the cup bearings to "
+            "be cleaned.",
             "The arrow engraved on the lid's top points along the arm, at the mast. With the mast "
             "turned as in step 10.5 (wind arm on the south face) that is north."],
         nums=[("Pockets and spacer", "as step 1.2")])]
@@ -1057,7 +1080,7 @@ def wind_steps(p, n):
                       ((0, 2, vz + zc + 5.9), (0, 34, vz + zc + 5.9)),
                       ((bx, 0, spine_lo - 40), (bx, 0, vz + P.vane_top + 25))]),
         printed=[("vane_rotor", 1)],
-        hw=[("mag6", 1), ("m5nut", 1 + n["ballast_nuts"]), ("m5x25", 1)],
+        hw=[("mag6", 1), ("m5nut", 1 + n["ballast_nuts"]), ("m5x25", 1), ("epoxy", 1)],
         bench=[],
         do=["Push a %s magnet into the slot under the flange on the tail side, standing on edge, "
             "flat faces along the radius, as in the cup hub." % ("%g x %g" % (P.mag_d, P.mag_t)),
@@ -1220,7 +1243,7 @@ def rain_steps(p, n):
         "Stop screws and reed",
         Scene("rain-01-base", items, view=(1, -1.2, 1.0),
               dashes=[((s * P.rain_stop_x, 0, t), (s * P.rain_stop_x, 0, stop_z + 20)) for s in (1, -1)]),
-        printed=[("rain_base", 1)], hw=[("m3x16", 2), ("reed", 1)],
+        printed=[("rain_base", 1)], hw=[("m3x16", 2), ("reed", 1), ("cable3", 1), ("silicone", 1)],
         do=["Drive an M3 x %d into each of the two round bosses either side of the uprights. They "
             "cut their own thread. Leave the heads down on the bosses for now; the heads are the "
             "bucket's stops and are set in step 5.5." % n.get("stop_len", 16),
@@ -1276,7 +1299,7 @@ def rain_steps(p, n):
               dashes=[((0, -y0 - 40, zp), (0, y0 + 30, zp))]
               + [((P.rain_mag_x * s, s * P.rain_mag_y, mag_z), (P.rain_mag_x * s, s * P.rain_mag_y, mag_z + 52))
                  for s in (1, -1)]),
-        printed=[("rain_bucket", 1)], hw=[("mag4", 2), ("axle", 1), ("nyloc", 1)],
+        printed=[("rain_bucket", 1)], hw=[("mag4", 2), ("axle", 1), ("nyloc", 1), ("epoxy", 1)],
         do=["Drop a %s magnet into the slot in each of the bucket's two corner bosses, on edge, flat "
             "faces toward the bucket's ends, and fix each with a drop of epoxy. One passes the reed; "
             "the other balances it. The bucket works either way round." %
@@ -1394,7 +1417,7 @@ def screen_steps(p, n):
         "Board B on its rails",
         Scene("screen-03-carrier", items, view=(1, -1.15, 0.6),
               fit=_box_pts(-70, 70, -70, 70, -20, 180)),
-        hw=[("boardB", 1), ("pms", 1)],
+        hw=[("boardB", 1), ("pms", 1), ("cable8", 1)],
         do=["Plug the 8-core cable into J1, which faces down out of the board's bottom edge, and feed "
             "the cable down through the hole in the base.",
             "Slide the board down into the grooves of the two rails, sensors (front) toward the cable "
@@ -1611,8 +1634,9 @@ def solar_steps(p, n):
     return [Step(
         "Panel into the tray",
         Scene("solar-01-panel", items, view=(0.75, 0.55, 1.2), up=(0, 1, 0)),
-        printed=[("solar_bracket", 1)], hw=[("panel", 1)],
-        do=["Feed the panel's lead through the hole in the tray floor.",
+        printed=[("solar_bracket", 1)], hw=[("panel", 1), ("cable2", 1), ("silicone", 1)],
+        do=["Feed the panel's lead through the hole in the tray floor. It, or a 2-core cable joined "
+            "to it, runs down to the box's SOLAR socket.",
             "Lay the panel in the tray, between the side rims and the two low lips at the ends.",
             "Run a bead of neutral-cure silicone along both side rims to hold it; the rims and lips "
             "only locate it."],
@@ -1646,7 +1670,7 @@ def sky_steps(p, n):
               dashes=[(o, (o[0] + a[0] * 90, 0, o[2] + a[2] * 90))],
               fit=_box_pts(-20, 62, -22, 22, -60, 118), size=(1000, 1100)),
         printed=[("sky_mount", 1), ("tpu_sky_can_seal", 1), ("sky_head", 1)],
-        hw=[("mlx", 1), ("m3x8", 2), ("silicone", 1)],
+        hw=[("mlx", 1), ("m3x8", 2), ("silicone", 1), ("cable4", 1)],
         do=["Solder four wires to the breakout's header and drop them down the slot through the "
             "plug; they come out under the head.",
             "Lay the breakout on the plug's top face, can up, header end over the slot.",
@@ -1720,13 +1744,13 @@ def frame_steps(parts, n):
     za = Lm - P.arm_drop
     placed = frame_assembly(parts)
     mast = profile_2020(Lm)
-    arm = mv(profile_2020(P.arm_len, "x"), -P.arm_len / 2, 20, za - 10)
+    arm = mv(profile_2020(P.arm_len, "y"), 20, -P.arm_len / 2, za - 10)
     brk = []
     for s in (1, -1):
         z0 = za if s > 0 else za - 20
         leg_h = box(-10, 10, 10, 30, z0, z0 + 3) if s > 0 else box(-10, 10, 10, 30, z0 - 3, z0)
         leg_v = box(-10, 10, 10, 13, z0, z0 + 20) if s > 0 else box(-10, 10, 10, 13, z0 - 20, z0)
-        brk.append(fuse([leg_h, leg_v]))
+        brk.append(rz(fuse([leg_h, leg_v]), -90))          # on the north face, like the crossarm
     groups = {}
     for name, s in placed:
         if name.startswith("frame_"):
@@ -1795,18 +1819,21 @@ def frame_steps(parts, n):
     steps = []
     steps.append(Step(
         "Crossarm onto the mast",
-        Scene("mast-01-crossarm", station(("crossarm",)), view=(0.55, -1, 0.42), size=(1100, 1300),
-              dims=[((0, -10, Lm), (0, -10, za), "%s" % fmt(P.arm_drop, 0), -70)]),
+        Scene("mast-01-crossarm", station(("crossarm",)), view=(1, -0.45, 0.42), size=(1100, 1300),
+              dims=[((10, 0, Lm), (10, 0, za), "%s" % fmt(P.arm_drop, 0), -70)]),
         hw=[("bracket", 2), ("m5x10", 4), ("tnut", 4)],
         do=["Fit the rain gauge and the screen to the crossarm first (sections 5 and 6).",
-            "Fix the crossarm across the mast's east or west face with two right-angle connectors, "
-            "one in the corner above it and one below. Each leg takes an M5 x 10 into a profile nut; "
-            "the connectors come without them.",
+            "Fix the crossarm across the mast's north face, the same face as the sky pod, running "
+            "east to west, with two right-angle connectors: one in the corner above it and one below. "
+            "Each leg takes an M5 x 10 into a profile nut; the connectors come without them.",
+            "Rain gauge to the east, screen to the west. On the north face neither of them can stand "
+            "between the sun and the solar panel on the south face; on an arm running north to south "
+            "the screen shaded the panel around midday from late February to October.",
             "The frame lengths and heights here are the ones drawn; cut the profiles and set the "
             "heights to suit the site.",
             "Level it, along and across; the rain gauge needs it."],
         nums=[("As drawn", "crossarm top %s below the mast top; mast %s, crossarm %s long; rain gauge "
-               "on the north end, screen on the south end" %
+               "on the east end, screen on the west end" %
                (mm(P.arm_drop, 0), mm(P.mast_len, 0), mm(P.arm_len, 0)))],
         ))
     steps.append(Step(
@@ -1842,7 +1869,7 @@ def frame_steps(parts, n):
             "On a vertical mast use the two holes one above the other; the pair side by side is for "
             "a horizontal 2020. Reach the screws with a 3 mm hex key between the arm's two rails.",
             "Run the cable along the rail (it has tie slots), down past the foot and into the mast's "
-            "slot."],
+            "east or west slot: the south slot carries the solar bracket and the box."],
         nums=[("Foot holes", "&plusmn;%s vertically, &plusmn;%s side by side" %
                (fmt(P.wind_foot_pv), mm(P.wind_foot_pitch_h))),
               ("Rotor axis to the mast face", mm(P.wind_arm_len)),
@@ -1856,7 +1883,8 @@ def frame_steps(parts, n):
         hw=[("m5x12", 2), ("washer", 2), ("tnut", 2)],
         do=["Bolt %s to the face opposite the wind arm (north), top of its foot level with the mast "
             "top, using the two holes one above the other." % c("sky_mount"),
-            "Run its cable down the riser (tie notches) and into the mast's slot."],
+            "Run its cable down the riser (tie notches) and into the mast's east or west slot: the "
+            "north slot carries the crossarm's connectors lower down."],
         nums=[("Foot", "%s x %s x %s; holes &plusmn;%s round a point %s below the mast top" %
                (fmt(P.sky_foot_w), fmt(P.sky_foot_h), mm(P.sky_foot_t), fmt(P.sky_foot_pitch),
                 mm(P.sky_foot_h / 2))),
@@ -1865,16 +1893,35 @@ def frame_steps(parts, n):
     steps.append(Step(
         "Which way round, and the cables",
         Scene("mast-05-plan", items, view=(0, 0, 1), up=(1, 0, 0), size=(1100, 1000),
-              compass=(1, 0, 0), fit=_box_pts(-260, 260, -150, 150, 0, Lm + 100)),
+              compass=(1, 0, 0), fit=_box_pts(-240, 130, -260, 260, 0, Lm + 100)),
         hw=[("ties", 20)],
         do=["Turn the mast so the sky pod's face points north (northern hemisphere). The pod then "
-            "leans away from the sun's path, the panel faces the sun, and the box sits in the "
-            "panel's shade.",
-            "Every cable runs down a slot of the mast to the box's bottom wall. Leave a drip loop "
-            "below each plug; 2020 slot covers hold a 4 to 5 mm cable in the slot.",
+            "leans away from the sun's path, the panel faces the sun with nothing between them, "
+            "and the box sits in the panel's shade.",
+            "Every cable runs down the mast's east or west slot to the box's bottom wall; the north "
+            "and south slots carry the crossarm, bracket and box. Leave a drip loop below each plug; "
+            "2020 slot covers hold a 4 to 5 mm cable in the slot.",
             "Use UV-stable black cable ties; white ones go brittle in sun."],
-        nums=[("North", "sky pod"), ("South", "wind arm at the top; solar bracket, box under it"),
-              ("East or west", "the crossarm, rain gauge on one end, screen on the other")]))
+        nums=[("North", "sky pod at the top; the crossarm lower down, running east to west"),
+              ("South", "wind arm at the top; solar bracket, box under it"),
+              ("East", "rain gauge, on the crossarm's end"), ("West", "Stevenson screen, on the other end"),
+              ("East and west faces", "the cables")]))
+    # The last picture is the station as it stands: everything on, from the side the cover does not show.
+    done = Scene("mast-06-finished", overview_scene(parts).items, view=(-0.85, 1, 0.38), size=(1100, 1400))
+    done.text_labels = True
+    steps.append(Step(
+        "The finished station",
+        done,
+        do=["Walk round it once. Every screw snug, every plug seated with a drip loop under it, and "
+            "nothing left on the bench that belongs on the mast.",
+            "Flick the cups: they should coast, not stop dead. Turn the vane by hand: it should go "
+            "all the way round with no tight spot.",
+            "Write down which face points north and the date it went up.",
+            "Then leave it be. The first rain will arrive when it is ready, and the bucket will "
+            "count it without being asked."],
+        nums=[("Mast", mm(Lm, 0)), ("Crossarm", "%s, its top %s below the mast top" %
+                                     (mm(P.arm_len, 0), mm(P.arm_drop, 0)))]))
+    steps[-1].finale = True                    # its own page in print, the picture full size
     return steps
 
 
@@ -1883,13 +1930,13 @@ def overview_scene(parts):
     za = Lm - P.arm_drop
     placed = frame_assembly(parts)
     items = [Item(profile_2020(Lm), "alu", "2020 mast"),
-             Item(mv(profile_2020(P.arm_len, "x"), -P.arm_len / 2, 20, za - 10), "alu", "2020 crossarm")]
+             Item(mv(profile_2020(P.arm_len, "y"), 20, -P.arm_len / 2, za - 10), "alu", "2020 crossarm")]
     seen = set()
     for name, s in placed:
         if name.startswith("frame_"):
             continue
         items.append(Item(s, _frame_color(name), _frame_group(name)))
-    return Scene("overview", items, view=(0.55, -1, 0.42), size=(1100, 1400))
+    return Scene("overview", items, view=(-0.85, -1, 0.42), size=(1100, 1400))
 
 
 # ==================================================================== HTML ===
@@ -1900,29 +1947,76 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
 
 
 def print_css():
-    """The guide's CSS, light only, laid out for A4."""
+    """The guide's CSS, light only, laid out for A4: a cover, sections that open on a new page,
+    two steps to a page where they fit, page numbers in the margin."""
     import re
     css = re.sub(r"@media \(prefers-color-scheme: dark\) \{.*?\} \}", "", CSS, flags=re.S)
     css = re.sub(r':root\[data-theme="dark"\] \{.*?\}', "", css, flags=re.S)
     return css + """
-@page { size: A4; margin: 13mm 13mm 15mm; }
-body { background: #fff; font: 9.5pt/1.42 "Helvetica Neue", Helvetica, Arial, sans-serif; }
-h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; }
+@page { size: A4; margin: 14mm 13mm 16mm;
+  @bottom-left { content: "Forsyth station \\00b7  assembly guide"; font: 7.5pt "IBM Plex Sans", Helvetica, sans-serif;
+    color: #7a8596; }
+  @bottom-right { content: counter(page) " / " counter(pages); font: 600 7.5pt "IBM Plex Mono", Menlo, monospace;
+    color: #3d6a93; } }
+@page :first { @bottom-left { content: none; } @bottom-right { content: none; } }
+:root { --accent: #3d6a93; --accent-soft: #eaf1f7; --lamp: #fbf6ec; }
+body { background: #fff; font: 9.4pt/1.42 var(--body); }
 .wrap { max-width: 184mm; padding: 0; }
-h2 { break-before: page; margin-top: 0; }
+h2, h3, h4, .lbl { break-after: avoid; page-break-after: avoid; }
+h2 { break-before: page; margin: 0 0 1mm; padding-top: 2mm; border-top: 0;
+  border-bottom: 1.5px solid #1d2530; padding-bottom: 2mm; font-size: 17pt; }
+h2 .secno { font-size: 30pt; }
+.intro { font-size: 9.8pt; margin: 2mm 0 4mm; }
 #parts, #start { break-before: page; }
-.step { border: 0; border-top: 1.5px solid #1d2530; border-radius: 0; padding: 3mm 0 0; margin: 0 0 5mm;
+.cover { min-height: 262mm; display: flex; flex-direction: column; break-after: page; }
+.cover h1 { font-size: 34pt; margin: 6mm 0 3mm; letter-spacing: -0.01em; }
+.cover .lead { font-size: 11pt; line-height: 1.5; max-width: 150mm; }
+.cover figure.over { flex: 1; margin: 2mm 0; }
+.cover figure.over svg { max-height: 150mm; }
+.cover nav.toc { break-after: auto; background: var(--lamp); border-radius: 3mm; padding: 3mm 5mm; }
+.cover nav.toc ol { columns: 3; font-size: 8.6pt; margin: 0; }
+.mark-f { width: 11mm; height: 11mm; }
+/* A step: picture on the left with its parts beside it, then the instructions and numbers
+   full width, so most steps take half a page. */
+.step { display: grid; grid-template-columns: minmax(0, 1fr) 54mm; column-gap: 6mm; align-items: start;
+  border: 0; border-top: 1px solid #c5ccd6; border-radius: 0; padding: 2.5mm 0 0; margin: 0 0 3mm;
   break-inside: avoid; page-break-inside: avoid; }
+.step > header, .step > dl.nums, .step > p.flag { grid-column: 1 / -1; }
+.step > header { margin-bottom: 1.5mm; }
+.step > figure { grid-column: 1; grid-row: 2; margin: 0 0 2mm; }
+.step .cols { display: contents; }
+.step .need { grid-column: 2; grid-row: 2; align-self: center; }
+.step .do { grid-column: 1 / -1; grid-row: 3; }
+.step h3 { font-size: 12pt; }
 figure .pic { border: 0; text-align: center; }
-figure svg { width: auto; max-width: 100%; max-height: 92mm; margin: 0 auto; }
-figure.over svg { max-height: 150mm; }
-nav.toc ol { columns: 2; margin: 0; }
-.cols { grid-template-columns: 52mm minmax(0, 1fr); gap: 5mm; }
-dl.nums { grid-template-columns: 52mm minmax(0, 1fr); }
-nav.toc { break-after: page; }
+figure svg { width: auto; max-width: 100%; max-height: 60mm; margin: 0 auto; }
+figcaption { font-size: 7.8pt; margin-top: 1mm; gap: 1px 10px; }
+.need ul, .do li { font-size: 8.6pt; }
+.do li { margin-bottom: 0.2em; line-height: 1.36; }
+dl.nums { grid-template-columns: 50mm minmax(0, 1fr); font-size: 8.2pt; padding: 1.5mm 3mm; margin-top: 1.5mm;
+  gap: 0.6mm 4mm; }
+.flag { font-size: 8.6pt; }
+.flag.bench { background: var(--lamp); border-left-color: #c9a45c; }
+.flag.bench::before { color: #8a6420; }
 .gallery { grid-template-columns: repeat(5, 1fr); gap: 2.5mm; }
 .gallery.hw { grid-template-columns: repeat(6, 1fr); }
-.gallery .card { font-size: 7.5pt; padding: 1.5mm; }
+.gallery.txt { grid-template-columns: repeat(4, 1fr); }
+.gallery .card { font-size: 7.3pt; padding: 1.5mm; }
+.gallery .card.txt { min-height: 13mm; }
+.hwlist { break-before: page; }
+.step.finale { display: block; break-before: page; border-top: 0; }
+.step.finale figure svg { max-height: 165mm; }
+.step.finale .need { display: none; }
+.keep { break-inside: avoid; }
+.hwlist h4 { margin-top: 4mm; }
+table { font-size: 8.2pt; }
+th, td { padding: 0.8mm 2mm; }
+thead { display: table-header-group; }
+tr { break-inside: avoid; }
+footer { break-before: avoid; break-inside: avoid; margin-top: 6mm; border-top: 1px solid #c5ccd6;
+  padding-top: 2mm; font-size: 7.8pt; }
+footer p { margin: 1mm 0; }
+.status-chip { font-size: 7.5pt; }
 """
 
 
@@ -2008,6 +2102,28 @@ td.num { text-align: right; white-space: nowrap; }
 .gallery .card code { background: transparent; padding: 0; font-weight: 600; }
 .gallery .card small { color: #5b6676; }
 footer { margin-top: 48px; color: var(--muted); font-size: 0.85rem; }
+/* Cover, section openers, labels */
+.cover { padding-bottom: 8px; }
+.cover .brandrow { flex-wrap: wrap; }
+.status-chip { margin-left: auto; font: 600 0.74rem var(--mono); letter-spacing: 0.04em; color: var(--accent);
+  border: 1px solid currentColor; border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+.status-chip::before { content: ""; display: inline-block; width: 0.55em; height: 0.55em; border-radius: 50%;
+  background: currentColor; margin-right: 0.5em; vertical-align: 0.05em; opacity: 0.8; }
+h2 .secno { font: 600 2.6rem/1 var(--display); color: var(--accent); margin-right: 0.25em;
+  font-variant-numeric: lining-nums; vertical-align: -0.12em; }
+.intro { font-size: 1.05rem; color: var(--muted); font-style: italic; max-width: 64ch; margin-top: 0.2em; }
+.lbl { font: 600 0.72rem/1.3 var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  margin: 0 0 0.4em; }
+.step .no { display: inline-block; background: var(--accent); color: var(--paper); border-radius: 999px;
+  padding: 1px 9px; min-width: 0; font: 600 0.8rem var(--mono); vertical-align: 0.15em; margin-right: 0.3em; }
+.hwlist h4 { margin-top: 14px; text-transform: none; letter-spacing: 0; font: 600 0.95rem var(--display);
+  color: var(--fg); }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.gallery .card.txt { display: flex; flex-direction: column; justify-content: space-between; min-height: 64px;
+  border-style: dashed; }
+.gallery.txt { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+p.small { font-size: 0.9rem; color: var(--muted); }
+.coda { font-style: italic; margin: 10px 0 4px; }
 @media print {
   body { background: #fff; color: #000; font-size: 11pt; }
   .wrap { max-width: none; padding: 0; }
@@ -2093,21 +2209,21 @@ def _legend(fig):
 
 def step_html(sec_no, k, st, fig, cat, href_prefix):
     sid = "s%d-%d" % (sec_no, k)
-    h = ['<article class="step" id="%s"><header><span class="no">%d.%d</span><h3>%s</h3></header>'
-         % (sid, sec_no, k, html.escape(st.title))]
+    h = ['<article class="step%s" id="%s"><header><h3><span class="no">%d.%d</span> %s</h3></header>'
+         % (" finale" if getattr(st, "finale", False) else "", sid, sec_no, k, html.escape(st.title))]
     if fig:
         h.append('<figure><div class="pic">%s</div><figcaption>%s</figcaption></figure>'
                  % (_svg_figure(fig, href_prefix + fig["name"] + ".png"), _legend(fig)))
     need = []
     if st.printed:
-        need.append("<h4>Printed</h4><ul>" + "".join(
+        need.append('<p class="lbl">Printed</p><ul>' + "".join(
             "<li><span>%s</span><b>&times;%d</b></li>" % (c(nm), q) for nm, q in st.printed) + "</ul>")
     if st.hw:
-        need.append("<h4>Hardware</h4><ul>" + "".join(
+        need.append('<p class="lbl">Hardware</p><ul>' + "".join(
             "<li><span>%s</span><b>&times;%d</b></li>" % (html.escape(cat[key][0]), q)
             for key, q in st.hw) + "</ul>")
     h.append('<div class="cols"><div class="need">%s</div><div class="do"><ol>%s</ol></div></div>'
-             % ("".join(need) or "<h4>Nothing new</h4>", "".join("<li>%s</li>" % d for d in st.do)))
+             % ("".join(need) or '<p class="lbl">Nothing new</p>', "".join("<li>%s</li>" % d for d in st.do)))
     if st.nums:
         h.append('<dl class="nums">' + "".join("<dt>%s</dt><dd>%s</dd>" % (a, b) for a, b in st.nums)
                  + "</dl>")
@@ -2121,11 +2237,7 @@ def step_html(sec_no, k, st, fig, cat, href_prefix):
 
 
 def totals_table(sections, cat):
-    tot = {}
-    for _sid, _t, _i, steps in sections:
-        for st in steps:
-            for key, q in st.hw:
-                tot[key] = tot.get(key, 0) + q
+    tot = {k: q for k, (q, _w) in hw_totals(sections).items()}
     bom = read_bom()
     used = set()
     rows = []
@@ -2190,7 +2302,10 @@ def write_html(sections, figs, cat, n, path, href_prefix="assembly/", mode="scre
                   % (sid, html.escape(t), len(st)) for sid, t, _i, st in sections)
     body = []
     for no, (sid, title, intro, steps) in enumerate(sections, start=1):
-        body.append('<section id="%s"><h2>%d. %s</h2><p>%s</p>' % (sid, no, html.escape(title), intro))
+        # the space sits inside the title's span: with Fraunces, Chrome drops one between spans
+        # from the PDF bookmark ("1Wind housing")
+        body.append('<section id="%s"><h2><span class="secno">%d</span><span class="sect"> %s</span></h2>'
+                    '<p class="intro">%s</p>' % (sid, no, html.escape(title), intro))
         for k, st in enumerate(steps, start=1):
             fig = figs.get(st.scene.name) if st.scene else None
             body.append(step_html(no, k, st, fig, cat, href_prefix))
@@ -2209,10 +2324,11 @@ def write_html(sections, figs, cat, n, path, href_prefix="assembly/", mode="scre
         flags_html = ("<p>Things this guide could not take from <code>params.py</code>, <code>README.md</code> "
                       "or <code>BOM.md</code>. Each links to its step.</p><ul>%s</ul>" % "".join(flags))
     else:
-        flags_html = ("<p>Nothing: every step's parts, hardware and numbers come from the model, and "
-                      "<code>build.py</code>'s fit checks pass.</p>")
+        flags_html = ("<p>Nothing. Every step's parts, hardware and numbers come from the model, and "
+                      "<code>build.py</code>'s fit checks pass. What remains is for the bench.</p>")
     if bench:
-        flags_html += ("<h3>Checks only the real parts can answer</h3><ul>%s</ul>" % "".join(bench))
+        flags_html += ("<h3>Checks only the real parts can answer</h3><p>A model can be argued with "
+                       "forever. Plastic settles it in an afternoon.</p><ul>%s</ul>" % "".join(bench))
     flags = [flags_html]
     ov = figs.get("overview")
     chips = "".join('<span><i style="background:rgb(%d,%d,%d)"></i>%s</span>'
@@ -2225,30 +2341,37 @@ def write_html(sections, figs, cat, n, path, href_prefix="assembly/", mode="scre
     doc = """<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Forsyth Station Assembly</title>
+<title>Forsyth Station Assembly Guide</title>
+<meta name="author" content="Starstuck Lab">
+<meta name="description" content="Assembly guide for the Forsyth weather station's 3D-printed outdoor kit.">
 <meta name="claude:viewport-fit-sides" content="cover">
 %(fonts)s<style>%(css)s</style></head><body><div class="wrap">
-<div class="brandrow">%(mark_f)s<p class="eyebrow">Forsyth weather station &middot; printed kit</p></div>
+<header class="cover">
+<div class="brandrow">%(mark_f)s<p class="eyebrow">Forsyth weather station &middot; printed kit</p>
+<span class="status-chip">Station 000 &middot; Expecting rain</span></div>
 <h1>Assembly guide</h1>
-<p class="lead">How to put the 3D-printed outdoor kit together: wind kit, rain gauge, Stevenson screen,
-core box, solar bracket and sky pod, then the lot onto a 2020 mast. Every picture is drawn from the
-parametric model and every number comes from <code>params.py</code>; all lengths are millimetres.</p>
+<p class="lead">The printed kit for a Forsyth station, put together in order: wind kit, rain gauge, Stevenson
+screen, core box, solar bracket and sky pod, and then all of it onto a 2020 mast. Every picture is drawn from the
+parametric model and every number is read from <code>params.py</code>, so the guide is exactly as right as the
+model. Lengths are in millimetres. The weather has waited this long; it can wait for the glue to set.</p>
 %(overview)s
-<nav class="toc"><h4>Contents (steps)</h4><ol><li><a href="#parts">Parts at a glance</a></li>%(toc)s<li><a href="#open">Left open by the model</a></li>
+<nav class="toc"><p class="lbl">Contents</p><ol><li><a href="#parts">Parts at a glance</a></li><li><a href="#start">Before you start</a></li>%(toc)s<li><a href="#open">Left open by the model</a></li>
 <li><a href="#hardware">Hardware against BOM.md</a></li><li><a href="#kit">Printed parts</a></li></ol></nav>
-<h2 id="parts">Parts at a glance</h2>
-<p>Every printed part and each kind of hardware, drawn on its own and named. Lay the kit out and tick it off
-against these before you start.</p>
+</header>
+<h2 id="parts"><span class="sect">Parts at a glance</span></h2>
+<p class="intro">Every printed part and every piece of hardware the steps use, drawn on its own and named. Lay
+the kit out on the bench and tick it off before starting. A missing screw is cheaper to find now than at step 10.</p>
 %(gallery)s
-<h2 id="start">Before you start</h2>
-<p>Read each step's picture first. Parts added in that step are drawn in full colour with numbered balloons;
-parts already fitted are drawn pale. Dashed lines show which way a part goes in.</p>
+<h2 id="start"><span class="sect">Before you start</span></h2>
+<p class="intro">Read each step's picture first. Parts added in that step are drawn in full colour with numbered
+balloons; parts already fitted are drawn pale. Dashed lines show which way a part goes in.</p>
 <div class="chips">%(chips)s</div>
 <h3 style="margin-top:1.2em">Tools</h3>
 <ul><li>Hex keys: 2.5 mm (M3 socket heads), 3 mm (M4 socket heads and M5 button heads), 4 mm (the M5 rotor shafts).</li>
 <li>Spanners: 5.5 mm (M3 nyloc), 7 mm (M4), 8 mm (M5), and whatever fits your gland and GX socket nuts.</li>
 <li>A soldering iron with a heat-set insert tip, or a plain tip you do not mind dedicating to it.</li>
-<li>Epoxy or CA glue for the magnets, silicone, a spirit level, a multimeter for checking reed switches, and a measuring syringe or jug for the rain calibration.</li></ul>
+<li>Epoxy or CA glue for the magnets, silicone, a spirit level, a multimeter for checking reed switches, and a measuring syringe or jug for the rain calibration.</li>
+<li>99%% isopropyl alcohol, a small jar and a few drops of light oil, for the cup bearings (step 1.2).</li></ul>
 <h3>Heat-set inserts</h3>
 <p>There are %(n_ins)d of them (M3 x %(ins_l)s, 4.2 mm across). Each pilot hole is &Oslash;%(pilot)s, at least
 %(ins_l)s mm deep. Set the insert on the hole, press it straight down with the hot iron until its top is flush,
@@ -2256,28 +2379,36 @@ lift the iron straight off and hold the part still for a few seconds. Print a te
 needs <code>m3_insert_d</code> and <code>m3_insert_l</code> changed.</p>
 <h3>Self-tapping screws</h3>
 <p>Screws that go into plain &Oslash;%(tap)s pilot holes (cup hub cap, rain stops and funnel, sky pod head) cut
-their own thread. Drive them slowly, stop when the part is tight, and do not take them in and out more than you have to.</p>
+their own thread. Drive them slowly, stop when the part is tight, and do not take them in and out more than you have to.
+Plastic forgives once, sometimes twice.</p>
+<h3>Bearings</h3>
+<p>Four shielded ball bearings carry the two rotors. The pair under the cups is cleaned of its grease and lightly oiled
+before it goes in (step 1.2): grease that suits a skateboard wheel is too much for a light breeze. The pair in the
+lid stays as it came. Keep the shields on, and keep the cleaned pair oiled: bare steel outdoors starts to rust
+within hours.</p>
 <h3>Mounting screws</h3>
 <p>Every foot and tab takes M5 button heads with a washer (about 1 mm) into M5 profile nuts in the 2020's slot.
 Each foot has four holes in a cross: use the two that land on the slot.</p>
 %(body)s
-<h2 id="open">Left open by the model</h2>
+<h2 id="open"><span class="sect">Left open by the model</span></h2>
 %(flags)s
-<h2 id="hardware">Hardware against BOM.md</h2>
-<p>What the steps above use, added up, beside the &ldquo;Need&rdquo; column of <code>BOM.md</code>. Items marked
-already owned are left out of the BOM on purpose.</p>
+<h2 id="hardware"><span class="sect">Hardware against BOM.md</span></h2>
+<p class="intro">What the steps above use, added up, beside the &ldquo;Need&rdquo; column of <code>BOM.md</code>.
+Items marked already owned are left out of the BOM on purpose.</p>
 %(totals)s
-<h2 id="kit">Printed parts</h2>
-<p>From <code>out/parts.json</code>, with the steps that use each one.</p>
+<h2 id="kit"><span class="sect">Printed parts</span></h2>
+<p class="intro">From <code>out/parts.json</code>, with the steps that use each one.</p>
 %(kit)s
 <footer><div class="made">%(mark_sl)s<span>Forsyth is a <a href="https://starstucklab.com">starstucklab</a> project.</span></div>
+<p class="coda">Somewhere above the mast the weather carries on, unaware it is about to be written down.</p>
 <p>Generated %(stamp)s by <code>assembly.py</code> from <code>params.py</code>. Rebuild with <code>./build.sh</code>;
 do not edit this file by hand.</p></footer>
 </div></body></html>
 """ % {"css": (CSS if mode == "screen" else print_css()) + LOGO_CSS, "toc": toc,
        "mark_f": logos()[0], "mark_sl": logos()[1], "body": "".join(body), "flags": "".join(flags),
-       "gallery": gallery_html(figs, href_prefix, json.load(open(os.path.join(HERE, "out", "parts.json"), encoding="utf-8"))["parts"]),
-       "fonts": "" if mode == "print" else FONTS,
+       "gallery": gallery_html(figs, href_prefix, json.load(open(os.path.join(HERE, "out", "parts.json"), encoding="utf-8"))["parts"],
+                               sections, cat),
+       "fonts": FONTS,
        "totals": totals_table(sections, cat), "kit": kit_table(sections), "stamp": stamp, "chips": chips,
        "n_ins": sum(q for _s, _t, _i, st in sections for s_ in st for key, q in s_.hw if key == "insert"),
        "ins_l": fmt(P.m3_insert_l), "pilot": fmt(P.m3_insert_d), "tap": fmt(P.m3_tap_d),
@@ -2288,9 +2419,61 @@ do not edit this file by hand.</p></footer>
 
 
 # =========================================================== parts gallery ===
-def gallery_scenes(parts):
+CONSUMABLE = ("epoxy", "silicone", "ipa", "oil")   # one tube or bottle however many steps use it
+
+
+def hw_totals(sections):
+    """catalogue key -> (total quantity, ["1.2", "3.1", ...]) over every step, in step order.
+    Consumables count once (the most any step asks for), not once per step."""
+    tot = {}
+    for no, (_sid, _t, _i, steps) in enumerate(sections, start=1):
+        for k, st in enumerate(steps, start=1):
+            for key, q in st.hw:
+                qq, where = tot.get(key, (0, []))
+                ref = "%d.%d" % (no, k)
+                qq = max(qq, q) if key in CONSUMABLE else qq + q
+                tot[key] = (qq, where + ([ref] if ref not in where else []))
+    return tot
+
+
+def hw_model(key, n):
+    """(shape, colour) for a catalogue item's gallery picture, lying down; None if it has no model."""
+    screw = lambda s: ry(s, 90)                               # along X: long screws fill the card
+    m = {
+        "brg": (hw_bearing(P.brg_id, P.brg_od, P.brg_w), "steel"),
+        "shaft": (screw(hw_shcs(5, P.shaft_len, P.shaft_head_d, P.shaft_head_h)), "steel"),
+        "m5x25": (screw(hw_shcs(5, 25)), "steel"),
+        "m5x12": (screw(hw_button(5, 12)), "steel"),
+        "m5x10": (screw(hw_button(5, 10)), "steel"),
+        "m5x8": (screw(hw_button(5, 8)), "steel"),
+        "m5nut": (hw_nut(P.m5_nut_af, P.m5_nut_h, 5.0), "steel"),
+        "washer": (hw_washer(5.3, 10.0, 1.0), "steel"),
+        "tnut": (hw_tnut(), "steel"),
+        "m3x8": (screw(hw_shcs(3, 8)), "steel"),
+        "m3x10": (screw(hw_shcs(3, 10)), "steel"),
+        "m3x6": (screw(hw_shcs(3, 6)), "steel"),
+        "m3x16": (screw(hw_shcs(3, n.get("stop_len", 16))), "steel"),
+        "axle": (screw(hw_shcs(3, n["axle"])), "steel"),
+        "nyloc": (hw_nut(5.5, 4.0, 3.0), "steel"),
+        "insert": (hw_insert(4.2, P.m3_insert_l), "brass"),
+        "mag6": (hw_magnet(P.mag_d, P.mag_t), "magnet"),
+        "mag4": (hw_magnet(P.rain_mag_d, P.rain_mag_t), "magnet"),
+        "m4": (screw(hw_shcs(4, n["scr_screw"])), "steel"),
+        "m4nut": (hw_nut(7.0, 3.2, 4.0), "steel"),
+        "gland": (hw_gland(), "white"),
+        "bracket": (fuse([box(-10, 10, 0, 20, 0, 3), box(-10, 10, 0, 3, 0, 20)]), "steel"),
+        "reed": (fuse(list(hw_reed(P.reed_l - 0.5, 2.0, 9.0))), "glass"),
+    }
+    for k in ("gx16_8", "gx16_5"):
+        m[k] = (hw_gx(P.gx16_d, P.gx16_flange), "steel")
+    for k in ("gx12_2", "gx12_3", "gx12_4"):
+        m[k] = (hw_gx(P.gx12_d, P.gx12_flange), "steel")
+    return m.get(key)
+
+
+def gallery_scenes(parts, sections=(), n=None):
     """One small picture per printed part (as used, where that reads better than
-    the print orientation) and per kind of bought-in hardware."""
+    the print orientation) and per bought-in hardware item the steps use."""
     use = {"vane_rotor": wind.vane_rotor_use(), "rain_funnel": rain.funnel_use(),
            "screen_cap": screen.cap_use(), "sky_head": sky.head_local(), "sky_mount": sky.mount_use(),
            "enclosure_lid": enclosure.lid_use(), "cup_hub": flip(parts["cup_hub"]),
@@ -2303,59 +2486,79 @@ def gallery_scenes(parts):
         sc = Scene("part-" + nm, [Item(sh, printed_color(nm))], view=(0.9, -1.2, 1.0),
                    size=(480, 360), margin=0.04)
         out.append(sc)
-    hw = [
-        ("hw-bearing", hw_bearing(P.brg_id, P.brg_od, P.brg_w), "steel"),
-        ("hw-shaft", hw_shcs(5, P.shaft_len, P.shaft_head_d, P.shaft_head_h), "steel"),
-        ("hw-m3", hw_shcs(3, 8), "steel"),
-        ("hw-button", hw_button(5, 12), "steel"),
-        ("hw-insert", hw_insert(), "brass"),
-        ("hw-nut", hw_nut(P.m5_nut_af, P.m5_nut_h, 5.0), "steel"),
-        ("hw-washer", hw_washer(5.3, 10.0, 1.0), "steel"),
-        ("hw-tnut", hw_tnut(), "steel"),
-        ("hw-magnet", hw_magnet(P.mag_d, P.mag_t), "magnet"),
-        ("hw-gland", hw_gland(), "white"),
-        ("hw-gx", hw_gx(P.gx16_d, P.gx16_flange), "steel"),
-        ("hw-reed", fuse(list(hw_reed(P.reed_l - 0.5, 2.0, 9.0))), "glass"),
-    ]
-    for name, sh, col in hw:
+    seen = set()
+    for key in hw_totals(sections):
+        mdl = hw_model(key, n)
+        if not mdl:
+            continue
+        sh, col = mdl
+        name = "hw-gx16" if key.startswith("gx16") else "hw-gx12" if key.startswith("gx12") else "hw-" + key
+        if name in seen:
+            continue
+        seen.add(name)
         out.append(Scene(name, [Item(sh, col)], view=(0.9, -1.2, 0.9), size=(360, 300), margin=0.08))
     return out
 
 
-GALLERY_HW = [  # (scene, name, where it is used)
-    ("hw-bearing", "Ball bearing 5 x 16 x 5", "wind kit, four"),
-    ("hw-shaft", "M5 x 40 socket head", "rotor shafts, two"),
-    ("hw-m3", "M3 socket head", "6, 8, 10, 16, 50 mm long"),
-    ("hw-button", "M5 button head", "8, 10, 12 mm: mounting"),
-    ("hw-insert", "M3 heat-set insert", "brass, 4.2 across"),
-    ("hw-nut", "Hex nut", "M5 in the hubs and ballast; also M4, M3"),
-    ("hw-washer", "M5 washer", "under every mounting screw"),
-    ("hw-tnut", "Profile nut", "in the 2020 slot"),
-    ("hw-magnet", "Disc magnet", "6 x 2 wind, 4 x 2 rain"),
-    ("hw-gland", "PG7 cable gland", "wind housing"),
-    ("hw-gx", "GX12 / GX16 socket", "box bottom wall, five"),
-    ("hw-reed", "Reed switch", "anemometer and rain"),
-]
+HW_GROUPS = (("Screws, nuts and washers", ("shaft", "m5x25", "m5x12", "m5x10", "m5x8", "m4", "axle", "m3x16",
+                                             "m3x10", "m3x8", "m3x6", "m5nut", "m4nut", "nyloc", "washer", "tnut",
+                                             "insert")),
+             ("Bearings, magnets and switches", ("brg", "mag6", "mag4", "reed")),
+             ("Connectors and frame", ("gland", "gx16_8", "gx16_5", "gx12_2", "gx12_3", "gx12_4", "bracket")),
+             ("Cables", ("cable5", "cable8", "cable4", "cable3", "cable2")))
 
 
-def gallery_html(figs, href_prefix, parts_json):
+def _steps_ref(where):
+    return "step%s %s" % ("s" if len(where) > 1 else "", ", ".join(where))
+
+
+def gallery_html(figs, href_prefix, parts_json, sections=(), cat=None):
+    """Printed parts, then every bought-in item the steps use, grouped, with totals and steps.
+    Generated from the steps, so nothing a step uses can be missing here."""
+    used = {}
+    for no, (_sid, _t, _i, steps) in enumerate(sections, start=1):
+        for k, st in enumerate(steps, start=1):
+            for nm, _q in st.printed:
+                used.setdefault(nm, [])
+                if "%d.%d" % (no, k) not in used[nm]:
+                    used[nm].append("%d.%d" % (no, k))
     cards = []
     for p in parts_json:
         f = figs.get("part-" + p["name"])
         if not f:
             continue
         cards.append('<div class="card"><img src="%s%s.png" alt="%s" loading="lazy">'
-                     '<div><code>%s</code> <b>&times;%d</b></div><small>%s</small></div>'
+                     '<div><code>%s</code> <b>&times;%d</b></div><small>%s &middot; %s</small></div>'
                      % (href_prefix, f["name"], p["name"], p["name"], p["qty"],
-                        {"white": "white ASA", "accent": "accent ASA", "tpu": "TPU"}[p["color"]]))
-    hw = []
-    for sc, name, where in GALLERY_HW:
-        if sc in figs:
-            hw.append('<div class="card"><img src="%s%s.png" alt="%s" loading="lazy"><div>%s</div>'
-                      '<small>%s</small></div>' % (href_prefix, sc, html.escape(name), html.escape(name),
-                                                   html.escape(where)))
+                        {"white": "white ASA", "accent": "accent ASA", "tpu": "TPU"}[p["color"]],
+                        _steps_ref(used.get(p["name"], ["not used"]))))
+    tot = hw_totals(sections)
+    blocks, done = [], set()
+
+    def card(key, img=True):
+        name = cat[key][0]
+        q, where = tot[key]
+        sc = "hw-gx16" if key.startswith("gx16") else "hw-gx12" if key.startswith("gx12") else "hw-" + key
+        pic = ('<img src="%s%s.png" alt="" loading="lazy">' % (href_prefix, sc)) if img and sc in figs else ""
+        done.add(key)
+        return ('<div class="card%s">%s<div>%s <b>&times;%d</b></div><small>%s</small></div>'
+                % ("" if pic else " txt", pic, html.escape(name), q, _steps_ref(where)))
+    for title, keys in HW_GROUPS:
+        row = "".join(card(k) for k in keys if k in tot)
+        if row:
+            blocks.append('<div class="keep"><h4>%s</h4><div class="gallery hw">%s</div></div>' % (title, row))
+    owned = [k for k in tot if k in OWNED]
+    rest = [k for k in tot if k not in done and k not in OWNED]
+    if rest:
+        blocks.append('<div class="keep"><h4>Glue, foam and the rest</h4><div class="gallery hw txt">%s</div></div>'
+                      % "".join(card(k, img=False) for k in rest))
+    if owned:
+        blocks.append('<div class="keep"><h4>Electronics and parts already on the bench</h4>'
+                      '<div class="gallery hw txt">%s</div></div>' % "".join(card(k, img=False) for k in owned))
     return ('<h3>Printed parts</h3><div class="gallery">%s</div>'
-            '<h3>Bought-in hardware</h3><div class="gallery hw">%s</div>' % ("".join(cards), "".join(hw)))
+            '<section class="hwlist"><h3>Bought-in hardware</h3><p class="small">Every item the steps use, '
+            'added up. The same totals sit against <code>BOM.md</code> at the back.</p>%s</section>'
+            % ("".join(cards), "".join(blocks)))
 
 
 # =================================================================== logos ===
@@ -2401,6 +2604,7 @@ RECORDS = {
     "rain-05-section": [("ml", "Water poured", "ml"), ("tips", "Tips counted", "")],
     "sky-01-exploded": [("can", "Letters on the sensor can", "")],
     "box-03-board": [("ant", "Antenna measured: elbow / diameter / length", "mm")],
+    "mast-06-finished": [("up", "Date the station went up", ""), ("north", "Face pointing north", "")],
 }
 
 
@@ -2426,12 +2630,9 @@ def export_steps(sections, figs, cat, href_prefix="assembly/"):
         out.append(sec)
     with open(os.path.join(HERE, "out", "parts.json"), encoding="utf-8") as f:
         parts = json.load(f)["parts"]
-    tot = {}
-    for _sid, _t, _i, steps in sections:
-        for st in steps:
-            for key, q in st.hw:
-                tot[key] = tot.get(key, 0) + q
-    hw = [{"name": cat[k][0], "qty": q, "owned": k in OWNED} for k, q in tot.items()]
+    where = hw_totals(sections)
+    tot = {k: q for k, (q, _w) in where.items()}
+    hw = [{"name": cat[k][0], "qty": q, "owned": k in OWNED, "where": where[k][1]} for k, q in tot.items()]
     return {"generated": time.strftime("%Y-%m-%d %H:%M"), "rain_ml_per_mm": round(P.rain_area_cm2 / 10, 3),
             "sections": out, "parts": [{"name": p["name"], "qty": p["qty"], "color": p["color"],
                                         "material": p["material"]} for p in parts],
@@ -2525,8 +2726,8 @@ def write_sheet(data, path, href_prefix="assembly/"):
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>%(css)s</style></head><body><div class="wrap">
 <div class="brandrow">%(mark_f)s<h1>Forsyth station: assembly record</h1></div>
-<p class="note">Fill this in as you build. Step numbers match the assembly guide. Generated %(gen)s from
-<code>params.py</code>.</p>
+<p class="note">Fill this in as you build. Step numbers match the assembly guide. Pencil is fine; the weather
+will not check the handwriting. Generated %(gen)s from <code>params.py</code>.</p>
 <div class="fields"><div>Station / build name</div><div>Builder</div><div>Started</div><div>Finished</div></div>
 <h2>Before you start: blocking problems in the model</h2>
 <div class="tbl"><table><thead><tr><th>Step</th><th>Problem</th><th class="box">Fixed</th><th>How</th></tr></thead>
@@ -2618,8 +2819,9 @@ def write_landing(data, path):
 <div class="brandrow">%(mark_f)s<p class="eyebrow">Forsyth weather station</p></div>
 <h1>Build a station</h1>
 <p class="lead">The printed kit for a Forsyth station: wind vane and cups, rain gauge, Stevenson screen,
-core box, solar bracket and sky pod, on a 2020 mast. The guide walks through every step with pictures drawn
-from the model. The tracker keeps your progress, step by step, and shares a build with your team.</p>
+core box, solar bracket and sky pod, on a 2020 mast. The guide walks every step with pictures drawn from the
+model. The tracker keeps a build's progress, step by step, and shares it with whoever is holding the other end
+of the mast. The sky will be measured eventually. There is no rush.</p>
 <a class="cta" href="/app/">Open the build tracker</a>
 <p class="note">The tracker asks you to sign in with your email, so your builds stay yours. The guide and PDFs need no account.</p>
 <figure><img src="assembly/overview.png" alt="The whole station on its mast: wind kit and sky pod at the top, Stevenson screen and rain gauge on the crossarm, solar panel and core box below." width="1100" height="1400"></figure>
@@ -2646,32 +2848,42 @@ def sections_for(parts, n):
         ("wind-housing", "Wind housing",
          "The housing carries both wind sensors: the cups hang from bearings in its floor and the vane "
          "turns on its lid. Build the bottom half here. The README says to print %s first and check that a "
-         "bearing fits its pocket before printing the body." % c("wind_lid"), w["housing"]),
+         "bearing fits its pocket before printing the body. The housing has no opinion about the wind; "
+         "it only has to stay dry while finding out." % c("wind_lid"), w["housing"]),
         ("anemometer", "Anemometer",
-         "Three cups on a hub, clamped to an M5 x %g screw that turns in the floor tower's bearings." %
+         "Three cups on a hub, clamped to an M5 x %g screw that turns in the floor tower's bearings. "
+         "It will count every gust, including the ones nobody asked about." %
          P.shaft_len, w["cups"]),
         ("vane", "Wind vane",
          "The vane turns on two more bearings in the lid, on a second M5 x %g put in from under the lid. "
          "The lid and vane come off the housing together: the screw head is the one fastener that "
-         "passes the vane PCB's centre hole." % P.shaft_len, w["vane"]),
+         "passes the vane PCB's centre hole. The vane points at where the wind comes from, which is "
+         "more than most things in the lab can say." % P.shaft_len, w["vane"]),
         ("wind-close", "Closing the wind kit",
-         "The vane PCB, its ring, the gasket and the lid with the vane on it.", w["close"]),
+         "The vane PCB, its ring, the gasket and the lid with the vane on it. Once it is shut, the reeds "
+         "do their work in the dark.", w["close"]),
         ("rain", "Rain gauge",
-         "A tipping bucket under a %s funnel." % mm(P.rain_collector_d, 0), rain_steps(parts, n)),
+         "A tipping bucket under a %s funnel. Each tip is a small, exact receipt from the sky." %
+         mm(P.rain_collector_d, 0), rain_steps(parts, n)),
         ("screen", "Stevenson screen",
          "%d louvres and a cap on a spoked base, clamped by three M4 x %d screws. Board B slides into rails "
-         "on the base; the lightning module hangs under the cap." % (P.scr_plates, n["scr_screw"]),
+         "on the base; the lightning module hangs under the cap. It keeps the sun off the sensors, a "
+         "courtesy the sun does not return." % (P.scr_plates, n["scr_screw"]),
          screen_steps(parts, n)),
         ("box", "Core box",
          "Board A and a loose cell in a sealed box; every cable comes in through the bottom wall. Work with "
-         "the box lying on its back.", box_steps(parts, n)),
+         "the box lying on its back. Most of the station's thinking happens in here, out of the rain.",
+         box_steps(parts, n)),
         ("solar", "Solar bracket",
-         "A tilted tray for a panel up to %s x %s, mounted on the mast above the box." %
+         "A tilted tray for a panel up to %s x %s, mounted on the mast above the box. It faces the "
+         "sun and asks for very little." %
          (fmt(P.panel_l), mm(P.panel_w)), solar_steps(parts, n)),
         ("sky", "Sky pod",
-         "An MLX90614 looking at the sky from above the mast top.", sky_steps(parts, n)),
+         "An MLX90614 looking at the sky from above the mast top. On a clear night the sky reads "
+         "colder than seems reasonable; that is the point.", sky_steps(parts, n)),
         ("mast", "Onto the mast",
-         "Everything onto a vertical 2020 mast and a crossarm.", frame_steps(parts, n)),
+         "Everything onto a vertical 2020 mast and a crossarm. The last step, and the one the "
+         "neighbours notice.", frame_steps(parts, n)),
     ]
 
 
@@ -2694,7 +2906,7 @@ def main():
     ov = overview_scene(parts)
     ov.text_labels = True
     scenes = [ov] + [st.scene for _a, _b, _c, steps in sections for st in steps if st.scene]
-    scenes += gallery_scenes(parts)
+    scenes += gallery_scenes(parts, sections, n)
     meta_path = os.path.join(FIG_DIR, "figures.json")
     figs = {}
     if ONLY and os.path.exists(meta_path):

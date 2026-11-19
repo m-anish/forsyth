@@ -8,7 +8,9 @@ screen for the 58 x 70 mm sensor carrier (Board B), a sky pod for an MLX90614 cl
 **Status (2026-11-10): first design pass. Every part passes the automatic
 checks below, but nothing has been printed or bench-tested.**
 
-![station](docs/station.png)
+![station](docs/assembly/overview.png)
+
+*Drawn by `assembly.py` on every build, from the same model as the parts.*
 
 ## Change something
 
@@ -187,27 +189,42 @@ Everything else follows from that:
 
 | Mast face | What goes on it |
 |---|---|
-| North | sky pod, at the very top |
+| North | sky pod, at the very top; lower down the crossarm, running east to west, rain gauge on its east end and the screen on its west end |
 | South | wind arm at the top; lower down the solar bracket, with the box under it |
-| East / west | the crossarm, with the rain gauge on one end and the screen on the other |
+| East / west | the cables, in the slots |
 
-The pod then leans away from the sun's path, the panel faces the sun, and the
-box sits in the panel's shade. Hang the box so its antenna end is on the side
-toward the coordinator.
+The pod then leans away from the sun's path, the panel faces the sun with
+nothing between them, and the box sits in the panel's shade. Hang the box so
+its antenna end is on the side toward the coordinator.
+
+**Why the crossarm is on the north face.** Until 2026-11-19 it ran north to
+south on the east or west face, which put the screen (or, swapped, the rain
+gauge) on the south end, about 0.2 m above and in front of the panel. A shadow
+study of the model at 32.2 N (Dharamsala) found it shaded the panel around
+midday from late February to October: 8 % of the direct sun in February and
+October, 22 to 29 % from March to September, close to all of it at noon. On
+the north face, running east to west, the screen and rain gauge never stand
+between the sun and the panel. What is left: the wind kit's shadow near noon
+from May to July (it sits above the panel on the same face), and short
+morning and afternoon slivers from the rain gauge and screen near midsummer,
+when the sun rises and sets north of east and west. A small panel's cells are
+in series, so partial shade costs more than its area.
 
 ## Cables
 
 | From | Leaves through | Route | Box port |
 |---|---|---|---|
-| Wind kit | PG7 gland in the housing wall, facing the mast between the two arm rails | along a rail (tie slot provided), down past the foot, then down the mast's slot | WIND, GX16-5 |
-| Sky pod | slot through the plug, out under the head | down the riser (tie notches), down the mast's slot | SKY, GX12-4 to Board A's Qwiic port: 1 VBAT, 2 GND, 3 SDA, 4 SCL |
-| Rain gauge | the drain opening beside the reed post | along the crossarm slot, down the mast | RAIN, GX12-3 |
-| Screen | hole in the base, from Board B's J1 (XH-8) | along the crossarm slot, down the mast | ENV, GX16-8; inside, a pigtail splits it to Board A J4 (XH-5, pins 1 to 5) and J5 (XH-4, pins 6, 2, 7, 8) |
+| Wind kit | PG7 gland in the housing wall, facing the mast between the two arm rails | along a rail (tie slot provided), down past the foot, then down the mast's east or west slot | WIND, GX16-5 |
+| Sky pod | slot through the plug, out under the head | down the riser (tie notches), then the mast's east or west slot | SKY, GX12-4 to Board A's Qwiic port: 1 VBAT, 2 GND, 3 SDA, 4 SCL |
+| Rain gauge | the drain opening beside the reed post | along the crossarm slot, down the mast's east slot | RAIN, GX12-3 |
+| Screen | hole in the base, from Board B's J1 (XH-8) | along the crossarm slot, down the mast's west slot | ENV, GX16-8; inside, a pigtail splits it to Board A J4 (XH-5, pins 1 to 5) and J5 (XH-4, pins 6, 2, 7, 8) |
 | Solar | hole in the tray floor | straight down | SOLAR, GX12-2 |
 
-Every entry is in the box's bottom wall. Leave a drip loop below each plug so
-water running down the cable falls off before the connector. 2020 slot covers
-hold a 4 to 5 mm cable in the mast.
+Every entry is in the box's bottom wall. Keep the cables to the mast's east and
+west slots: the north slot carries the crossarm's connectors and the south slot
+the solar bracket and the box, whose profile nuts would pinch a cable. Leave a
+drip loop below each plug so water running down the cable falls off before the
+connector. 2020 slot covers hold a 4 to 5 mm cable in the mast.
 
 ## Printing
 
