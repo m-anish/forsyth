@@ -1,0 +1,5 @@
+{
+ "name": "forsyth-station",
+ "manifest": "../out/parts.json",
+ "sets": 1
+}

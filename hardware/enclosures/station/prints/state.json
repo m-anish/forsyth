@@ -1,0 +1,753 @@
+{
+ "version": 1,
+ "plates": {
+  "P001": {
+   "material": "ASA",
+   "status": "planned",
+   "created": "2026-11-19T13:26:20+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "enclosure_body"
+    },
+    {
+     "part": "sky_head"
+    },
+    {
+     "part": "cup_hub_cap"
+    },
+    {
+     "part": "wind_shim"
+    }
+   ],
+   "part_sha": {
+    "enclosure_body": "5346231169a3",
+    "sky_head": "60e39cc34c67",
+    "cup_hub_cap": "67f4b58e3666",
+    "wind_shim": "34d3aea651d2"
+   },
+   "layout": [
+    {
+     "part": "enclosure_body",
+     "x": 109.53,
+     "y": 124.75,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 10.0
+    },
+    {
+     "part": "sky_head",
+     "x": 192.77,
+     "y": 27.98,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "cup_hub_cap",
+     "x": 28.53,
+     "y": 27.0,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_shim",
+     "x": 165.34,
+     "y": 35.44,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": []
+  },
+  "P002": {
+   "material": "ASA",
+   "status": "planned",
+   "created": "2026-11-19T13:26:26+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "enclosure_lid"
+    },
+    {
+     "part": "wind_shim"
+    },
+    {
+     "part": "wind_spacer"
+    },
+    {
+     "part": "wind_spacer"
+    }
+   ],
+   "part_sha": {
+    "enclosure_lid": "5bf06a48004b",
+    "wind_shim": "34d3aea651d2",
+    "wind_spacer": "ce42b29fadb2"
+   },
+   "layout": [
+    {
+     "part": "enclosure_lid",
+     "x": 110.0,
+     "y": 100.32,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_shim",
+     "x": 34.81,
+     "y": 186.13,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    },
+    {
+     "part": "wind_spacer",
+     "x": 56.8,
+     "y": 186.18,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    },
+    {
+     "part": "wind_spacer",
+     "x": 72.8,
+     "y": 186.2,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": []
+  },
+  "P003": {
+   "material": "ASA",
+   "status": "planned",
+   "created": "2026-11-19T13:26:33+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_cap"
+    },
+    {
+     "part": "wind_lid"
+    }
+   ],
+   "part_sha": {
+    "screen_cap": "17a0decfa713",
+    "wind_lid": "a8d3292319e7"
+   },
+   "layout": [
+    {
+     "part": "screen_cap",
+     "x": 131.0,
+     "y": 89.42,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_lid",
+     "x": 50.05,
+     "y": 171.71,
+     "rot": 180,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P004": {
+   "material": "ASA",
+   "status": "planned",
+   "created": "2026-11-19T13:26:35+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_base"
+    },
+    {
+     "part": "wind_pcb_ring"
+    }
+   ],
+   "part_sha": {
+    "screen_base": "711ec2e668ae",
+    "wind_pcb_ring": "1f6f73800708"
+   },
+   "layout": [
+    {
+     "part": "screen_base",
+     "x": 98.09,
+     "y": 97.09,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_pcb_ring",
+     "x": 177.54,
+     "y": 177.54,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P005": {
+   "material": "ASA",
+   "status": "planned",
+   "created": "2026-11-19T13:26:38+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    },
+    {
+     "part": "cup_hub"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "ed94ff5de5cf",
+    "cup_hub": "361330735acf"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 133.0,
+     "y": 132.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "cup_hub",
+     "x": 55.8,
+     "y": 55.8,
+     "rot": 90,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": []
+  },
+  "P006": {
+   "material": "ASA",
+   "status": "planned",
+   "created": "2026-11-19T13:26:41+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "ed94ff5de5cf"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P007": {
+   "material": "ASA",
+   "status": "planned",
+   "created": "2026-11-19T13:26:44+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "ed94ff5de5cf"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P008": {
+   "material": "ASA",
+   "status": "planned",
+   "created": "2026-11-19T13:26:46+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "ed94ff5de5cf"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P009": {
+   "material": "ASA",
+   "status": "planned",
+   "created": "2026-11-19T13:26:48+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "ed94ff5de5cf"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P010": {
+   "material": "ASA",
+   "status": "planned",
+   "created": "2026-11-19T13:26:51+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "rain_funnel"
+    },
+    {
+     "part": "solar_bracket"
+    },
+    {
+     "part": "rain_bucket"
+    }
+   ],
+   "part_sha": {
+    "rain_funnel": "760dcc062ce7",
+    "solar_bracket": "6eba65a384ab",
+    "rain_bucket": "0fd0e53926f0"
+   },
+   "layout": [
+    {
+     "part": "rain_funnel",
+     "x": 76.3,
+     "y": 146.2,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "solar_bracket",
+     "x": 145.2,
+     "y": 51.21,
+     "rot": 180,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "rain_bucket",
+     "x": 167.2,
+     "y": 154.0,
+     "rot": 90,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": []
+  },
+  "P011": {
+   "material": "ASA",
+   "status": "planned",
+   "created": "2026-11-19T13:26:54+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "rain_base"
+    },
+    {
+     "part": "sky_mount"
+    }
+   ],
+   "part_sha": {
+    "rain_base": "2d9c460f9509",
+    "sky_mount": "5444af086211"
+   },
+   "layout": [
+    {
+     "part": "rain_base",
+     "x": 92.07,
+     "y": 74.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "sky_mount",
+     "x": 134.04,
+     "y": 163.5,
+     "rot": 90,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": []
+  },
+  "P012": {
+   "material": "ASA",
+   "status": "planned",
+   "created": "2026-11-19T13:26:58+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "wind_body"
+    },
+    {
+     "part": "cup_arm"
+    },
+    {
+     "part": "cup_arm"
+    }
+   ],
+   "part_sha": {
+    "wind_body": "b8f613b8fc15",
+    "cup_arm": "22a9f121a951"
+   },
+   "layout": [
+    {
+     "part": "wind_body",
+     "x": 108.65,
+     "y": 58.15,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "cup_arm",
+     "x": 147.33,
+     "y": 131.15,
+     "rot": 180,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    },
+    {
+     "part": "cup_arm",
+     "x": 73.33,
+     "y": 159.0,
+     "rot": 0,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": []
+  },
+  "P013": {
+   "material": "ASA",
+   "status": "sliced",
+   "created": "2026-11-19T13:27:01+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "vane_rotor"
+    },
+    {
+     "part": "cup_arm"
+    }
+   ],
+   "part_sha": {
+    "vane_rotor": "6588aef1aa14",
+    "cup_arm": "22a9f121a951"
+   },
+   "layout": [
+    {
+     "part": "vane_rotor",
+     "x": 110.0,
+     "y": 109.3,
+     "rot": 30,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "cup_arm",
+     "x": 72.67,
+     "y": 155.0,
+     "rot": 0,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T13:27:10+05:30",
+    "project_sha": "92b44dfa845e",
+    "gcode_sha": "6d6309584200",
+    "time": "1h 19m 44s",
+    "grams": "28.31",
+    "layers": "236",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "vane_rotor_id_0_copy_0",
+     "cup_arm_id_1_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
+  },
+  "P014": {
+   "material": "TPU",
+   "status": "planned",
+   "created": "2026-11-19T13:27:04+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "tpu_box_lid_gasket"
+    },
+    {
+     "part": "tpu_wind_lid_gasket"
+    },
+    {
+     "part": "tpu_washer_gx16"
+    },
+    {
+     "part": "tpu_washer_gx16"
+    },
+    {
+     "part": "tpu_washer_gland"
+    },
+    {
+     "part": "tpu_washer_gx12"
+    },
+    {
+     "part": "tpu_washer_gx12"
+    },
+    {
+     "part": "tpu_washer_gx12"
+    },
+    {
+     "part": "tpu_sky_can_seal"
+    }
+   ],
+   "part_sha": {
+    "tpu_box_lid_gasket": "19fa4ef1b4f7",
+    "tpu_wind_lid_gasket": "5544c6debefa",
+    "tpu_washer_gx16": "076f60b63132",
+    "tpu_washer_gland": "be5c1ea47f55",
+    "tpu_washer_gx12": "25c63e06d95e",
+    "tpu_sky_can_seal": "a823bb748276"
+   },
+   "layout": [
+    {
+     "part": "tpu_box_lid_gasket",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_wind_lid_gasket",
+     "x": 102.55,
+     "y": 95.29,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_washer_gx16",
+     "x": 116.0,
+     "y": 96.0,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_washer_gx16",
+     "x": 164.0,
+     "y": 117.0,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_washer_gland",
+     "x": 61.03,
+     "y": 140.0,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_washer_gx12",
+     "x": 104.5,
+     "y": 148.5,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_washer_gx12",
+     "x": 163.5,
+     "y": 87.5,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_washer_gx12",
+     "x": 157.5,
+     "y": 147.5,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_sky_can_seal",
+     "x": 52.6,
+     "y": 68.6,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 15.0
+    }
+   ],
+   "notes": []
+  }
+ },
+ "adjust": {}
+}
