@@ -92,6 +92,10 @@ wind_ear_d = 9.0
 wind_ear_angles = (60.0, 180.0, 300.0)
 gland_d = 12.5           # PG7 cable gland
 gland_flange = 19.0
+gland_nut_af = 19.0      # PG7 locknut across flats (Flyrobo: 19 mm max diameter)
+gland_thread = 8.0       # PG7 thread length: 8 mm typical, 9 mm on the Flyrobo listing
+gland_wall = 3.0         # wall left under the flange: a flat seat inside leaves the locknut
+                         # gland_thread - gland_wall - port_gasket_t of thread
 wind_gasket_t = 0.8      # TPU gasket between the wind housing and its lid
 port_gasket_t = 1.0      # TPU washers under connector and gland flanges
 wind_gland_angle = 0.0   # 0 = facing the mast, so the cable leaves between the arm rails
@@ -147,6 +151,11 @@ rain_mag_d = 4.0
 rain_mag_t = 2.0
 rain_mag_x = 26.0        # magnet distance from the pivot, along the bucket
 rain_reed_gap = 6.0      # magnet centre to reed axis as they pass
+# Insect and leaf screen: a perforated disc that drops into the funnel's cone and rests on
+# it above the nozzle. Lift it out to clean it.
+rain_mesh_d = 40.0
+rain_mesh_t = 1.6
+rain_mesh_hole = 2.5     # square holes; small enough to stop wasps, large enough not to bridge with water
 
 # ============================================================== SCREEN ====
 scr_pcb_w = 58.0         # sensor carrier (Board B rev0), 58 x 70 mm: wide enough that a
@@ -193,6 +202,8 @@ scr_rod_d = 4.0          # three M4 x 80 socket-head screws hold the stack (M3 x
                          # sold locally; M5 would need fatter posts and a taller stack)
 scr_nut_af = 7.0         # M4 hex nut, trapped in the base
 scr_nut_h = 3.2
+scr_nut_pocket = 2.0     # depth of the nut's hex pocket under the base: the nut stands proud and
+                         # the 1 mm left above it is thick enough to print as two bridged layers
 scr_head_d = 7.0         # M4 socket head, seated in a pocket in the cap posts
 scr_base_t = 3.0
 scr_foot_r = 22.0        # M5 holes on the axes at this radius
@@ -314,6 +325,9 @@ def _derive():
     g["wind_body_h"] = tower_h + 2 * (shaft_head_h + shim_h) + 3.0
     # the vertical screw pair closes up if the housing gets shorter
     g["wind_foot_pv"] = min(wind_foot_pitch_v, wind_body_h / 2 - m5_head_d / 2 - 1.0)
+    # cable gland: high enough that its locknut, corners down, clears the floor by 1 mm
+    g["gland_nut_r"] = gland_nut_af / math.sqrt(3.0)
+    g["wind_gland_z"] = wind_floor + 1.0 + gland_nut_r
     g["wind_r_pcb"] = vane_pcb_d / 2 + fit_slide          # PCB pocket radius
     g["wind_r_in"] = vane_pcb_d / 2 - pcb_edge_grip       # cavity radius
     g["wind_r_out"] = wind_r_pcb + wall
@@ -465,6 +479,12 @@ def validate():
     if abs(wind_gland_angle) < 1e-6:
         need(gland_flange / 2 + 1.0 <= wind_foot_w / 2 - wind_rail_w,
              "cable gland does not fit between the arm rails; widen wind_foot_w")
+    need(gland_thread - gland_wall - port_gasket_t >= 3.0,
+         "the gland's locknut gets under 3 mm of thread; lower gland_wall")
+    need(wind_gland_z + gland_nut_r + 1.0 <= wind_body_h - (vane_pcb_t + pcb_standoff - wind_gasket_t),
+         "the gland's locknut runs into the vane PCB's pocket; the housing is too short")
+    need(gland_nut_r + 2.0 <= wind_foot_w / 2 - wind_rail_w,
+         "the gland's seat does not fit between the arm rails; widen wind_foot_w")
     need(wind_foot_pitch_h + m5_head_d / 2 + 0.5 <= wind_foot_w / 2 - wind_rail_w,
          "wind foot: horizontal screw pair collides with the arm rails")
     need(wind_foot_pv >= m5_head_d / 2 + 0.75,
@@ -525,7 +545,8 @@ def validate():
          "screen posts too thin round the clamp screw; raise scr_post_d or use a smaller screw")
     need(scr_post_d - (scr_head_d + 1.0) >= 2 * 0.8,
          "the clamp screw head pocket leaves the cap posts too thin")
-    need(scr_nut_h - 0.4 <= scr_base_t - 0.0 and scr_nut_af / math.cos(math.radians(30)) + 0.2 < scr_post_d + 2.0,
+    need(scr_nut_pocket <= scr_base_t - 0.9 and scr_nut_pocket <= scr_nut_h
+         and scr_nut_af / math.cos(math.radians(30)) + 0.2 < scr_post_d + 2.0,
          "the clamp nut does not fit the screen base")
     need(scr_r_out - scr_r_in >= 1.5 * scr_pitch,
          "louvres do not overlap enough to block sun and rain; "

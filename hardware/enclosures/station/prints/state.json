@@ -274,7 +274,7 @@
   },
   "P006": {
    "material": "ASA",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:26:41+05:30",
    "bed": [
     0.0,
@@ -305,7 +305,7 @@
   },
   "P007": {
    "material": "ASA",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:26:44+05:30",
    "bed": [
     0.0,
@@ -336,7 +336,7 @@
   },
   "P008": {
    "material": "ASA",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:26:46+05:30",
    "bed": [
     0.0,
@@ -367,7 +367,7 @@
   },
   "P009": {
    "material": "ASA",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:26:48+05:30",
    "bed": [
     0.0,
@@ -398,7 +398,7 @@
   },
   "P010": {
    "material": "ASA",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:26:51+05:30",
    "bed": [
     0.0,
@@ -455,7 +455,7 @@
   },
   "P011": {
    "material": "ASA",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:26:54+05:30",
    "bed": [
     0.0,
@@ -580,7 +580,7 @@
   },
   "P013": {
    "material": "ASA",
-   "status": "uploaded",
+   "status": "dropped",
    "created": "2026-11-19T13:27:01+05:30",
    "bed": [
     0.0,
@@ -648,7 +648,7 @@
   },
   "P014": {
    "material": "TPU",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:27:04+05:30",
    "bed": [
     0.0,
@@ -781,7 +781,7 @@
   "P015": {
    "material": "ASA",
    "color": "accent",
-   "status": "uploaded",
+   "status": "dropped",
    "created": "2026-11-19T13:45:13+05:30",
    "bed": [
     0.0,
@@ -877,7 +877,7 @@
   "P016": {
    "material": "ASA",
    "color": "white",
-   "status": "uploaded",
+   "status": "failed",
    "created": "2026-11-19T13:45:17+05:30",
    "bed": [
     0.0,
@@ -941,12 +941,27 @@
     "path": "printshop/forsyth-station_P016_4b6539.gcode",
     "gcode_sha": "4b65393e98e4",
     "at": "2026-11-19T13:50:02+05:30"
+   },
+   "job": {
+    "file": "printshop/forsyth-station_P016_4b6539.gcode",
+    "started": "2026-11-19T14:17:05+05:30",
+    "status": "cancelled",
+    "duration_s": 3269,
+    "filament_mm": 8008,
+    "skipped": []
+   },
+   "result": {
+    "printed": {},
+    "failed": {
+     "wind_body": 1,
+     "wind_shim": 1
+    }
    }
   },
   "P017": {
    "material": "ASA",
    "color": "white",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:45:24+05:30",
    "bed": [
     0.0,
@@ -991,7 +1006,7 @@
   "P018": {
    "material": "ASA",
    "color": "white",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:45:28+05:30",
    "bed": [
     0.0,
@@ -1023,7 +1038,7 @@
   "P019": {
    "material": "ASA",
    "color": "white",
-   "status": "uploaded",
+   "status": "dropped",
    "created": "2026-11-19T13:53:07+05:30",
    "bed": [
     0.0,
@@ -1133,7 +1148,7 @@
   "P020": {
    "material": "ASA",
    "color": "white",
-   "status": "sliced",
+   "status": "dropped",
    "created": "2026-11-19T13:53:17+05:30",
    "bed": [
     0.0,
@@ -1183,7 +1198,7 @@
   "P021": {
    "material": "ASA",
    "color": "white",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:53:22+05:30",
    "bed": [
     0.0,
@@ -1215,7 +1230,7 @@
   "P022": {
    "material": "ASA",
    "color": "white",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:53:23+05:30",
    "bed": [
     0.0,
@@ -1240,6 +1255,2082 @@
      "brim": "outer_only",
      "brim_mm": 5.0,
      "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P023": {
+   "material": "ASA",
+   "color": "accent",
+   "status": "dropped",
+   "created": "2026-11-19T15:25:30+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "vane_rotor"
+    },
+    {
+     "part": "cup_arm"
+    }
+   ],
+   "part_sha": {
+    "vane_rotor": "932f32828b8a",
+    "cup_arm": "a6da383adb2b"
+   },
+   "layout": [
+    {
+     "part": "vane_rotor",
+     "x": 110.0,
+     "y": 109.3,
+     "rot": 30,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "cup_arm",
+     "x": 72.67,
+     "y": 155.0,
+     "rot": 0,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T15:26:06+05:30",
+    "project_sha": "6583b550fda4",
+    "gcode_sha": "7b809b42ed66",
+    "time": "1h 20m 0s",
+    "grams": "28.31",
+    "layers": "236",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "vane_rotor_id_0_copy_0",
+     "cup_arm_id_1_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
+  },
+  "P024": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:25:33+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "wind_body"
+    },
+    {
+     "part": "wind_lid"
+    },
+    {
+     "part": "wind_pcb_ring"
+    },
+    {
+     "part": "rain_mesh"
+    },
+    {
+     "part": "wind_shim"
+    },
+    {
+     "part": "wind_shim"
+    },
+    {
+     "part": "wind_spacer"
+    },
+    {
+     "part": "wind_spacer"
+    }
+   ],
+   "part_sha": {
+    "wind_body": "ff8dafe18c92",
+    "wind_lid": "c5cb797b808d",
+    "wind_pcb_ring": "28599cde340d",
+    "rain_mesh": "bf05abe9cdf4",
+    "wind_shim": "acdc6ca435e7",
+    "wind_spacer": "bd460f637cd0"
+   },
+   "layout": [
+    {
+     "part": "wind_body",
+     "x": 110.0,
+     "y": 125.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_lid",
+     "x": 160.05,
+     "y": 48.29,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_pcb_ring",
+     "x": 63.0,
+     "y": 43.1,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "rain_mesh",
+     "x": 175.54,
+     "y": 185.65,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_shim",
+     "x": 39.35,
+     "y": 168.63,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    },
+    {
+     "part": "wind_shim",
+     "x": 100.35,
+     "y": 185.63,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    },
+    {
+     "part": "wind_spacer",
+     "x": 34.34,
+     "y": 80.62,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    },
+    {
+     "part": "wind_spacer",
+     "x": 110.34,
+     "y": 67.62,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": []
+  },
+  "P025": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:25:48+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "wind_lid"
+    },
+    {
+     "part": "wind_pcb_ring"
+    },
+    {
+     "part": "rain_mesh"
+    },
+    {
+     "part": "wind_spacer"
+    },
+    {
+     "part": "wind_spacer"
+    },
+    {
+     "part": "wind_shim"
+    },
+    {
+     "part": "wind_shim"
+    }
+   ],
+   "part_sha": {
+    "wind_lid": "c5cb797b808d",
+    "wind_pcb_ring": "28599cde340d",
+    "rain_mesh": "bf05abe9cdf4",
+    "wind_spacer": "bd460f637cd0",
+    "wind_shim": "acdc6ca435e7"
+   },
+   "layout": [
+    {
+     "part": "wind_lid",
+     "x": 110.0,
+     "y": 52.12,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_pcb_ring",
+     "x": 102.45,
+     "y": 125.57,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "rain_mesh",
+     "x": 128.0,
+     "y": 178.93,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_spacer",
+     "x": 109.8,
+     "y": 122.18,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    },
+    {
+     "part": "wind_spacer",
+     "x": 77.8,
+     "y": 89.18,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    },
+    {
+     "part": "wind_shim",
+     "x": 82.81,
+     "y": 186.19,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    },
+    {
+     "part": "wind_shim",
+     "x": 89.81,
+     "y": 121.19,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T15:26:09+05:30",
+    "project_sha": "6557a5aebfea",
+    "gcode_sha": "1758a8ce2f59",
+    "time": "38m 8s",
+    "grams": "11.36",
+    "layers": "90",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "wind_lid_id_0_copy_0",
+     "wind_pcb_ring_id_1_copy_0",
+     "rain_mesh_id_2_copy_0",
+     "wind_spacer_id_3_copy_0",
+     "wind_spacer_id_4_copy_0",
+     "wind_shim_id_5_copy_0",
+     "wind_shim_id_6_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
+  },
+  "P026": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:25:52+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "wind_body"
+    }
+   ],
+   "part_sha": {
+    "wind_body": "ff8dafe18c92"
+   },
+   "layout": [
+    {
+     "part": "wind_body",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T15:26:14+05:30",
+    "project_sha": "99147fcdc126",
+    "gcode_sha": "30d0be6e68bb",
+    "time": "2h 10m 5s",
+    "grams": "44.25",
+    "layers": "167",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "wind_body_id_0_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
+  },
+  "P027": {
+   "material": "ASA",
+   "color": "accent",
+   "status": "dropped",
+   "created": "2026-11-19T15:34:19+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "vane_rotor"
+    },
+    {
+     "part": "cup_arm"
+    },
+    {
+     "part": "cup_arm"
+    },
+    {
+     "part": "cup_hub_cap"
+    }
+   ],
+   "part_sha": {
+    "vane_rotor": "d5873adca733",
+    "cup_arm": "251308d4a09e",
+    "cup_hub_cap": "663963130bbb"
+   },
+   "layout": [
+    {
+     "part": "vane_rotor",
+     "x": 110.0,
+     "y": 109.3,
+     "rot": 30,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "cup_arm",
+     "x": 72.67,
+     "y": 155.0,
+     "rot": 0,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    },
+    {
+     "part": "cup_arm",
+     "x": 146.68,
+     "y": 61.12,
+     "rot": 180,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    },
+    {
+     "part": "cup_hub_cap",
+     "x": 191.0,
+     "y": 111.06,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T15:35:11+05:30",
+    "project_sha": "4244f07d9c3b",
+    "gcode_sha": "04e43adab962",
+    "time": "1h 36m 39s",
+    "grams": "33.97",
+    "layers": "236",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "vane_rotor_id_0_copy_0",
+     "cup_arm_id_1_copy_0",
+     "cup_arm_id_2_copy_0",
+     "cup_hub_cap_id_3_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
+  },
+  "P028": {
+   "material": "ASA",
+   "color": "accent",
+   "status": "dropped",
+   "created": "2026-11-19T15:34:22+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "cup_arm"
+    },
+    {
+     "part": "cup_hub"
+    }
+   ],
+   "part_sha": {
+    "cup_arm": "251308d4a09e",
+    "cup_hub": "4a9d337cfc2b"
+   },
+   "layout": [
+    {
+     "part": "cup_arm",
+     "x": 80.04,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    },
+    {
+     "part": "cup_hub",
+     "x": 156.84,
+     "y": 107.8,
+     "rot": 180,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T15:35:14+05:30",
+    "project_sha": "ae0f811b7a94",
+    "gcode_sha": "915a530f3886",
+    "time": "52m 2s",
+    "grams": "16.84",
+    "layers": "172",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "cup_arm_id_0_copy_0",
+     "cup_hub_id_1_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
+  },
+  "P029": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:34:32+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "enclosure_body"
+    },
+    {
+     "part": "sky_head"
+    },
+    {
+     "part": "wind_spacer"
+    },
+    {
+     "part": "wind_spacer"
+    },
+    {
+     "part": "wind_shim"
+    }
+   ],
+   "part_sha": {
+    "enclosure_body": "acbcf4c19adf",
+    "sky_head": "5e7823122357",
+    "wind_spacer": "604e26dc0db8",
+    "wind_shim": "ca0cd3569347"
+   },
+   "layout": [
+    {
+     "part": "enclosure_body",
+     "x": 109.53,
+     "y": 124.75,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 10.0
+    },
+    {
+     "part": "sky_head",
+     "x": 192.77,
+     "y": 27.98,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_spacer",
+     "x": 34.33,
+     "y": 36.8,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    },
+    {
+     "part": "wind_spacer",
+     "x": 159.33,
+     "y": 34.8,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    },
+    {
+     "part": "wind_shim",
+     "x": 50.34,
+     "y": 33.81,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T15:35:21+05:30",
+    "project_sha": "8568f69aa828",
+    "gcode_sha": "c8e6e07d501c",
+    "time": "4h 38m 22s",
+    "grams": "108.29",
+    "layers": "192",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "enclosure_body_id_0_copy_0",
+     "sky_head_id_1_copy_0",
+     "wind_spacer_id_2_copy_0",
+     "wind_spacer_id_3_copy_0",
+     "wind_shim_id_4_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
+  },
+  "P030": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:34:38+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_cap"
+    },
+    {
+     "part": "wind_lid"
+    },
+    {
+     "part": "rain_mesh"
+    },
+    {
+     "part": "wind_shim"
+    }
+   ],
+   "part_sha": {
+    "screen_cap": "4ba1948a60c2",
+    "wind_lid": "c96a3551e7e2",
+    "rain_mesh": "3a328d05f587",
+    "wind_shim": "ca0cd3569347"
+   },
+   "layout": [
+    {
+     "part": "screen_cap",
+     "x": 131.0,
+     "y": 89.42,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_lid",
+     "x": 50.05,
+     "y": 171.71,
+     "rot": 180,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "rain_mesh",
+     "x": 183.5,
+     "y": 185.71,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_shim",
+     "x": 47.31,
+     "y": 34.52,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T15:35:26+05:30",
+    "project_sha": "fda3bf24d52f",
+    "gcode_sha": "39335aced298",
+    "time": "1h 34m 3s",
+    "grams": "35.41",
+    "layers": "163",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "screen_cap_id_0_copy_0",
+     "wind_lid_id_1_copy_0",
+     "rain_mesh_id_2_copy_0",
+     "wind_shim_id_3_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences.",
+     "[warning] Detected non-planar Voronoi diagram, input polygons will be rotated back and forth."
+    ]
+   }
+  },
+  "P031": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:34:41+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    },
+    {
+     "part": "wind_pcb_ring"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "98be946bdb2c",
+    "wind_pcb_ring": "790c269d86aa"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 98.09,
+     "y": 97.09,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_pcb_ring",
+     "x": 177.54,
+     "y": 177.54,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T15:35:30+05:30",
+    "project_sha": "2927ffc56adc",
+    "gcode_sha": "3b9741910bc5",
+    "time": "57m 3s",
+    "grams": "19.68",
+    "layers": "163",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "screen_plate_id_0_copy_0",
+     "wind_pcb_ring_id_1_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences.",
+     "[warning] plate 1: found NON_CRITICAL slicing warnings: It seems object screen_plate has floating regions. Please re-orient the object or enable support generation."
+    ]
+   }
+  },
+  "P032": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:34:44+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "98be946bdb2c"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T15:35:34+05:30",
+    "project_sha": "013220b497c5",
+    "gcode_sha": "2f61df4b7388",
+    "time": "55m 46s",
+    "grams": "19.19",
+    "layers": "163",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "screen_plate_id_0_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences.",
+     "[warning] plate 1: found NON_CRITICAL slicing warnings: It seems object screen_plate has floating regions. Please re-orient the object or enable support generation."
+    ]
+   }
+  },
+  "P033": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:34:46+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "98be946bdb2c"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P034": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:34:48+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "98be946bdb2c"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P035": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:34:51+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "98be946bdb2c"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P036": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:34:53+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_base"
+    }
+   ],
+   "part_sha": {
+    "screen_base": "d6b89626a1f6"
+   },
+   "layout": [
+    {
+     "part": "screen_base",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T15:35:37+05:30",
+    "project_sha": "d6ccbd5b4a76",
+    "gcode_sha": "2754e9919ce0",
+    "time": "1h 28m 20s",
+    "grams": "25.68",
+    "layers": "402",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "screen_base_id_0_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
+  },
+  "P037": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:35:06+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "wind_body"
+    }
+   ],
+   "part_sha": {
+    "wind_body": "93ca594152d8"
+   },
+   "layout": [
+    {
+     "part": "wind_body",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T15:37:24+05:30",
+    "project_sha": "97bc21252bfd",
+    "gcode_sha": "4647afea0928",
+    "time": "2h 10m 9s",
+    "grams": "44.22",
+    "layers": "167",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "wind_body_id_0_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
+  },
+  "P038": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:36:57+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    },
+    {
+     "part": "wind_pcb_ring"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "a933d5a234cb",
+    "wind_pcb_ring": "e84bcc675f5b"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 98.09,
+     "y": 97.09,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_pcb_ring",
+     "x": 177.54,
+     "y": 177.54,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T15:37:30+05:30",
+    "project_sha": "3f41182ed344",
+    "gcode_sha": "ec8a4d8096b1",
+    "time": "56m 52s",
+    "grams": "20.04",
+    "layers": "163",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "screen_plate_id_0_copy_0",
+     "wind_pcb_ring_id_1_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
+  },
+  "P039": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:37:00+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "a933d5a234cb"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T15:37:19+05:30",
+    "project_sha": "720f23079e54",
+    "gcode_sha": "4b0bbc2e7587",
+    "time": "55m 34s",
+    "grams": "19.55",
+    "layers": "163",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "screen_plate_id_0_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
+  },
+  "P040": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:37:03+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "a933d5a234cb"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P041": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:37:06+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "a933d5a234cb"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P042": {
+   "material": "ASA",
+   "color": "white",
+   "status": "dropped",
+   "created": "2026-11-19T15:37:09+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "a933d5a234cb"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P043": {
+   "material": "ASA",
+   "color": "white",
+   "status": "sliced",
+   "created": "2026-11-19T16:06:00+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "wind_lid"
+    },
+    {
+     "part": "wind_pcb_ring"
+    },
+    {
+     "part": "rain_mesh"
+    },
+    {
+     "part": "wind_spacer"
+    },
+    {
+     "part": "wind_spacer"
+    },
+    {
+     "part": "wind_shim"
+    },
+    {
+     "part": "wind_shim"
+    }
+   ],
+   "part_sha": {
+    "wind_lid": "b9a728afdc04",
+    "wind_pcb_ring": "19082ba55949",
+    "rain_mesh": "0a1ffdfa0f42",
+    "wind_spacer": "533963b31d21",
+    "wind_shim": "235a8434a389"
+   },
+   "layout": [
+    {
+     "part": "wind_lid",
+     "x": 110.0,
+     "y": 52.12,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_pcb_ring",
+     "x": 102.45,
+     "y": 125.57,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "rain_mesh",
+     "x": 128.0,
+     "y": 178.93,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_spacer",
+     "x": 109.8,
+     "y": 122.18,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    },
+    {
+     "part": "wind_spacer",
+     "x": 77.8,
+     "y": 89.18,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    },
+    {
+     "part": "wind_shim",
+     "x": 82.81,
+     "y": 186.19,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    },
+    {
+     "part": "wind_shim",
+     "x": 89.81,
+     "y": 121.19,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T16:07:19+05:30",
+    "project_sha": "2d9bd1c40aec",
+    "gcode_sha": "b25f46a92f77",
+    "time": "38m 7s",
+    "grams": "11.34",
+    "layers": "90",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "wind_lid_id_0_copy_0",
+     "wind_pcb_ring_id_1_copy_0",
+     "rain_mesh_id_2_copy_0",
+     "wind_spacer_id_3_copy_0",
+     "wind_spacer_id_4_copy_0",
+     "wind_shim_id_5_copy_0",
+     "wind_shim_id_6_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
+  },
+  "P044": {
+   "material": "ASA",
+   "color": "white",
+   "status": "sliced",
+   "created": "2026-11-19T16:06:04+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "wind_body"
+    }
+   ],
+   "part_sha": {
+    "wind_body": "012eb35dafa5"
+   },
+   "layout": [
+    {
+     "part": "wind_body",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T16:07:23+05:30",
+    "project_sha": "bae1f4931f44",
+    "gcode_sha": "d5f4ffd22635",
+    "time": "2h 10m 9s",
+    "grams": "44.22",
+    "layers": "167",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "wind_body_id_0_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
+  },
+  "P045": {
+   "material": "ASA",
+   "color": "accent",
+   "status": "planned",
+   "created": "2026-11-19T16:06:21+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "vane_rotor"
+    },
+    {
+     "part": "cup_arm"
+    },
+    {
+     "part": "cup_arm"
+    },
+    {
+     "part": "cup_hub_cap"
+    }
+   ],
+   "part_sha": {
+    "vane_rotor": "ad0f3d98d582",
+    "cup_arm": "b3658a8305ce",
+    "cup_hub_cap": "2db214a6ec42"
+   },
+   "layout": [
+    {
+     "part": "vane_rotor",
+     "x": 110.0,
+     "y": 109.3,
+     "rot": 30,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "cup_arm",
+     "x": 72.67,
+     "y": 155.0,
+     "rot": 0,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    },
+    {
+     "part": "cup_arm",
+     "x": 146.68,
+     "y": 61.12,
+     "rot": 180,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    },
+    {
+     "part": "cup_hub_cap",
+     "x": 191.0,
+     "y": 111.06,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P046": {
+   "material": "ASA",
+   "color": "accent",
+   "status": "planned",
+   "created": "2026-11-19T16:06:23+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "cup_arm"
+    },
+    {
+     "part": "cup_hub"
+    }
+   ],
+   "part_sha": {
+    "cup_arm": "b3658a8305ce",
+    "cup_hub": "f4af70ee191e"
+   },
+   "layout": [
+    {
+     "part": "cup_arm",
+     "x": 80.04,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    },
+    {
+     "part": "cup_hub",
+     "x": 156.84,
+     "y": 107.8,
+     "rot": 180,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": []
+  },
+  "P047": {
+   "material": "ASA",
+   "color": "white",
+   "status": "planned",
+   "created": "2026-11-19T16:06:37+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "enclosure_body"
+    },
+    {
+     "part": "sky_head"
+    }
+   ],
+   "part_sha": {
+    "enclosure_body": "3aad0b513c1e",
+    "sky_head": "b67d5ee15d94"
+   },
+   "layout": [
+    {
+     "part": "enclosure_body",
+     "x": 109.53,
+     "y": 124.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 10.0
+    },
+    {
+     "part": "sky_head",
+     "x": 192.77,
+     "y": 27.23,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P048": {
+   "material": "ASA",
+   "color": "white",
+   "status": "planned",
+   "created": "2026-11-19T16:06:42+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "enclosure_lid"
+    }
+   ],
+   "part_sha": {
+    "enclosure_lid": "4e1dbfc62b6b"
+   },
+   "layout": [
+    {
+     "part": "enclosure_lid",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P049": {
+   "material": "ASA",
+   "color": "white",
+   "status": "planned",
+   "created": "2026-11-19T16:06:47+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_cap"
+    }
+   ],
+   "part_sha": {
+    "screen_cap": "d3bd0ab5c623"
+   },
+   "layout": [
+    {
+     "part": "screen_cap",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P050": {
+   "material": "ASA",
+   "color": "white",
+   "status": "planned",
+   "created": "2026-11-19T16:06:49+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_base"
+    }
+   ],
+   "part_sha": {
+    "screen_base": "b42eccaf8d89"
+   },
+   "layout": [
+    {
+     "part": "screen_base",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P051": {
+   "material": "ASA",
+   "color": "white",
+   "status": "planned",
+   "created": "2026-11-19T16:06:51+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "deec3e659115"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P052": {
+   "material": "ASA",
+   "color": "white",
+   "status": "planned",
+   "created": "2026-11-19T16:06:53+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "deec3e659115"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P053": {
+   "material": "ASA",
+   "color": "white",
+   "status": "planned",
+   "created": "2026-11-19T16:06:55+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "deec3e659115"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P054": {
+   "material": "ASA",
+   "color": "white",
+   "status": "planned",
+   "created": "2026-11-19T16:06:57+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "deec3e659115"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P055": {
+   "material": "ASA",
+   "color": "white",
+   "status": "planned",
+   "created": "2026-11-19T16:07:00+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "deec3e659115"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P056": {
+   "material": "ASA",
+   "color": "white",
+   "status": "planned",
+   "created": "2026-11-19T16:07:02+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "rain_funnel"
+    },
+    {
+     "part": "solar_bracket"
+    },
+    {
+     "part": "rain_bucket"
+    }
+   ],
+   "part_sha": {
+    "rain_funnel": "f53a0f0d8109",
+    "solar_bracket": "2e72a5d92930",
+    "rain_bucket": "24ca8487c2ab"
+   },
+   "layout": [
+    {
+     "part": "rain_funnel",
+     "x": 76.3,
+     "y": 146.2,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "solar_bracket",
+     "x": 145.2,
+     "y": 51.21,
+     "rot": 180,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "rain_bucket",
+     "x": 167.2,
+     "y": 154.0,
+     "rot": 90,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": []
+  },
+  "P057": {
+   "material": "ASA",
+   "color": "white",
+   "status": "planned",
+   "created": "2026-11-19T16:07:03+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "rain_base"
+    },
+    {
+     "part": "sky_mount"
+    }
+   ],
+   "part_sha": {
+    "rain_base": "b3cd19259826",
+    "sky_mount": "6ff5bcd81021"
+   },
+   "layout": [
+    {
+     "part": "rain_base",
+     "x": 92.07,
+     "y": 74.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "sky_mount",
+     "x": 134.04,
+     "y": 163.5,
+     "rot": 90,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": []
+  },
+  "P058": {
+   "material": "TPU",
+   "color": "tpu",
+   "status": "planned",
+   "created": "2026-11-19T16:07:08+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "tpu_box_lid_gasket"
+    },
+    {
+     "part": "tpu_wind_lid_gasket"
+    },
+    {
+     "part": "tpu_washer_gx16"
+    },
+    {
+     "part": "tpu_washer_gx16"
+    },
+    {
+     "part": "tpu_washer_gland"
+    },
+    {
+     "part": "tpu_washer_gx12"
+    },
+    {
+     "part": "tpu_washer_gx12"
+    },
+    {
+     "part": "tpu_washer_gx12"
+    },
+    {
+     "part": "tpu_sky_can_seal"
+    }
+   ],
+   "part_sha": {
+    "tpu_box_lid_gasket": "240fb0720ef5",
+    "tpu_wind_lid_gasket": "d842aa1980e2",
+    "tpu_washer_gx16": "5a4a33fd4c48",
+    "tpu_washer_gland": "e9659ab067d1",
+    "tpu_washer_gx12": "032626fb3f6c",
+    "tpu_sky_can_seal": "179731efe111"
+   },
+   "layout": [
+    {
+     "part": "tpu_box_lid_gasket",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_wind_lid_gasket",
+     "x": 102.55,
+     "y": 95.29,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_washer_gx16",
+     "x": 116.0,
+     "y": 96.0,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_washer_gx16",
+     "x": 164.0,
+     "y": 117.0,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_washer_gland",
+     "x": 61.03,
+     "y": 140.0,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_washer_gx12",
+     "x": 104.5,
+     "y": 148.5,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_washer_gx12",
+     "x": 163.5,
+     "y": 87.5,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_washer_gx12",
+     "x": 157.5,
+     "y": 147.5,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "tpu_sky_can_seal",
+     "x": 52.6,
+     "y": 68.6,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 15.0
     }
    ],
    "notes": []

@@ -167,3 +167,41 @@ def text_solid(text, height, depth, font):
     s = Part.makeCompound(faces).extrude(V(0, 0, depth))
     bb = bbox(s)
     return mv(s, -(bb.XMin + bb.XMax) / 2, -(bb.YMin + bb.YMax) / 2, 0)
+
+
+def bridged_roof(footprint, d, z, toward=1, angle=0.0, at=(0.0, 0.0), h=0.4):
+    """Cuts that let the flat roof of a pocket opening toward the bed (a bearing
+    pocket or nut slot printed from below, with a smaller hole d carrying on past
+    the roof) print as clean bridges instead of loops in the air.
+
+    The first layer past the roof keeps only a strip d wide open (running along
+    `angle`), so its lines span wall to wall; the next keeps only a d x d square,
+    bridged across that strip; the round hole starts on solid layers above.
+    `footprint` is the pocket's outline as a tall prism (it clips both shapes);
+    `z` is the roof's height and `toward` the print's 'up' in this frame (+1 or -1).
+    """
+    x, y = at
+    out = []
+    for k, w in ((0, 200.0), (1, d)):
+        z0 = z + k * h if toward > 0 else z - (k + 1) * h
+        s = mv(rz(box(-w / 2, w / 2, -d / 2, d / 2, z0, z0 + h), angle), x, y, 0)
+        out.append(s.common(footprint))
+    return out
+
+
+def teardrop(d, length, at=(0, 0, 0), axis="x", top=1.12):
+    """A horizontal hole that prints without a sagging top: a circle with a 45 deg
+    roof, cut flat at `top` x the radius (a short bridge). Up is +Z."""
+    r = d / 2.0
+    k = r / math.sqrt(2.0)
+    t = top * r
+    w = r * math.sqrt(2.0) - t
+    roof = [(-k, k), (k, k), (w, t), (-w, t)]
+    x0, y0, z0 = at
+    if axis == "x":
+        hole = cyl(d, length, at, (1, 0, 0))
+        tri = prism([(y0 + a, z0 + b) for a, b in roof], length, "yz", x0)
+    else:
+        hole = cyl(d, length, at, (0, 1, 0))
+        tri = prism([(x0 + a, z0 + b) for a, b in roof], length, "xz", y0)
+    return hole.fuse(tri)

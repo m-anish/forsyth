@@ -96,6 +96,21 @@ def overhang_report(mesh):
     return total, worst
 
 
+def steady_zip(path):
+    """Rewrite a 3MF (a zip) with fixed timestamps and entry order, so the same mesh
+    always gives the same bytes: the print tracker hashes these files to tell whether a
+    part changed, and git sees no change either."""
+    import zipfile
+    with zipfile.ZipFile(path) as z:
+        entries = [(i.filename, z.read(i.filename)) for i in z.infolist()]
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        for fn, data in sorted(entries):
+            info = zipfile.ZipInfo(fn, date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            z.writestr(info, data)
+
+
 def fits_bed(bb):
     bx, by = P.bed_x - 2 * P.bed_margin, P.bed_y - 2 * P.bed_margin
     lo, hi = sorted((bb.XLength, bb.YLength))
@@ -149,7 +164,7 @@ def frame_assembly(parts):
 def hardware():
     """Bought-in parts the printed parts were sized for: (item, qty, where)."""
     # screen: head seat to the far side of the nut that sits in the base
-    scr = P.scr_base_t + P.scr_plates * P.scr_pitch + 3.0 + (P.scr_nut_h - 0.4)
+    scr = P.scr_base_t + P.scr_plates * P.scr_pitch + 3.0 + (P.scr_nut_h - P.scr_nut_pocket)
     scr = int(math.ceil(round(scr, 1) / 5.0) * 5)
     axle = 2 * (P.rain_bucket_w / 2 + P.rain_side_gap + P.rain_upright_t) + 8.0
     axle = int(math.ceil(axle / 5.0) * 5)
@@ -159,8 +174,9 @@ def hardware():
          "wind: two per rotor"),
         ("M5 x %d socket-head cap screw, stainless, part-threaded" % P.shaft_len, 2,
          "wind: the two rotor shafts"),
-        ("M5 hex nut, stainless", 2 + 6,
-         "one trapped in each rotor hub; about six on the vane ballast screw"),
+        ("M5 hex nut, stainless", 2 + int((25 - P.vane_boom) // P.m5_nut_h),
+         "one trapped in each rotor hub; up to %d on the vane ballast screw (all that fit under "
+         "the spine)" % int((25 - P.vane_boom) // P.m5_nut_h)),
         ("M5 x 25 screw, stainless", 1,
          "vane nose ballast: add nuts until the rotor balances (10 to 15 g in all)"),
         ("Disc magnet %gx%g" % (P.mag_d, P.mag_t), P.vane_mag_n + P.anemo_mag_n,
@@ -235,6 +251,7 @@ def main():
             s.exportStep(os.path.join(out, "step", name + ".step"))
             try:
                 m.write(os.path.join(out, "print", name + ".3mf"))
+                steady_zip(os.path.join(out, "print", name + ".3mf"))
             except Exception:
                 ext = "stl"
                 m.write(os.path.join(out, "print", name + ".stl"))
@@ -271,6 +288,12 @@ def main():
     for name, s in placed:
         o = doc.addObject("Part::Feature", name)
         o.Shape = s
+    # fits no single part shows: nuts into their hubs, the gland's locknut onto its seat
+    fits = wind.fit_checks(parts)
+    for what, v in fits:
+        if v > CLASH_MM3:
+            failed.append(("fit", ["%s: %.1f mm3 in the way" % (what, v)]))
+            log("  FIT %s: %.1f mm3 in the way" % (what, v))
     clashes = []
     for i in range(len(placed)):
         for j in range(i + 1, len(placed)):
@@ -343,6 +366,8 @@ def main():
                    P.sky_head_xmin - P.vane_tip_x, P.sky_snout_half, P.sky_tilt))
         f.write("- Antenna (inside the box, whip up): %.0f mm clear of the cell, %.0f mm from the "
                 "nearest face of the mast\n" % (P.enc_ant_to_cell, P.enc_ant_to_mast))
+        f.write("- Fit checks: %s\n" % "; ".join("%s %s" % (w, "ok" if v <= CLASH_MM3 else
+                                                                 "BLOCKED (%.1f mm3)" % v) for w, v in fits))
         f.write("- Assembly clash check: %s\n"
                 % ("none" if not clashes else "; ".join("%s / %s" % (a, b) for a, b, _ in clashes)))
         f.write("\n## Hardware\n\n| Item | Qty | Where |\n|---|---|---|\n")
