@@ -2,7 +2,7 @@
 
 Parametric models for everything a leaf needs outdoors: a combined wind kit
 (vane above, cups below, one housing), a tipping-bucket rain gauge, a Stevenson
-screen for the 4 x 6 cm sensor carrier, a sky pod for an MLX90614 cloud sensor, the core box for Board A and a loose
+screen for the 58 x 70 mm sensor carrier (Board B), a sky pod for an MLX90614 cloud sensor, the core box for Board A and a loose
 32xxx cell, and a bracket for a solar panel up to 70 x 100 mm.
 
 **Status (2026-11-10): first design pass. Every part passes the automatic
@@ -104,13 +104,20 @@ passing, about 9.3 mm at rest, which gives one closure per tip instead of a
 reed that never opens. Two screw heads are the stops; turning them sets the
 tip volume.
 
-**Stevenson screen.** Three 45 degree louvres and a cap on a spoked base,
-clamped by three M3 screws. The carrier slides into grooved rails, so its hole
-pattern does not matter. Print it in white.
+**Stevenson screen.** Five 45 degree louvres and a cap on a spoked base,
+clamped by three M4 x 80 socket-head screws with M4 nuts; 138 mm across, 106 mm tall, with a 76 mm sensor
+chamber. The carrier (Board B, 58 x 70 mm) slides into grooved rails and rests on
+its two bottom corners, so its hole pattern does not matter. Its sensors are soldered
+on its front; the PMS7003 (or a PMS5003) lies on its back, between the rails. Its one
+cable plugs into J1 facing down, in the 18 mm left free under the board, and leaves
+through the hole in the base. The DFRobot lightning module (SEN0290, 30 x 22 mm) hangs
+flat under the cap, parts side down, off the board's front: two M3 x 6 screws into
+heat-set inserts in two bosses on the cap's underside, plus a rib under its connector end.
+Its Gravity cable runs to J2. Print it in white.
 
 **Core box.** Back wall on the bed. Board A lies with its connector row facing
-a connector bay at the bottom; all five cable entries (two glands, GX12-2,
-GX12-3, GX16-5) are in the bottom wall and face the ground, each named on the
+a connector bay at the bottom; all five cable entries (GX16-8, GX12-2,
+GX12-3, GX16-5, GX12-4) are in the bottom wall and face the ground, each named on the
 lid. The cell sits in a cradle above the board, held by a pad on the lid.
 Mounting tabs are outside the sealed volume.
 
@@ -157,7 +164,7 @@ toward the coordinator.
 | Wind kit | PG7 gland in the housing wall, facing the mast between the two arm rails | along a rail (tie slot provided), down past the foot, then down the mast's slot | WIND, GX16-5 |
 | Sky pod | slot through the plug, out under the head | down the riser (tie notches), down the mast's slot | SKY, GX12-4 to Board A's Qwiic port: 1 VBAT, 2 GND, 3 SDA, 4 SCL |
 | Rain gauge | the drain opening beside the reed post | along the crossarm slot, down the mast | RAIN, GX12-3 |
-| Screen | hole in the base | along the crossarm slot, down the mast | ENV and PMS glands |
+| Screen | hole in the base, from Board B's J1 (XH-8) | along the crossarm slot, down the mast | ENV, GX16-8; inside, a pigtail splits it to Board A J4 (XH-5, pins 1 to 5) and J5 (XH-4, pins 6, 2, 7, 8) |
 | Solar | hole in the tray floor | straight down | SOLAR, GX12-2 |
 
 Every entry is in the box's bottom wall. Leave a drip loop below each plug so
@@ -173,9 +180,9 @@ hold a 4 to 5 mm cable in the mast.
 - `vane_rotor` is 208 mm long and just fits the bed straight.
 - `enclosure_body` is the largest footprint (163 x 159 mm): use a brim and a
   draught shield against ASA warping.
-- Print `wind_spacer` x2, `wind_shim` x2, `cup_arm` x3, `screen_plate` x3.
+- Print `wind_spacer` x2, `wind_shim` x2, `cup_arm` x3, `screen_plate` x5.
 - TPU parts (`tpu_*`): 95A, 100 % infill, flat on the bed, slow. Quantities are
-  in the report (`tpu_washer_gland` x3, `tpu_washer_gx12` x3).
+  in the report (`tpu_washer_gland` x1, `tpu_washer_gx12` x3, `tpu_washer_gx16` x2).
 - `sky_mount` prints with the mast face down, `sky_head` upside down. Print
   both in white.
 - Bearing pockets are modelled 0.1 mm over nominal. Print one `wind_lid` first
@@ -233,7 +240,6 @@ winter charging becomes a problem.
 
 ## Not designed yet
 
-- PMS7003 bay in the screen (the repo's architecture puts it beside the carrier).
 - Insect and leaf mesh for the rain funnel.
 - Frame joints: use standard metal 2020 corner brackets, not printed ones.
 

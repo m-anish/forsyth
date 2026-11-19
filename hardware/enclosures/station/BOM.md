@@ -8,7 +8,8 @@ parameter, check this file against it.
 Prices and links were read from the shops on 2026-11-12 and will drift.
 Omrook prices include 18 % GST; the other shops' prices are as listed.
 
-Not listed because you already have them: the 2020 profile, Board A, the
+Not listed because you already have them: the 2020 profile, the 32700 cells,
+Board A, the
 wind-vane PCB, the MLX90614 breakout, the antenna, reed switches, the solar
 panel.
 
@@ -35,9 +36,16 @@ panel.
 | Neodymium disc 6 x 2 mm (vane, cups) | 2 | 4 | 7.08 | 28.32 | [listing](https://omrook.com/6mm-x-2mm-neodymium-disc-magnets-dia-6mm-thickness-2mm/) |
 | Neodymium disc 4 x 2 mm (rain bucket) | 2 | 4 | 4.72 | 18.88 | [listing](https://omrook.com/4mm-x-2mm-neodymium-disc-magnets-dia-4mm-thickness-2mm/) |
 
-Subtotal **Rs 569**, which clears Omrook's free-shipping line of Rs 500 per
-seller. The same list at OnlyScrews comes to about Rs 750 with GST, before
-shipping (free only above Rs 799).
+Subtotal **Rs 569**, plus **Rs 100 shipping**: Rs 669 in all (checked in a
+real cart on 2026-11-12). Omrook is a marketplace, and this list splits
+across two sellers, each charging Rs 50 surface shipping because neither
+reaches the Rs 500 free-shipping line on its own:
+
+- IndiaLocalShop (Delhi): every screw, the nyloc nuts and the bearings, Rs 248
+- Omrook Industries (Bihar): magnets, SS304 nut and washer packs, profile nuts, Rs 321
+
+The same list at OnlyScrews comes to about Rs 750 with GST before its own
+shipping (free only above Rs 799), so Omrook is still the cheaper source.
 
 Notes
 - **SS202, not SS304.** Omrook's stainless screws are grade 202, which has
@@ -57,6 +65,11 @@ Notes
 - **Profile nuts.** Skip them if your 2020 came with T-nuts.
 - **Bearings.** Skip these if a 5 mm-bore size is already in your drawer, and
   set `brg_od` and `brg_w` to match.
+- **Screen clamp changed after this order (2026-11-17).** The screen grew to
+  five louvres (106 mm), so the stack now needs about 76.4 mm of screw. M3 x 80
+  is not sold locally, so the model now takes **three M4 x 80 socket-head
+  screws (OnlyScrews) and three M4 nuts**. The three M3 x 50 in this order are
+  no longer used for the screen; one is still the rain axle.
 - **Heat-set inserts** are not here: Omrook's brass inserts do not state an
   outside diameter, and the pilot holes depend on it. They are in the Quartz
   order below.
@@ -76,15 +89,15 @@ Subtotal about Rs 455. The repo's notes say the GX12-2, GX12-3 and GX16-5 were
 ordered with Board A; if they arrived, only the GX12-4 is new (Rs 85). Skip
 the right-angle connectors if you have brackets for your profile.
 
-## Cell, vent, inserts (Quartz Components)
+## Inserts, vent (Quartz Components)
 
 | Item | Need | Order | Each (Rs) | Link |
 |---|---|---|---|---|
-| 32700 LiFePO4 cell, 6000 mAh | 1 | 1 | 216 | [listing](https://quartzcomponents.com/products/32700-lfp-6000mah-rechargable-battery) |
 | M3 x 6 brass heat-set insert, OD 4.2, pack of 10 | 12 | 2 packs | 58 | [listing](https://quartzcomponents.com/products/m3-x-6mm-brass-heat-set-threaded-round-insert-nut-10-pcs) |
 | Pressure vent, M12 x 1.5 screw type (optional, see README on the airtight box) | 1 | 1 | 43 | [listing](https://quartzcomponents.com/products/pressure-vent-screw-type-m12x1-5) |
 
-Subtotal Rs 375. The model's insert holes are sized for this insert
+Subtotal Rs 159, below Quartz's Rs 500 free-shipping line, so expect a
+shipping charge. The model's insert holes are sized for this insert
 (`m3_insert_d = 3.8`, `m3_insert_l = 6`). Print one test coupon first; a
 different insert needs those two values changed.
 
@@ -133,12 +146,11 @@ TPU: all five kinds of seal together are 3 cm3, about 4 g.
 
 | Shop | Rs |
 |---|---|
-| Omrook | 569 |
+| Omrook (incl. Rs 100 shipping) | 669 |
 | Flyrobo | 455 |
-| Quartz Components | 375 |
+| Quartz Components (before shipping) | 159 |
 | 3D Master India (two spools) | 1,798 |
-| **Total** | **about 3,200** |
+| **Total** | **about 3,100** |
 
-About Rs 2,750 if the three older GX connectors and the cell are already on
-your bench. Add the cable, a little TPU, and shipping where an order falls
-below a shop's free-shipping line.
+About Rs 2,850 if the three older GX connectors are already on your bench. Add the cable, a little TPU, and shipping for the other shops where an order
+falls below their free-shipping line.

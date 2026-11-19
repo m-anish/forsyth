@@ -149,17 +149,51 @@ rain_mag_x = 26.0        # magnet distance from the pivot, along the bucket
 rain_reed_gap = 6.0      # magnet centre to reed axis as they pass
 
 # ============================================================== SCREEN ====
-scr_pcb_w = 40.0         # sensor carrier, 4 x 6 cm
-scr_pcb_h = 60.0
+scr_pcb_w = 58.0         # sensor carrier (Board B rev0), 58 x 70 mm: wide enough that a
+scr_pcb_h = 70.0         # PMS7003 or PMS5003 lying across its back clears both rails
 scr_pcb_t = 1.6
-scr_pcb_lift = 8.0       # carrier bottom edge above the base (cable room)
+scr_pcb_lift = 18.0      # carrier bottom edge above the base: room for the XH-8 plug that
+                         # faces down out of the carrier's bottom edge, and its cable's bend
 scr_pcb_groove = 2.0     # depth of the rail groove each side
-scr_r_in = 31.0          # louvre inner opening radius = sensor chamber radius
-scr_r_out = 62.0
+# What stands off each face of the carrier, as (width across the carrier, depth from
+# the carrier's centre plane). The chamber must hold both; validate() checks them.
+scr_front_env = (48.0, 26.0)   # trimmed rev0 front: SHT40, MS5607, J2 (PH-5 vertical, plug
+                               # and cable ~15 mm), J1 (XH-8 right angle). Generous on purpose.
+scr_back_env = (50.0, 24.0)    # PMS5003 (50 x 38 x 21) on 1.5 mm foam; a PMS7003 plugged
+                               # straight into J3 needs only 47.7 wide x 17.1 deep
+# PMS7003 on the carrier's back, in Board B coordinates (mm from the board's bottom-left
+# corner seen from the FRONT, y up). Outline from the rev0 back silkscreen; the sensor's
+# vents face the bottom edge. It sits on J3, a 4.3 mm socket, with foam tape in that gap.
+scr_pms_x = (5.2, 52.9)
+scr_pms_y = (13.0, 49.7)
+scr_pms_t = 12.0         # PMS7003 body thickness (48 x 37 x 12)
+scr_pms_gap = 4.3        # J3 socket height: carrier back face to sensor
+# DFRobot Gravity Lightning Sensor (SEN0290, AS3935): hangs flat under the cap, parts side
+# down, screwed to two bosses with heat-set inserts; a rib under its connector end stops it
+# tipping. It sits off the carrier's FRONT (away from the PMS fan). Drawing SEN0290 v1.0:
+# 30 x 22 x 1.0 mm board, two M3 holes 15.0 mm apart, 7.5 mm in from the coil end; the
+# Gravity I2C plug enters the opposite short edge, the IRQ header is on a long edge.
+scr_ltg_l = 30.0         # along the carrier plane; connector end towards J2 (+X)
+scr_ltg_w = 22.0
+scr_ltg_t = 1.0
+scr_ltg_hole_in = 7.5    # hole centres from the coil end
+scr_ltg_hole_pitch = 15.0
+scr_ltg_parts_h = 9.0    # tallest part below the board (IRQ header pins), generous
+scr_ltg_plug = 12.0      # Gravity plug and its cable bend beyond the connector edge
+scr_ltg_cx = -3.0        # module centre along the carrier plane (carrier frame X)
+scr_ltg_cy = 16.0        # module centre in front of the carrier's centre plane
+scr_ltg_boss_d = 8.0
+scr_ltg_rib_t = 2.0
+scr_r_in = 38.0          # louvre inner opening radius = sensor chamber radius
+scr_r_out = 69.0
 scr_pitch = 14.0         # vertical spacing of the louvres
 scr_plate_t = 1.2        # louvre thickness, normal to the surface
 scr_post_d = 10.0
-scr_rod_d = 3.0          # three M3 screws / threaded rods hold the stack
+scr_rod_d = 4.0          # three M4 x 80 socket-head screws hold the stack (M3 x 80 is not
+                         # sold locally; M5 would need fatter posts and a taller stack)
+scr_nut_af = 7.0         # M4 hex nut, trapped in the base
+scr_nut_h = 3.2
+scr_head_d = 7.0         # M4 socket head, seated in a pocket in the cap posts
 scr_base_t = 3.0
 scr_foot_r = 22.0        # M5 holes on the axes at this radius
 scr_cable_d = 9.0
@@ -211,8 +245,8 @@ gx12_d = 12.2            # solar, rain
 gx12_flange = 16.0
 # (label, hole diameter, flange/nut diameter). Left to right seen from the front.
 enc_ports = (
-    ("ENV", gland_d, gland_flange),
-    ("PMS", gland_d, gland_flange),
+    ("ENV", gx16_d, gx16_flange),      # GX16-8: the screen's one 8-core cable (Board B J1),
+                                       # split inside to Board A J4 (XH-5) and J5 (XH-4)
     ("SOLAR", gx12_d, gx12_flange),
     ("RAIN", gx12_d, gx12_flange),
     ("WIND", gx16_d, gx16_flange),
@@ -465,6 +499,34 @@ def validate():
     diag = math.hypot(scr_pcb_w, 14.0)
     need(2 * scr_r_in >= diag + 6.0,
          "sensor chamber too narrow for the carrier; raise scr_r_in")
+    for side, (env_w, env_d) in (("front", scr_front_env), ("back", scr_back_env)):
+        need(math.hypot(env_w / 2, env_d) <= scr_r_in - 1.5,
+             f"what stands off the carrier's {side} ({env_w:g} wide, {env_d:g} deep) "
+             "hits the louvres; raise scr_r_in")
+    need(scr_pcb_w / 2 - scr_pcb_groove >= scr_back_env[0] / 2 + 1.0,
+         "the particle sensor on the carrier's back hits the rails; widen scr_pcb_w")
+    pms_x = max(abs(scr_pcb_w / 2 - x) for x in scr_pms_x)
+    pms_d = scr_pcb_t / 2 + scr_pms_gap + scr_pms_t
+    need(pms_x <= scr_pcb_w / 2 - scr_pcb_groove - 1.0,
+         "the PMS7003 outline reaches into the rail grooves; check scr_pms_x")
+    need(math.hypot(pms_x, pms_d) <= scr_r_in - 1.5,
+         "the PMS7003 on the carrier's back hits the louvres; raise scr_r_in")
+    need(0.0 <= scr_pms_y[0] < scr_pms_y[1] <= scr_pcb_h,
+         "scr_pms_y falls outside the carrier")
+    body = math.hypot(abs(scr_ltg_cx) + scr_ltg_l / 2, abs(scr_ltg_cy) + scr_ltg_w / 2)
+    plug = math.hypot(abs(scr_ltg_cx + scr_ltg_l / 2 + scr_ltg_plug), abs(scr_ltg_cy) + 5.0)
+    need(max(body, plug) <= scr_r_in - 2.0,
+         "the lightning module under the cap reaches the louvres; move it in (scr_ltg_cx/cy)")
+    need(abs(scr_ltg_cy) - scr_ltg_w / 2 >= scr_pcb_t / 2 + 3.0,
+         "the lightning module hangs over the carrier's top edge; raise scr_ltg_cy")
+    need(scr_ltg_boss_d >= m3_insert_d + 3.0,
+         "lightning-module bosses too thin for an M3 heat-set insert")
+    need(scr_post_d - (scr_rod_d + 0.4) >= 2 * 2.4,
+         "screen posts too thin round the clamp screw; raise scr_post_d or use a smaller screw")
+    need(scr_post_d - (scr_head_d + 1.0) >= 2 * 0.8,
+         "the clamp screw head pocket leaves the cap posts too thin")
+    need(scr_nut_h - 0.4 <= scr_base_t - 0.0 and scr_nut_af / math.cos(math.radians(30)) + 0.2 < scr_post_d + 2.0,
+         "the clamp nut does not fit the screen base")
     need(scr_r_out - scr_r_in >= 1.5 * scr_pitch,
          "louvres do not overlap enough to block sun and rain; "
          "widen the plates or reduce scr_pitch")

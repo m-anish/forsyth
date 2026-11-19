@@ -136,7 +136,7 @@ def frame_assembly(parts):
 def hardware():
     """Bought-in parts the printed parts were sized for: (item, qty, where)."""
     # screen: head seat to the far side of the nut that sits in the base
-    scr = P.scr_base_t + P.scr_plates * P.scr_pitch + 3.0 + (P.m3_nut_h - 0.4)
+    scr = P.scr_base_t + P.scr_plates * P.scr_pitch + 3.0 + (P.scr_nut_h - 0.4)
     scr = int(math.ceil(round(scr, 1) / 5.0) * 5)
     axle = 2 * (P.rain_bucket_w / 2 + P.rain_side_gap + P.rain_upright_t) + 8.0
     axle = int(math.ceil(axle / 5.0) * 5)
@@ -155,22 +155,24 @@ def hardware():
         ("Disc magnet %gx%g" % (P.rain_mag_d, P.rain_mag_t), 2,
          "rain bucket: one working, one counterweight"),
         ("Reed switch, %g mm glass" % (P.reed_l - 0.5), 2, "anemometer 1, rain 1"),
-        ("M3 heat-set insert, about %g mm long" % P.m3_insert_l, 3 + 6 + 3,
-         "wind housing 3, box rim 6, board standoffs 3"),
+        ("M3 heat-set insert, about %g mm long" % P.m3_insert_l, 3 + 6 + 3 + 2,
+         "wind housing 3, box rim 6, board standoffs 3, screen cap (lightning module) 2"),
         ("M3 x 8 screw, stainless", 3 + 6 + 3 + 2,
          "into inserts: wind lid 3, box lid 6, Board A 3; sky pod head 2 (self-tapping)"),
         ("M3 x 10 screw, stainless", 3, "cup hub cap, self-tapping into plastic"),
-        ("M3 x 6 screw, stainless", 3, "rain funnel to base, self-tapping"),
+        ("M3 x 6 screw, stainless", 3 + 2,
+         "rain funnel to base 3 (self-tapping); lightning module to the cap inserts 2"),
         ("M3 x 16 screw, stainless", 2, "rain bucket stops: the heads are the stops"),
         ("M3 x %d screw + nyloc nut (or 3 mm rod)" % axle, 1, "rain bucket axle"),
-        ("M3 x %d screw + nut" % scr, 3, "clamps the screen stack"),
+        ("M4 x %d socket-head screw + M4 nut" % scr, 3, "clamps the screen stack (nut trapped in the base)"),
         ("M5 washer", 12, "one under each foot and tab screw head, to spread the load on ASA"),
         ("M5 x 12 button head + 2020 T-nut", 2 + 2 + 2,
          "6 mm feet: wind kit, sky pod, solar bracket (each foot has 4 holes; use an opposite pair)"),
         ("M5 x 10 button head + 2020 T-nut", 2, "box tabs, %g mm thick" % P.enc_tab_t),
         ("M5 x 8 button head + 2020 T-nut", 2 + 2, "3 mm bases: rain gauge, screen"),
-        ("PG7 cable gland", 1 + 2, "wind housing 1, box 2 (screen pigtails)"),
+        ("PG7 cable gland", 1, "wind housing"),
         ("GX16-5 socket + plug", 1, "WIND"),
+        ("GX16-8 socket + plug", 1, "ENV: screen cable to Board A J4 + J5"),
         ("GX12-3 socket + plug", 1, "RAIN"),
         ("GX12-2 socket + plug", 1, "SOLAR"),
         ("GX12-4 socket + plug", 1, "SKY, to Board A's Qwiic port"),
@@ -190,7 +192,7 @@ def main():
     for sub in ("step", "print"):
         os.makedirs(os.path.join(out, sub), exist_ok=True)
 
-    QTY.update({"tpu_washer_gland": 3, "tpu_washer_gx12": 3,
+    QTY.update({"tpu_washer_gland": 1, "tpu_washer_gx12": 3, "tpu_washer_gx16": 2,
                 "wind_spacer": 2, "wind_shim": 2, "cup_arm": int(P.n_cups), "screen_plate": int(P.scr_plates)})
     parts = {}
     for mod in (wind, rain, screen, enclosure, sky):
