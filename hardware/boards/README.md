@@ -10,9 +10,15 @@ a per-board BOM **with designators**, and a bring-up checklist.
 | [board-b-environment.md](board-b-environment.md) | **B — environment** | inside the Stevenson screen |
 | [board-d-wind.md](board-d-wind.md) | **D — wind interface** | masthead junction |
 
-**Forward-looking:** [board-a-rev2-brainstorm.md](board-a-rev2-brainstorm.md) — open debate on
-the next core board (power topology, solar-vs-primary cell, cold-climate strategy). Argument,
-not specification; rev 0 stays the source of truth until something there is decided.
+**Forward-looking:**
+
+- [board-a-rev2-brainstorm.md](board-a-rev2-brainstorm.md) — open debate on the next core
+  board (power topology, solar-vs-primary cell, cold-climate strategy). Argument, not
+  specification; rev 0 stays the source of truth until something there is decided.
+- [board-c-sky-brainstorm.md](board-c-sky-brainstorm.md) — **C, the eye**: camera hardware,
+  what pixels actually cost on the mesh at each of the E220's six air rates (and the one
+  narrow mode where sending them works), the window and heater that decide image quality,
+  and a ranked, sceptical account of what sky imagery is worth to a forecast.
 
 (The coordinator gets its own sheet when its design pass starts; the rain gauge is a
 bare reed switch and has no PCB.)
