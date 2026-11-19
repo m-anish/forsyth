@@ -15,5 +15,15 @@ order went out — paired with the matching gerber zip in `../fab/`.
 | `board-a-rev0-schematic.enet` / `-pcb.enet` | Netlists from each editor — diffable pair; they should describe the same design |
 | `board-a-rev0.step` | 3D model (32 MB) — feeds the Onshape enclosure work |
 
+## board-b/ — REV0 (58 x 70 mm, laid out 2026-11-13, ordered 2026-11-18)
+
+| File | What it is |
+|---|---|
+| `board-b-rev0-schematic.pdf` | Schematic, EasyEDA Pro export |
+| `board-b-rev0-pcb.pdf` | Top and back views (copper, pads, silkscreen) rendered from the fab gerbers; EasyEDA's own PCB PDF export timed out over the bridge |
+
+Still to add by hand from EasyEDA Pro (project `forsyth-board-b`): `board-b-rev0.epro2`,
+the two `.enet` netlists and the `.step`. BOM and pick-and-place are in `../fab/board-b/`.
+
 Convention: every future fab order commits a fresh export set here, same
 names with the new rev, plus its gerber zip in `../fab/`.

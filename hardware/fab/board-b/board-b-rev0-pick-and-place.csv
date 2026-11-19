@@ -1,0 +1,16 @@
+Designator,Device,Footprint,Mid X,Mid Y,Ref X,Ref Y,Pad X,Pad Y,Pins,Layer,Rotation,SMD,Comment,Value,Type,Supplier,Datasheet
+C1,CC0805KRX7R9BB104,C0805,29mm,62.8mm,29mm,62.8mm,28mm,62.8mm,2,T,0,Yes,100nF,100nF,,LCSC,https://item.szlcsc.com/datasheet/CC0805KRX7R9BB104/50686.html
+C2,CC0805KRX7R9BB104,C0805,48.999mm,55.499mm,48.999mm,55.499mm,47.999mm,55.499mm,2,T,0,Yes,100nF,100nF,,LCSC,https://item.szlcsc.com/datasheet/CC0805KRX7R9BB104/50686.html
+C3,CC0805KRX7R9BB104,C0805,11.001mm,55.999mm,11.001mm,55.999mm,10.001mm,55.999mm,2,T,0,Yes,100nF,100nF,,LCSC,https://item.szlcsc.com/datasheet/CC0805KRX7R9BB104/50686.html
+C8,CL21A106KAYNNNE_C15850,C0805,6.5mm,14mm,6.5mm,14mm,5.5mm,14mm,2,T,0,Yes,10uF,10uF,,LCSC,https://item.szlcsc.com/datasheet/CL21A106KAYNNNE/16532.html
+R1,0805W8F1002T5E,R0805,12mm,14mm,12mm,14mm,11mm,14mm,2,T,0,Yes,10kΩ,10kΩ,Thick Film Resistor,LCSC,https://item.szlcsc.com/datasheet/0805W8F1002T5E/18102.html
+R2,0805W8F1002T5E,R0805,17mm,14mm,17mm,14mm,16mm,14mm,2,T,0,Yes,10kΩ,10kΩ,Thick Film Resistor,LCSC,https://item.szlcsc.com/datasheet/0805W8F1002T5E/18102.html
+R7,0805W8F1002T5E,R0805,38.5mm,9mm,38.5mm,9mm,37.5mm,9mm,2,T,0,Yes,10kΩ,10kΩ,Thick Film Resistor,LCSC,https://item.szlcsc.com/datasheet/0805W8F1002T5E/18102.html
+R8,0805W8F1002T5E,R0805,45.5mm,9mm,45.5mm,9mm,44.5mm,9mm,2,T,0,Yes,10kΩ,10kΩ,Thick Film Resistor,LCSC,https://item.szlcsc.com/datasheet/0805W8F1002T5E/18102.html
+U1,SHT40-AD1B-R2,DFN-4_L1.5-W1.5-P0.8-TL-EP,29mm,66.5mm,29mm,66.5mm,28.323mm,66.9mm,5,T,0,Yes,SHT40-AD1B-R2,,,LCSC,https://item.szlcsc.com/datasheet/SHT40-AD1B-R2/3188621.html
+J1,XH-8AW_C10395,CONN-TH_8P_XH-8AW,15mm,9.65mm,15mm,9.65mm,23.75mm,9.65mm,8,T,180,No,XH-8AW,,,LCSC,https://item.szlcsc.com/datasheet/XH-8AW/10938.html
+J3,PM127-2-05-S-4.3,HDR-SMD_10P-P1.27-V-F-R2-C5-LS4.8,48.425mm,19.425mm,48.425mm,19.425mm,46.625mm,16.885mm,10,B,90,Yes,PM127-2-05-S-4.3,,,LCSC,https://item.szlcsc.com/datasheet/PM127-2-05-S-4.3/4543682.html
+J4,533980871,CONN-SMD_533980871,46mm,7mm,46mm,7mm,50.375mm,8.375mm,10,B,0,Yes,533980871,,,LCSC,https://www.molex.com/content/dam/molex/molex-dot-com/products/automated/en-us/salesdrawingpdf/533/53398/533980871_sd.pdf?inline\
+J5,HX PM2.54-1x4P TP H8.5-ZQ,HDR-SMD_4P-P2.54-V-F-LS4.7-R1,47mm,61.999mm,47mm,61.999mm,43.19mm,60.499mm,4,T,0,Yes,HX PM2.54-1x4P TP H8.5-ZQ,,,LCSC,https://item.szlcsc.com/datasheet/HX%2520PM2.54-1x4P%2520TP%2520H8.5-ZQ/50919950.html
+J2,B5B-PH-SM4-TB(LF)(SN),CONN-SMD_5P-P2.00_B6B-PH-SM4-TB-LF-SN,11.001mm,61.001mm,11.001mm,61.001mm,15.001mm,62.126mm,7,T,0,Yes,B5B-PH-SM4-TB(LF)(SN),,,LCSC,https://item.szlcsc.com/datasheet/B5B-PH-SM4-TB(LF)(SN)/255456.html
+U2,MS560702BA03-50,SENSOR-SMD_MS560702BA03-50,45.001mm,55.499mm,45.001mm,55.499mm,43.901mm,57.374mm,8,T,0,Yes,MS560702BA03-50,,,LCSC,https://item.szlcsc.com/datasheet/MS560702BA03-50/98835.html
