@@ -2636,7 +2636,7 @@
   "P044": {
    "material": "ASA",
    "color": "white",
-   "status": "sliced",
+   "status": "done",
    "created": "2026-11-19T16:06:04+05:30",
    "bed": [
     0.0,
@@ -2681,6 +2681,29 @@
     "warnings": [
      "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
     ]
+   },
+   "obico": {
+    "file": "forsyth-station_P044_d5f4ff.gcode",
+    "gcode_sha": "d5f4ffd22635",
+    "at": "2026-11-19T20:26:55+05:30"
+   },
+   "remote": {
+    "path": "Obico_Upload/forsyth_station_P044_d5f4ff.gcode",
+    "gcode_sha": "d5f4ffd22635",
+    "at": "2026-11-19T20:26:55+05:30",
+    "via": "obico library"
+   },
+   "job": {
+    "status": "completed",
+    "duration_s": 7568,
+    "filament_mm": 17675,
+    "skipped": []
+   },
+   "result": {
+    "printed": {
+     "wind_body": 1
+    },
+    "failed": {}
    }
   },
   "P045": {
