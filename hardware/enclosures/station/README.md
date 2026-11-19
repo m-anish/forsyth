@@ -181,6 +181,9 @@ hold a 4 to 5 mm cable in the mast.
 - `enclosure_body` is the largest footprint (163 x 159 mm): use a brim and a
   draught shield against ASA warping.
 - Print `wind_spacer` x2, `wind_shim` x2, `cup_arm` x3, `screen_plate` x5.
+- Two ASA colours: the vane and cups (`vane_*`, `cup_*`) in a second colour, any
+  tone; everything else white. `build.py` tags each part in `out/parts.json` and
+  the print tracker never puts two colours on one plate.
 - TPU parts (`tpu_*`): 95A, 100 % infill, flat on the bed, slow. Quantities are
   in the report (`tpu_washer_gland` x1, `tpu_washer_gx12` x3, `tpu_washer_gx16` x2).
 - `sky_mount` prints with the mast face down, `sky_head` upside down. Print

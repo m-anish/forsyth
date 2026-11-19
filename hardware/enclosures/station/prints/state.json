@@ -3,7 +3,7 @@
  "plates": {
   "P001": {
    "material": "ASA",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:26:20+05:30",
    "bed": [
     0.0,
@@ -73,7 +73,7 @@
   },
   "P002": {
    "material": "ASA",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:26:26+05:30",
    "bed": [
     0.0,
@@ -142,7 +142,7 @@
   },
   "P003": {
    "material": "ASA",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:26:33+05:30",
    "bed": [
     0.0,
@@ -186,7 +186,7 @@
   },
   "P004": {
    "material": "ASA",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:26:35+05:30",
    "bed": [
     0.0,
@@ -230,7 +230,7 @@
   },
   "P005": {
    "material": "ASA",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:26:38+05:30",
    "bed": [
     0.0,
@@ -499,7 +499,7 @@
   },
   "P012": {
    "material": "ASA",
-   "status": "planned",
+   "status": "dropped",
    "created": "2026-11-19T13:26:58+05:30",
    "bed": [
     0.0,
@@ -551,11 +551,36 @@
      "margin": 30.0
     }
    ],
-   "notes": []
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T13:39:15+05:30",
+    "project_sha": "cb99a89e4d73",
+    "gcode_sha": "e847e54d1560",
+    "time": "2h 34m 55s",
+    "grams": "53.15",
+    "layers": "167",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "wind_body_id_0_copy_0",
+     "cup_arm_id_1_copy_0",
+     "cup_arm_id_2_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   },
+   "remote": {
+    "path": "printshop/forsyth-station_P012_e847e5.gcode",
+    "gcode_sha": "e847e54d1560",
+    "at": "2026-11-19T13:41:45+05:30"
+   }
   },
   "P013": {
    "material": "ASA",
-   "status": "sliced",
+   "status": "uploaded",
    "created": "2026-11-19T13:27:01+05:30",
    "bed": [
     0.0,
@@ -597,9 +622,9 @@
    ],
    "notes": [],
    "slice": {
-    "at": "2026-11-19T13:27:10+05:30",
+    "at": "2026-11-19T13:33:11+05:30",
     "project_sha": "92b44dfa845e",
-    "gcode_sha": "6d6309584200",
+    "gcode_sha": "0ab839f0ec38",
     "time": "1h 19m 44s",
     "grams": "28.31",
     "layers": "236",
@@ -614,6 +639,11 @@
     "warnings": [
      "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
     ]
+   },
+   "remote": {
+    "path": "printshop/forsyth-station_P013_0ab839.gcode",
+    "gcode_sha": "0ab839f0ec38",
+    "at": "2026-11-19T13:33:42+05:30"
    }
   },
   "P014": {
@@ -744,6 +774,472 @@
      "brim": "",
      "brim_mm": 0.0,
      "margin": 15.0
+    }
+   ],
+   "notes": []
+  },
+  "P015": {
+   "material": "ASA",
+   "color": "accent",
+   "status": "uploaded",
+   "created": "2026-11-19T13:45:13+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "cup_arm"
+    },
+    {
+     "part": "cup_arm"
+    },
+    {
+     "part": "cup_hub"
+    },
+    {
+     "part": "cup_hub_cap"
+    }
+   ],
+   "part_sha": {
+    "cup_arm": "22a9f121a951",
+    "cup_hub": "361330735acf",
+    "cup_hub_cap": "67f4b58e3666"
+   },
+   "layout": [
+    {
+     "part": "cup_arm",
+     "x": 134.74,
+     "y": 77.25,
+     "rot": 0,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    },
+    {
+     "part": "cup_arm",
+     "x": 134.42,
+     "y": 144.25,
+     "rot": 180,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    },
+    {
+     "part": "cup_hub",
+     "x": 68.38,
+     "y": 113.55,
+     "rot": 90,
+     "brim": "brim_ears",
+     "brim_mm": 4.0,
+     "margin": 30.0
+    },
+    {
+     "part": "cup_hub_cap",
+     "x": 63.0,
+     "y": 63.75,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T13:45:42+05:30",
+    "project_sha": "cd409ddb584f",
+    "gcode_sha": "11ef59dd61e6",
+    "time": "1h 8m 52s",
+    "grams": "22.50",
+    "layers": "172",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "cup_arm_id_0_copy_0",
+     "cup_arm_id_1_copy_0",
+     "cup_hub_id_2_copy_0",
+     "cup_hub_cap_id_3_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   },
+   "remote": {
+    "path": "printshop/forsyth-station_P015_11ef59.gcode",
+    "gcode_sha": "11ef59dd61e6",
+    "at": "2026-11-19T13:49:46+05:30"
+   }
+  },
+  "P016": {
+   "material": "ASA",
+   "color": "white",
+   "status": "uploaded",
+   "created": "2026-11-19T13:45:17+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "wind_body"
+    },
+    {
+     "part": "wind_shim"
+    }
+   ],
+   "part_sha": {
+    "wind_body": "b8f613b8fc15",
+    "wind_shim": "34d3aea651d2"
+   },
+   "layout": [
+    {
+     "part": "wind_body",
+     "x": 111.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_shim",
+     "x": 33.81,
+     "y": 73.81,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T13:45:48+05:30",
+    "project_sha": "36f2fca2f1ca",
+    "gcode_sha": "4b65393e98e4",
+    "time": "2h 8m 47s",
+    "grams": "44.47",
+    "layers": "167",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "wind_body_id_0_copy_0",
+     "wind_shim_id_1_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   },
+   "remote": {
+    "path": "printshop/forsyth-station_P016_4b6539.gcode",
+    "gcode_sha": "4b65393e98e4",
+    "at": "2026-11-19T13:50:02+05:30"
+   }
+  },
+  "P017": {
+   "material": "ASA",
+   "color": "white",
+   "status": "planned",
+   "created": "2026-11-19T13:45:24+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "enclosure_body"
+    },
+    {
+     "part": "sky_head"
+    }
+   ],
+   "part_sha": {
+    "enclosure_body": "5346231169a3",
+    "sky_head": "60e39cc34c67"
+   },
+   "layout": [
+    {
+     "part": "enclosure_body",
+     "x": 109.53,
+     "y": 124.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 10.0
+    },
+    {
+     "part": "sky_head",
+     "x": 192.77,
+     "y": 27.23,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P018": {
+   "material": "ASA",
+   "color": "white",
+   "status": "planned",
+   "created": "2026-11-19T13:45:28+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_plate"
+    }
+   ],
+   "part_sha": {
+    "screen_plate": "ed94ff5de5cf"
+   },
+   "layout": [
+    {
+     "part": "screen_plate",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P019": {
+   "material": "ASA",
+   "color": "white",
+   "status": "uploaded",
+   "created": "2026-11-19T13:53:07+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "wind_lid"
+    },
+    {
+     "part": "wind_pcb_ring"
+    },
+    {
+     "part": "wind_spacer"
+    },
+    {
+     "part": "wind_spacer"
+    },
+    {
+     "part": "wind_shim"
+    }
+   ],
+   "part_sha": {
+    "wind_lid": "a8d3292319e7",
+    "wind_pcb_ring": "1f6f73800708",
+    "wind_spacer": "ce42b29fadb2",
+    "wind_shim": "34d3aea651d2"
+   },
+   "layout": [
+    {
+     "part": "wind_lid",
+     "x": 110.0,
+     "y": 76.19,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_pcb_ring",
+     "x": 102.45,
+     "y": 149.65,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 12.0
+    },
+    {
+     "part": "wind_spacer",
+     "x": 139.8,
+     "y": 125.8,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    },
+    {
+     "part": "wind_spacer",
+     "x": 110.8,
+     "y": 153.8,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    },
+    {
+     "part": "wind_shim",
+     "x": 101.81,
+     "y": 139.81,
+     "rot": 0,
+     "brim": "",
+     "brim_mm": 0.0,
+     "margin": 30.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T13:53:35+05:30",
+    "project_sha": "7db69e8146ae",
+    "gcode_sha": "b2bc74c27f4a",
+    "time": "25m 29s",
+    "grams": "10.00",
+    "layers": "90",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "wind_lid_id_0_copy_0",
+     "wind_pcb_ring_id_1_copy_0",
+     "wind_spacer_id_2_copy_0",
+     "wind_spacer_id_3_copy_0",
+     "wind_shim_id_4_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   },
+   "remote": {
+    "path": "printshop/forsyth-station_P019_b2bc74.gcode",
+    "gcode_sha": "b2bc74c27f4a",
+    "at": "2026-11-19T13:53:51+05:30"
+   }
+  },
+  "P020": {
+   "material": "ASA",
+   "color": "white",
+   "status": "sliced",
+   "created": "2026-11-19T13:53:17+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "enclosure_lid"
+    }
+   ],
+   "part_sha": {
+    "enclosure_lid": "5bf06a48004b"
+   },
+   "layout": [
+    {
+     "part": "enclosure_lid",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": [],
+   "slice": {
+    "at": "2026-11-19T13:54:30+05:30",
+    "project_sha": "45ab6cb7c6c2",
+    "gcode_sha": "bccdf57d8b62",
+    "time": "1h 9m 57s",
+    "grams": "37.06",
+    "layers": "18",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "enclosure_lid_id_0_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
+  },
+  "P021": {
+   "material": "ASA",
+   "color": "white",
+   "status": "planned",
+   "created": "2026-11-19T13:53:22+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_cap"
+    }
+   ],
+   "part_sha": {
+    "screen_cap": "17a0decfa713"
+   },
+   "layout": [
+    {
+     "part": "screen_cap",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
+    }
+   ],
+   "notes": []
+  },
+  "P022": {
+   "material": "ASA",
+   "color": "white",
+   "status": "planned",
+   "created": "2026-11-19T13:53:23+05:30",
+   "bed": [
+    0.0,
+    0.0,
+    220.0,
+    220.0
+   ],
+   "instances": [
+    {
+     "part": "screen_base"
+    }
+   ],
+   "part_sha": {
+    "screen_base": "711ec2e668ae"
+   },
+   "layout": [
+    {
+     "part": "screen_base",
+     "x": 110.0,
+     "y": 110.0,
+     "rot": 0,
+     "brim": "outer_only",
+     "brim_mm": 5.0,
+     "margin": 12.0
     }
    ],
    "notes": []
