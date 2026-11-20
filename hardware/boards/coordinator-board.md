@@ -113,9 +113,10 @@ Avoids strapping pins (0, 3, 45, 46), the USB pair (19, 20), UART0 (43, 44) and 
 
 ## 5. Open before layout
 
-1. W5500-lite: confirm the library footprint's rows sit 20.32 mm apart (else two 1 × 6
-   headers). The T-Lite drawing shows a 7th pad at the bottom of the right row and two more
-   along the bottom edge: check whether the module has pins there.
+1. W5500-lite: 2 × 6 pins confirmed (J1 and J2, RJ45 at the top; the T-Lite drawing's extra
+   pads belong to the T-Lite, not the module). Rows 20.32 mm = 8 × 2.54, so on the 0.1" grid.
+   Confirm the library footprint matches (else two 1 × 6 headers), and check the pin names
+   on the module's underside against the wiring before layout.
 2. The dual 18650 holder: footprint is Keystone 1048P; **measure the Robocraze holder's
    pads** against it before layout.
 3. Firmware: `config.py` pins for the Core1262, W5500 RST, `LORA_PWR`, the two sense pins.
