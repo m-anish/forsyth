@@ -116,7 +116,7 @@ const forsythMap = (() => {
     const row = (l, v) => v ? `<div class="r"><span>${l}</span><b>${v}</b></div>` : '';
     return `<div class="map-pop">
       <h4>${s.name} ${s.is_simulated ? '<span class="badge sim">rehearsal</span>' : ''}</h4>
-      <div class="l">${describe(s)} · ${agoLabel(s.last_seen)}</div>
+      <div class="l">${isStale(s.last_seen) ? 'last reading' : describe(s)} · ${agoLabel(s.last_seen)}</div>
       ${row('temp', s.temp_c != null ? fmt(s.temp_c, 1) + ' °C · ' + fmt(s.rh, 0) + '% rh' : '')}
       ${row('wind', s.wind_avg_ms != null ? `${fmt(s.wind_avg_ms,1)} m/s ${dirName(s.wind_dir_deg)} (gust ${fmt(s.wind_gust_ms,1)})` : '')}
       ${row('pressure', s.pressure_pa ? (s.pressure_pa / 100).toFixed(1) + ' hPa' : '')}

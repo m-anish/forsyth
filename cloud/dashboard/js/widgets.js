@@ -78,9 +78,16 @@ const Widgets = (() => {
     const pmStale = s.pm25 === null || s.pm25 === undefined
                  || pmAge === null || pmAge > AQI_STALE_S;
     const a = pmStale ? null : aqi(s.pm25, s.pm10);
+    /* The whole reading has a clock too (readingState, js/common.js). Fresh is
+       "now"; stale keeps the numbers, dimmed and aged, and drops everything
+       that describes now — the sentence, feels-like, the trend, the measured-
+       rain glyph; gone withholds the numbers. The sky glyph and scene stay at
+       any age: they come from the forecast model, not from the station. */
+    const age = readingState(s.last_seen);
+    const fresh = age === 'fresh', gone = age === 'gone' || age === 'none';
     const slp = pressureSeaLevelHpa(s.pressure_pa, s.elevation_m, s.temp_c);
     const fl = feelsLike(s.temp_c, s.rh, s.wind_avg_ms);
-    const showFeels = fl !== null && s.temp_c !== null && Math.abs(fl - s.temp_c) >= 1;
+    const showFeels = fresh && fl !== null && s.temp_c !== null && Math.abs(fl - s.temp_c) >= 1;
 
     /* The day's shape, measured — not forecast. One fetch, reused across the
        minute-by-minute refresh via a signature on the element. */
@@ -98,7 +105,7 @@ const Widgets = (() => {
         hiLo = `High ${Math.round(Math.max(...real))}° · Low ${Math.round(Math.min(...real))}°`;
         /* 3 h, the same window the pressure panel uses and the one met
            services quote — long enough to survive the taper's slow cadence. */
-        trend = trendHtml(trendFromSeries('temp_c', h.ts, vals, 3));
+        if (fresh) trend = trendHtml(trendFromSeries('temp_c', h.ts, vals, 3));
       }
     } catch { /* no history yet — the hero still works without it */ }
 
@@ -135,9 +142,13 @@ const Widgets = (() => {
       }
     } catch { /* no forecast: no glyph and no scene, rather than a guessed one */ }
     /* rain measured here always beats the model's opinion of the sky */
-    if ((s.rain_mm ?? 0) > 0.3) glyph = wxIcon('rain');
+    if (fresh && (s.rain_mm ?? 0) > 0.3) glyph = wxIcon('rain');
 
-    const says = [cap(describe(s)) + '.'];
+    const since = age === 'none' ? 'Nothing heard from this station yet.'
+      : `Nothing heard from the station since ${clockLabel(s.last_seen)}.`;
+    const says = fresh ? [cap(describe(s)) + '.']
+      : gone ? [since, 'The forecast is the best guide until it reports again.']
+      : [since, 'These are its last numbers, not the weather now.'];
     if (showFeels) says.push(`Feels like ${Math.round(fl)}°.`);
 
     /* Wind and gust were two blocks saying one thing. Together they read as a
@@ -185,7 +196,7 @@ const Widgets = (() => {
       el.innerHTML = '<div class="hero"></div>';
       hero = el.querySelector(':scope > .hero');
     }
-    hero.className = 'hero' + lit;
+    hero.className = 'hero' + lit + (fresh ? '' : ' is-old');
     const sh2 = lit ? Sky.shadow() : null;
     hero.style.cssText = sh2 ? `--sun-dx:${sh2.dx}px;--sun-dy:${sh2.dy}px` : '';
 
@@ -209,20 +220,25 @@ const Widgets = (() => {
       ${where}
       <div class="hero-top">
         ${glyph ? `<span class="hero-glyph">${glyph}</span>` : ''}
-        <span class="hero-temp">${fmt(s.temp_c, 1)}<span class="u">°C</span></span>
+        <span class="hero-temp">${gone ? '—' : fmt(s.temp_c, 1)}<span class="u">°C</span></span>
         ${trend}
       </div>
       <p class="hero-say">${says.join(' ')}</p>
       ${spark}
-      <div class="hero-meta">${hiLo ? hiLo + ' · ' : ''}${where ? '' : `measured at ${s.name}, `}${agoLabel(s.last_seen)}</div>
-      <div class="hero-stats">
+      <div class="hero-meta">${hiLo ? hiLo + ' · ' : ''}${where ? '' : `measured at ${s.name}, `}<span class="hero-age">${fresh ? '' : 'last reading '}${agoLabel(s.last_seen)}</span></div>
+      ${gone ? '' : `<div class="hero-stats">
         <div><span class="k">Humidity</span><span class="v">${fmt(s.rh, 0, '%')}</span></div>
         <div><span class="k">Wind</span><span class="v">${windCell}</span></div>
         <div><span class="k">Pressure</span><span class="v">${fmt(slp, 0, ' hPa')}</span></div>
         <div><span class="k">Air (${AQI_SCALE})</span><span class="v">${
           pmStale ? `— <span class="hero-sub2">${agoLabel(s.pm_ts)}</span>`
                   : `${a ?? '—'} ${aqiLabel(a)}`}</span></div>
-      </div>`;
+      </div>`}`;
+
+    /* In the local panel the card's own title says "Right now"; it only gets
+       to while that is true. */
+    const cellTitle = el.closest('.lp-cell') && el.closest('.lp-cell').querySelector('h4');
+    if (cellTitle) cellTitle.textContent = age === 'stale' ? 'Last reading' : 'Right now';
   }
 
   async function chart(el, config) {

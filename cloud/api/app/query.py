@@ -337,7 +337,7 @@ def health():
     """Mesh self-monitoring: last-seen, battery, staleness per station."""
     sql = text("""
         SELECT s.slug, s.is_simulated, r.ts AS last_seen, r.batt_v, r.rssi_dbm,
-               (r.ts IS NULL OR r.ts < now() - INTERVAL '30 minutes') AS stale
+               (r.ts IS NULL OR r.ts < now() - INTERVAL '75 minutes') AS stale
         FROM stations s
         LEFT JOIN LATERAL (
             SELECT ts, batt_v, rssi_dbm FROM readings

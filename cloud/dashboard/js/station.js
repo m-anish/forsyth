@@ -54,8 +54,20 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight' && S.nextSlug) location.href = `station.html?slug=${S.nextSlug}`;
 });
 
+/* The station list is cached so a failed fetch can still re-render: without
+   it the panels froze on their last good render, and a reading that was
+   "Right now" when the connection dropped stayed "Right now" for as long as
+   the outage lasted. Rendering from the cache keeps the age honest; the
+   rejection still propagates so tick() marks the page "not updating". */
 async function refreshNow() {
-  const { stations } = await getJSON('/stations');
+  let err = null;
+  try { S.stations = (await getJSON('/stations')).stations; }
+  catch (e) { err = e; }
+  if (S.stations) renderNow(S.stations);
+  if (err) throw err;
+}
+
+function renderNow(stations) {
   const st = stations.find(x => x.slug === slug);
   renderStnav(stations);
   if (!st) { document.getElementById('head-name').textContent = 'Unknown station.'; return; }
@@ -73,32 +85,70 @@ async function refreshNow() {
     (st.is_simulated ? ' · This station exists only in arithmetic, for now.' : '');
   document.getElementById('seen').textContent = agoLabel(st.last_seen);
 
-  document.getElementById('now-temp').innerHTML = `${fmt(st.temp_c, 1)}<span class="u">°C</span>`;
-  document.getElementById('now-desc').textContent = describe(st);
-  const cb = cloudBaseM(st.temp_c, st.rh);
-  const cbLabel = cb === null ? '—' : cb < 100 ? 'on the deck' : `~${cb} m up`;
-  document.getElementById('now-kv').innerHTML = `
-    <div><span class="k">Humidity</span><span class="v">${fmt(st.rh, 0, '%')}</span></div>
-    <div><span class="k">Wind</span><span class="v">${windText(st)}</span></div>
-    <div><span class="k">Gust</span><span class="v">${gustText(st)}</span></div>
-    <div><span class="k">Rain (last report)</span><span class="v">${fmt(st.rain_mm, 1)} mm</span></div>
-    <div><span class="k">Dew point</span><span class="v">${fmt(dewPoint(st.temp_c, st.rh), 1)} °C</span></div>
-    <div><span class="k">Cloud base (est.)</span><span class="v">${cbLabel}</span></div>`;
+  /* One freshness rule for every current-value panel (readingState,
+     js/common.js). "Right now" is only a title while it is true. */
+  const age = readingState(st.last_seen);
+  S.age = age;
+  const old = age !== 'fresh';
+  document.body.classList.toggle('reading-old', old);
+  document.getElementById('now-panel').classList.toggle('is-old', age === 'stale');
+  document.getElementById('pres-panel').classList.toggle('is-old', age === 'stale');
+  document.getElementById('hk-kv').classList.toggle('is-old', old);
+
+  const title = document.getElementById('now-title');
+  const big = document.getElementById('now-temp');
+  const desc = document.getElementById('now-desc');
+  const kv = document.getElementById('now-kv');
+  const since = age === 'none' ? 'Nothing heard from this station yet.'
+    : `Nothing heard from the station since ${clockLabel(st.last_seen)}.`;
+
+  if (age === 'gone' || age === 'none') {
+    /* Withheld, not dimmed: see READING_GONE_S. The forecast is the panel
+       directly above this one, so it is named as where to look instead. */
+    title.textContent = 'Right now';
+    big.innerHTML = `—<span class="u">°C</span>`;
+    desc.textContent = `${since} The forecast above is the best guide until it reports again.`;
+    kv.innerHTML = '';
+  } else {
+    title.textContent = old ? `Last reading · ${agoLabel(st.last_seen)}` : 'Right now';
+    big.innerHTML = `${fmt(st.temp_c, 1)}<span class="u">°C</span>`;
+    /* describe() is a sentence about the weather now ("calm, dry"); from an
+       old reading it is a claim the station cannot make. */
+    desc.textContent = old ? `${since} These are its last numbers, not the weather now.`
+                           : describe(st);
+    const cb = cloudBaseM(st.temp_c, st.rh);
+    const cbLabel = cb === null ? '—' : cb < 100 ? 'on the deck' : `~${cb} m up`;
+    kv.innerHTML = `
+      <div><span class="k">Humidity</span><span class="v">${fmt(st.rh, 0, '%')}</span></div>
+      <div><span class="k">Wind</span><span class="v">${windText(st)}</span></div>
+      <div><span class="k">Gust</span><span class="v">${gustText(st)}</span></div>
+      <div><span class="k">Rain (last report)</span><span class="v">${fmt(st.rain_mm, 1)} mm</span></div>
+      <div><span class="k">Dew point</span><span class="v">${fmt(dewPoint(st.temp_c, st.rh), 1)} °C</span></div>
+      <div><span class="k">Cloud base (est.)</span><span class="v">${cbLabel}</span></div>`;
+  }
 
   /* Sea-level, not station: 838 hPa at 1676 m is correct and reads as broken
      to anyone who knows sea level is ~1013 (§3.4). The station figure stays,
      on hover, because it is the one actually measured. */
   const slpEl = document.getElementById('pres-now');
-  const slpV = pressureSeaLevelHpa(st.pressure_pa, st.elevation_m, st.temp_c);
+  const slpV = (age === 'gone' || age === 'none') ? null
+    : pressureSeaLevelHpa(st.pressure_pa, st.elevation_m, st.temp_c);
   slpEl.textContent = slpV === null ? '—' : slpV.toFixed(1);
-  slpEl.title = st.pressure_pa
+  slpEl.title = st.pressure_pa && slpV !== null
     ? `${(st.pressure_pa / 100).toFixed(1)} hPa measured at the station, ${Math.round(st.elevation_m)} m up`
     : '';
+  document.getElementById('pres-label').textContent =
+    'hPa at sea level' + (old && slpV !== null ? ` · ${agoLabel(st.last_seen)}` : '');
 
   /* air quality + wind rose are shared board widgets now (renderWidgets) */
 
+  /* Housekeeping keeps its numbers at any age — a dead station's last
+     battery voltage is exactly what you want to see — but they are dimmed and
+     say they are the last report, because "charging allowed" in the present
+     tense from a station silent since yesterday is wrong. */
+  const tag = old ? ' · last report' : '';
   document.getElementById('hk-batt').textContent = fmt(st.batt_v, 2, ' V');
-  document.getElementById('hk-solar').textContent = solarWord(st.solar_state);
+  document.getElementById('hk-solar').textContent = solarWord(st.solar_state) + tag;
   const rw = rssiWord(st.rssi_dbm);
   document.getElementById('hk-rssi').textContent =
     fmt(st.rssi_dbm, 0, ' dBm') + (rw ? ` · ${rw}` : '');
@@ -108,9 +158,19 @@ async function refreshNow() {
 /* ---------- pressure trend ---------- */
 
 async function refreshPressureTrend() {
-  const d = await getJSON(`/stations/${slug}/series?metrics=pressure_pa,temp_c&hours=3`);
   const el = document.getElementById('pres-trend');
   const verdict = document.getElementById('pres-verdict');
+
+  /* A 3 h trend ending hours ago is not a tendency, and "Steady. No drama
+     expected." from it is a forecast the station is in no position to make.
+     Same rule as the panels above (readingState). */
+  if (S.age && S.age !== 'fresh') {
+    document.getElementById('now-trend').innerHTML = '';
+    el.innerHTML = '<span class="tr-win">no recent readings</span>';
+    verdict.textContent = '';
+    return;
+  }
+  const d = await getJSON(`/stations/${slug}/series?metrics=pressure_pa,temp_c&hours=3`);
 
   /* temperature gets the same treatment, in the same window */
   const tt = trendOf('temp_c', d.ts, d.series.temp_c || [], 3);
@@ -274,7 +334,7 @@ async function drawCharts() {
   S.charts.batt = makeChart(document.getElementById('chart-batt'), [
     { label: 'Battery V', stroke: COL.batt, width: 1.5 },
   ], gapped(battD, ['batt_v']),
-     { height: 120, uplot: { plugins: nightPlugins() } });
+     { height: 220, uplot: { plugins: nightPlugins() } });
 }
 
 /* ---------- forecast panel ---------- */

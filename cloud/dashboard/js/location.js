@@ -98,7 +98,7 @@ const ForsythLoc = (() => {
           first: a registered-but-silent station (one exists) would otherwise
           become the default and greet every visitor with a confident "—",
           which is worse than asking them to choose. */
-    const FRESH_MS = 30 * 60 * 1000, now = Date.now();
+    const FRESH_MS = READING_STALE_S * 1000, now = Date.now();   // js/common.js
     const live = sited.filter(s => s.last_seen &&
       now - new Date(s.last_seen).getTime() < FRESH_MS);
     const everHeard = sited.filter(s => s.last_seen)

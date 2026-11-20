@@ -373,6 +373,12 @@ h1.headline {
 .now .big { font-family: var(--mono); font-size: 52px; letter-spacing: -0.03em; line-height: 1; }
 .now .big .u { font-size: 0.4em; color: var(--text-mute); }
 .now .desc { color: var(--text-dim); margin: 8px 0 16px; font-size: 15px; }
+/* An old reading (readingState 'stale', js/common.js): the numbers stay but
+   step back, and the title carries the age in the colour every other
+   "this is not live" marker on the site uses. */
+.panel.is-old h3 { color: var(--ch-gust); }
+.now.is-old .big, .now.is-old .kv .v, .panel.is-old .aqi-num { opacity: .5; }
+.kv.is-old > div:not(:last-child) .v { opacity: .55; }
 /* auto-fit, not a fixed 1fr 1fr: inside a span4 panel two columns came out
    ~150px each, too narrow for "Rain (last report)" and its value — so
    flex-wrap dropped SOME values onto a second line and left others beside
@@ -1258,6 +1264,9 @@ html[data-hidden] .wx-scene * { animation-play-state: paused; }
 .hero-trend.up { color: var(--good); }
 .hero-trend.down { color: var(--bad); }
 .hero-say { margin: 9px 0 5px; font-size: 1.02rem; line-height: 1.4; color: var(--text); }
+.hero.is-old .hero-temp, .hero.is-old .hero-stats .v { opacity: .5; }
+.hero.is-old .hero-age { color: var(--ch-gust); }
+.lp-cell:has(.hero.is-old) > h4 { color: var(--ch-gust); }
 .hero-meta { font-family: var(--mono); font-size: 11px; color: var(--text-dim);
   margin: 2px 0 10px; }
 
