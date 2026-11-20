@@ -89,8 +89,51 @@ function agoLabel(iso) {
   return `${Math.round(s / 86400)} d ago`;
 }
 
-function isStale(iso) {
-  return !iso || (Date.now() - new Date(iso).getTime()) > 30 * 60 * 1000;
+/* How old a station's latest reading may be and still be shown as the weather
+   NOW. One rule for every card that shows a current value, so no two panels
+   disagree about whether a station is live.
+
+     fresh  ≤ 75 min   shown as now. Matches /health's `stale`, the map's grey
+                       chip and which station the homepage picks as live. Not
+                       30: the air-quality reading rides every 6th report, a
+                       ~30 min cycle at the default cadence, so a 30 min cut
+                       flickered a healthy station to stale between PM runs.
+                       75 covers that, and the battery taper's slowest step
+                       (×8, 40 min), with room for a dropped packet.
+     stale  ≤ 6 h      the numbers are real but they are not now. Shown dimmed,
+                       titled with their age, and anything that DESCRIBES now
+                       (the sentence, feels-like, trends, verdicts) is withheld
+                       — the same split the AQI card makes: the data stays,
+                       the conclusions drawn from it expire.
+     gone   > 6 h      withheld. A temperature from this morning, however well
+                       labelled, is the biggest thing on the card and the first
+                       thing read; on a mountain the day can swing 15 °C.
+     none              never heard from.                                      */
+const READING_STALE_S = 75 * 60;
+const READING_GONE_S = 6 * 3600;
+
+function readingState(iso) {
+  if (!iso) return 'none';
+  const a = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (!isFinite(a)) return 'none';
+  if (a <= READING_STALE_S) return 'fresh';
+  if (a <= READING_GONE_S) return 'stale';
+  return 'gone';
+}
+
+function isStale(iso) { return readingState(iso) !== 'fresh'; }
+
+/* "14:05" today, "yesterday 14:05", else "19 Nov 14:05" — for "nothing since …",
+   where a clock time says more than "9 h ago". */
+function clockLabel(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso), now = new Date();
+  const t = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const dd = Math.round((day(now) - day(d)) / 86400000);
+  if (dd === 0) return t;
+  if (dd === 1) return `yesterday ${t}`;
+  return `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })} ${t}`;
 }
 
 const DIRS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];

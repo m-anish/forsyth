@@ -8,15 +8,15 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/uplot@1.6.31/dist/uPlot.min.css" />
-  <link rel="stylesheet" href="css/dash.css?v=139" />
-  <link rel="stylesheet" href="css/board.css?v=139" />
+  <link rel="stylesheet" href="css/dash.css?v=141" />
+  <link rel="stylesheet" href="css/board.css?v=141" />
   <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
   <link rel="manifest" href="manifest.webmanifest" />
   <meta name="theme-color" content="#0b0c0e" />
-  <script src="js/sky.js?v=139"></script>
-  <script src="js/theme.js?v=139"></script>
+  <script src="js/sky.js?v=141"></script>
+  <script src="js/theme.js?v=141"></script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to the weather</a>
@@ -57,18 +57,18 @@
       <div id="forecast-box"></div>
     </section>
 
-    <section class="panel span4 now">
-      <h3>Right now</h3>
+    <section class="panel span4 now" id="now-panel">
+      <h3 id="now-title">Right now</h3>
       <div class="big" id="now-temp">—<span class="u">°C</span></div>
       <div id="now-trend"></div>
       <div class="desc" id="now-desc"></div>
       <div class="kv" id="now-kv"></div>
     </section>
 
-    <section class="panel span4">
+    <section class="panel span4" id="pres-panel">
       <h3>Pressure</h3>
       <div class="aqi-num" id="pres-now">—</div>
-      <div class="aqi-label">hPa at sea level</div>
+      <div class="aqi-label" id="pres-label">hPa at sea level</div>
       <p class="trend flat" id="pres-trend" style="margin:14px 0 0">— over 3 h</p>
       <p class="aqi-label" id="pres-verdict" style="margin-top:6px"></p>
     </section>
@@ -149,10 +149,10 @@
       <div class="wg-body" data-widget="lightning"></div>
     </section>
 
-    <section class="panel span4">
+    <section class="panel span8">
       <h3>Station health</h3>
       <div class="chart" id="chart-batt"></div>
-      <div class="kv" style="margin-top:10px">
+      <div class="kv" id="hk-kv" style="margin-top:10px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr))">
         <div><span class="k">Battery</span><span class="v" id="hk-batt">—</span></div>
         <div><span class="k">Solar</span><span class="v" id="hk-solar">—</span></div>
         <div><span class="k">Radio signal</span><span class="v" id="hk-rssi">—</span></div>
@@ -196,10 +196,10 @@
 </footer>
 
 <script src="https://unpkg.com/uplot@1.6.31/dist/uPlot.iife.min.js"></script>
-<script src="js/common.js?v=139"></script>
-<script src="js/auth.js?v=139"></script>
-<script src="js/report.js?v=139"></script>
-<script src="js/widgets.js?v=139"></script>
-<script src="js/station.js?v=139"></script>
+<script src="js/common.js?v=141"></script>
+<script src="js/auth.js?v=141"></script>
+<script src="js/report.js?v=141"></script>
+<script src="js/widgets.js?v=141"></script>
+<script src="js/station.js?v=141"></script>
 </body>
 </html>
