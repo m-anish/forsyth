@@ -133,6 +133,6 @@ listings, not live stock):
 | JST-SH 4-pin (Qwiic) | Evelta |
 | Pin headers, KF301 terminal, edge SMA, 220 µF SMD electrolytic | common |
 | F1 1812 PTC, 2 A hold | Sophix: Weite WT1812-20030 (2 A, 30 V, 1812, drops into the same footprint) |
-| **D1 SMAJ5.0A TVS** | **only DigiKey India found** |
+| D1 SMAJ5.0A TVS | Ktron: Vishay SMAJ5.0A-E3/61 (SMA, minimum order 7) |
 
-Replaced for availability: XB8089D → DW01A + FS8205A; CJ3407 → AO3401A (same SOT-23 pinout).
+Every part now has an Indian source. Replaced for availability: XB8089D → DW01A + FS8205A; CJ3407 → AO3401A (same SOT-23 pinout).
