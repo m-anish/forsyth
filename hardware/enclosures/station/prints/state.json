@@ -2504,7 +2504,7 @@
   "P043": {
    "material": "ASA",
    "color": "white",
-   "status": "sliced",
+   "status": "done",
    "created": "2026-11-19T16:06:00+05:30",
    "bed": [
     0.0,
@@ -2631,6 +2631,33 @@
     "warnings": [
      "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
     ]
+   },
+   "obico": {
+    "file": "forsyth_station_P043_b25f46.gcode",
+    "gcode_sha": "b25f46a92f77",
+    "at": "2026-11-20T19:04:45+05:30"
+   },
+   "remote": {
+    "path": "Obico_Upload/forsyth_station_P043_b25f46.gcode",
+    "gcode_sha": "b25f46a92f77",
+    "at": "2026-11-20T19:04:45+05:30",
+    "via": "obico library"
+   },
+   "job": {
+    "status": "completed",
+    "duration_s": 2265,
+    "filament_mm": 4548,
+    "skipped": []
+   },
+   "result": {
+    "printed": {
+     "wind_lid": 1,
+     "wind_pcb_ring": 1,
+     "rain_mesh": 1,
+     "wind_spacer": 2,
+     "wind_shim": 2
+    },
+    "failed": {}
    }
   },
   "P044": {
@@ -2709,7 +2736,7 @@
   "P045": {
    "material": "ASA",
    "color": "accent",
-   "status": "planned",
+   "status": "sliced",
    "created": "2026-11-19T16:06:21+05:30",
    "bed": [
     0.0,
@@ -2774,12 +2801,33 @@
      "margin": 12.0
     }
    ],
-   "notes": []
+   "notes": [],
+   "slice": {
+    "at": "2026-11-20T19:02:47+05:30",
+    "project_sha": "36acf2304518",
+    "gcode_sha": "21278bbf9508",
+    "time": "1h 36m 39s",
+    "grams": "33.97",
+    "layers": "236",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "vane_rotor_id_0_copy_0",
+     "cup_arm_id_1_copy_0",
+     "cup_arm_id_2_copy_0",
+     "cup_hub_cap_id_3_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
   },
   "P046": {
    "material": "ASA",
    "color": "accent",
-   "status": "planned",
+   "status": "sliced",
    "created": "2026-11-19T16:06:23+05:30",
    "bed": [
     0.0,
@@ -2819,12 +2867,31 @@
      "margin": 30.0
     }
    ],
-   "notes": []
+   "notes": [],
+   "slice": {
+    "at": "2026-11-20T19:02:50+05:30",
+    "project_sha": "cb71683a7b8e",
+    "gcode_sha": "6c0733aa84a3",
+    "time": "52m 2s",
+    "grams": "16.84",
+    "layers": "172",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "cup_arm_id_0_copy_0",
+     "cup_hub_id_1_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
   },
   "P047": {
    "material": "ASA",
    "color": "white",
-   "status": "planned",
+   "status": "sliced",
    "created": "2026-11-19T16:06:37+05:30",
    "bed": [
     0.0,
@@ -2864,12 +2931,31 @@
      "margin": 12.0
     }
    ],
-   "notes": []
+   "notes": [],
+   "slice": {
+    "at": "2026-11-20T19:02:55+05:30",
+    "project_sha": "bee08d94940a",
+    "gcode_sha": "f09e5eda343f",
+    "time": "4h 36m 16s",
+    "grams": "107.92",
+    "layers": "192",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "enclosure_body_id_0_copy_0",
+     "sky_head_id_1_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
   },
   "P048": {
    "material": "ASA",
    "color": "white",
-   "status": "planned",
+   "status": "sliced",
    "created": "2026-11-19T16:06:42+05:30",
    "bed": [
     0.0,
@@ -2896,12 +2982,30 @@
      "margin": 12.0
     }
    ],
-   "notes": []
+   "notes": [],
+   "slice": {
+    "at": "2026-11-20T19:02:57+05:30",
+    "project_sha": "9e43e483ae89",
+    "gcode_sha": "0146456422b2",
+    "time": "1h 9m 57s",
+    "grams": "37.06",
+    "layers": "18",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "enclosure_lid_id_0_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
   },
   "P049": {
    "material": "ASA",
    "color": "white",
-   "status": "planned",
+   "status": "sliced",
    "created": "2026-11-19T16:06:47+05:30",
    "bed": [
     0.0,
@@ -2928,12 +3032,31 @@
      "margin": 12.0
     }
    ],
-   "notes": []
+   "notes": [],
+   "slice": {
+    "at": "2026-11-20T19:03:00+05:30",
+    "project_sha": "6e9b56481f4b",
+    "gcode_sha": "846ce1e59e6d",
+    "time": "59m 31s",
+    "grams": "24.97",
+    "layers": "163",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "screen_cap_id_0_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences.",
+     "[warning] Detected non-planar Voronoi diagram, input polygons will be rotated back and forth."
+    ]
+   }
   },
   "P050": {
    "material": "ASA",
    "color": "white",
-   "status": "planned",
+   "status": "sliced",
    "created": "2026-11-19T16:06:49+05:30",
    "bed": [
     0.0,
@@ -2960,12 +3083,30 @@
      "margin": 12.0
     }
    ],
-   "notes": []
+   "notes": [],
+   "slice": {
+    "at": "2026-11-20T19:03:02+05:30",
+    "project_sha": "9752746b501e",
+    "gcode_sha": "5bed2d3f38df",
+    "time": "1h 28m 20s",
+    "grams": "25.68",
+    "layers": "402",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "screen_base_id_0_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
   },
   "P051": {
    "material": "ASA",
    "color": "white",
-   "status": "planned",
+   "status": "sliced",
    "created": "2026-11-19T16:06:51+05:30",
    "bed": [
     0.0,
@@ -2992,12 +3133,30 @@
      "margin": 12.0
     }
    ],
-   "notes": []
+   "notes": [],
+   "slice": {
+    "at": "2026-11-20T19:03:05+05:30",
+    "project_sha": "2b6144775e0f",
+    "gcode_sha": "d0196b7ae63d",
+    "time": "55m 34s",
+    "grams": "19.55",
+    "layers": "163",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "screen_plate_id_0_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
   },
   "P052": {
    "material": "ASA",
    "color": "white",
-   "status": "planned",
+   "status": "sliced",
    "created": "2026-11-19T16:06:53+05:30",
    "bed": [
     0.0,
@@ -3024,12 +3183,30 @@
      "margin": 12.0
     }
    ],
-   "notes": []
+   "notes": [],
+   "slice": {
+    "at": "2026-11-20T19:03:15+05:30",
+    "project_sha": "f254c46ce9e8",
+    "gcode_sha": "bca2dd16df57",
+    "time": "55m 34s",
+    "grams": "19.55",
+    "layers": "163",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "screen_plate_id_0_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
   },
   "P053": {
    "material": "ASA",
    "color": "white",
-   "status": "planned",
+   "status": "sliced",
    "created": "2026-11-19T16:06:55+05:30",
    "bed": [
     0.0,
@@ -3056,12 +3233,30 @@
      "margin": 12.0
     }
    ],
-   "notes": []
+   "notes": [],
+   "slice": {
+    "at": "2026-11-20T19:03:18+05:30",
+    "project_sha": "29e292e54a5f",
+    "gcode_sha": "45b9ab62bcc6",
+    "time": "55m 34s",
+    "grams": "19.55",
+    "layers": "163",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "screen_plate_id_0_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
   },
   "P054": {
    "material": "ASA",
    "color": "white",
-   "status": "planned",
+   "status": "sliced",
    "created": "2026-11-19T16:06:57+05:30",
    "bed": [
     0.0,
@@ -3088,12 +3283,30 @@
      "margin": 12.0
     }
    ],
-   "notes": []
+   "notes": [],
+   "slice": {
+    "at": "2026-11-20T19:03:21+05:30",
+    "project_sha": "04f00610523b",
+    "gcode_sha": "b22a4ee12150",
+    "time": "55m 34s",
+    "grams": "19.55",
+    "layers": "163",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "screen_plate_id_0_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
   },
   "P055": {
    "material": "ASA",
    "color": "white",
-   "status": "planned",
+   "status": "sliced",
    "created": "2026-11-19T16:07:00+05:30",
    "bed": [
     0.0,
@@ -3120,12 +3333,30 @@
      "margin": 12.0
     }
    ],
-   "notes": []
+   "notes": [],
+   "slice": {
+    "at": "2026-11-20T19:03:25+05:30",
+    "project_sha": "5ac8f00347ba",
+    "gcode_sha": "ba98952f1d1e",
+    "time": "55m 34s",
+    "grams": "19.55",
+    "layers": "163",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "screen_plate_id_0_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."
+    ]
+   }
   },
   "P056": {
    "material": "ASA",
    "color": "white",
-   "status": "planned",
+   "status": "sliced",
    "created": "2026-11-19T16:07:02+05:30",
    "bed": [
     0.0,
@@ -3178,12 +3409,33 @@
      "margin": 30.0
     }
    ],
-   "notes": []
+   "notes": [],
+   "slice": {
+    "at": "2026-11-20T19:03:38+05:30",
+    "project_sha": "49070aecb834",
+    "gcode_sha": "a4aadf8cb36d",
+    "time": "4h 53m 12s",
+    "grams": "132.17",
+    "layers": "639",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "rain_funnel_id_0_copy_0",
+     "solar_bracket_id_1_copy_0",
+     "rain_bucket_id_2_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences.",
+     "[warning] Detected missing Voronoi vertex, input polygons will be rotated back and forth."
+    ]
+   }
   },
   "P057": {
    "material": "ASA",
    "color": "white",
-   "status": "planned",
+   "status": "sliced",
    "created": "2026-11-19T16:07:03+05:30",
    "bed": [
     0.0,
@@ -3223,12 +3475,32 @@
      "margin": 30.0
     }
    ],
-   "notes": []
+   "notes": [],
+   "slice": {
+    "at": "2026-11-20T19:03:42+05:30",
+    "project_sha": "063368916b01",
+    "gcode_sha": "95c9af2d80eb",
+    "time": "1h 52m 56s",
+    "grams": "42.55",
+    "layers": "136",
+    "heaters": {
+     "bed": 110,
+     "nozzle": 260
+    },
+    "objects": [
+     "rain_base_id_0_copy_0",
+     "sky_mount_id_1_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences.",
+     "[warning] Detected non-planar Voronoi diagram, input polygons will be rotated back and forth."
+    ]
+   }
   },
   "P058": {
    "material": "TPU",
    "color": "tpu",
-   "status": "planned",
+   "status": "sliced",
    "created": "2026-11-19T16:07:08+05:30",
    "bed": [
     0.0,
@@ -3356,7 +3628,33 @@
      "margin": 15.0
     }
    ],
-   "notes": []
+   "notes": [],
+   "slice": {
+    "at": "2026-11-20T19:03:43+05:30",
+    "project_sha": "4b0cffc5c308",
+    "gcode_sha": "293ba34b01e6",
+    "time": "14m 4s",
+    "grams": "3.00",
+    "layers": "9",
+    "heaters": {
+     "bed": 30,
+     "nozzle": 230
+    },
+    "objects": [
+     "tpu_box_lid_gasket_id_0_copy_0",
+     "tpu_wind_lid_gasket_id_1_copy_0",
+     "tpu_washer_gx16_id_2_copy_0",
+     "tpu_washer_gx16_id_3_copy_0",
+     "tpu_washer_gland_id_4_copy_0",
+     "tpu_washer_gx12_id_5_copy_0",
+     "tpu_washer_gx12_id_6_copy_0",
+     "tpu_washer_gx12_id_7_copy_0",
+     "tpu_sky_can_seal_id_8_copy_0"
+    ],
+    "warnings": [
+     "[warning] got warnings: tpu_sky_can_seal is too close to others, there may be collisions when printing."
+    ]
+   }
   }
  },
  "adjust": {}
