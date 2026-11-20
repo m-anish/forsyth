@@ -117,10 +117,11 @@ Avoids strapping pins (0, 3, 45, 46), the USB pair (19, 20), UART0 (43, 44) and 
    pads belong to the T-Lite, not the module). Rows 20.32 mm = 8 × 2.54, so on the 0.1" grid.
    Pin names checked against the module's labels (2026-11-20): seen on the RJ45 face with the
    jack at the top, left column GND, GND, MOSI, SCLK, nSS, nINT and right column GND, VIN3.3,
-   VIN3.3, N.C., nRESET, MISO, which is the schematic's wiring. If the module plugs in with
-   the RJ45 face down, the columns swap sides as seen from above the carrier: **check which
-   face goes down** and place the footprint to match. Confirm the library footprint's pads
-   too (else two 1 × 6 headers).
+   VIN3.3, N.C., nRESET, MISO, which is the schematic's wiring. The module plugs in **RJ45 up**
+   (pins leave the chip side), so that is also the view from above the carrier: jack opening
+   toward the board edge, the GND-GND-MOSI row on the left. The jack overhangs the module's
+   PCB at the opening end, so let it hang over the carrier's edge. Confirm the library
+   footprint's pads (else two 1 × 6 headers).
 2. The dual 18650 holder: footprint is Keystone 1048P; **measure the Robocraze holder's
    pads** against it before layout.
 3. Firmware: `config.py` pins for the Core1262, W5500 RST, `LORA_PWR`, the two sense pins.
