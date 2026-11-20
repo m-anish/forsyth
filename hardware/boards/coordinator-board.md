@@ -212,5 +212,11 @@ from the bottom-left corner, y up, in mm.
 - **Copper:** GND pours on both layers. Net rules: 0.8 mm tracks for VBAT, BAT_CELL_N, SYS,
   BOOST_SW, 5V, VBUS, VIN_RAW and VBAT_LTE; 0.5 mm for GND, 3V3P, 5V_LORA and 3V3_SX; 0.254 mm
   for signals.
-- **To do:** route (the native autorouter, driven through the bridge, did not start; route in the
-  EasyEDA window), stitch the pours, silk ("RJ45 →", + and − on U9, module outlines), DRC.
+- **Routed** 2026-11-21 with EasyEDA's autorouter (run in the window; the bridge call hangs). DRC:
+  no clearance errors; two GND islands left to join by hand: H2 pin 1 (ESP32 GND at the antenna
+  end, boxed in by SX_PWR along the top edge and 3V3_SX on the bottom) and the divider grounds
+  R3/R5/R7/C6 under the ESP32. The 1048P footprint keeps the bottom pour out from under the whole
+  holder body, so there is no bottom GND plane under the modules: stitching vias there float.
+  SYS came out about 0.48 mm wide: widen it where there is room.
+- **To do:** join the two GND islands, widen SYS, silk ("RJ45 →", + and − on U9, module outlines),
+  final DRC, then the remaining module holes.
