@@ -126,8 +126,11 @@ Avoids strapping pins (0, 3, 45, 46), the USB pair (19, 20), UART0 (43, 44) and 
    right, outline 23.0 × 25.0 mm with the pins 0.7 mm nearer the bottom end, as on the module.
    So the jack-opening end is the pin 1/12 end: put that end at the board edge. Its silk does
    not show the jack; add an "RJ45 →" mark there in layout.
-2. The dual 18650 holder: footprint is Keystone 1048P; **measure the Robocraze holder's
-   pads** against it before layout.
+2. The dual 18650 holder: laid out on the Keystone 1048P footprint as a working estimate
+   (Anish, 2026-11-20: fix later if the Robocraze holder differs). Four 7.3 × 6.4 mm pads at
+   x ±40.0, y ±9.55 mm (cells 19.1 mm apart); the cells sit head-to-tail, so pins 1 and 4 (+)
+   are on opposite corners, as are 2 and 3 (−). The footprint also drills 3.2–3.5 mm holes for
+   Keystone's locating pegs; drop them if the generic holder has none.
 3. Firmware: `config.py` pins for the Core1262, W5500 RST, `LORA_PWR`, the two sense pins.
 
 ## 6. Buying it in India
