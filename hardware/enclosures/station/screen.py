@@ -9,7 +9,9 @@ import math
 import params as P
 from lib import *
 
-_POST_ANGLES = (90.0, 210.0, 330.0)
+# None on the 0/90/180/270 axes, so with either pair of foot holes on a 2020 the nuts that
+# stand proud under the base never sit on the profile.
+_POST_ANGLES = (75.0, 195.0, 315.0)
 
 
 def _cone_shell(closed):
@@ -24,7 +26,10 @@ def _cone_shell(closed):
 
 def plate():
     """One louvre; rim on the bed. The posts stand on the bed and stack post-on-post."""
-    s = fuse([_cone_shell(False)]
+    # a flat foot under the rim: the cone alone meets the bed on a knife edge, so its first
+    # layers would start in mid-air
+    foot = tube(2 * P.scr_r_out, 2 * (P.scr_r_out - 2.0), 0.6)
+    s = fuse([_cone_shell(False), foot]
              + [cyl(P.scr_post_d, P.scr_pitch, pol(P.scr_post_r, a)) for a in _POST_ANGLES])
     return cut(s, [cyl(P.scr_rod_d + 0.4, P.scr_pitch + 1, pol(P.scr_post_r, a, -0.5))
                    for a in _POST_ANGLES])
@@ -77,6 +82,10 @@ def cap_use():
     for a in _POST_ANGLES:
         cuts.append(cyl(P.scr_rod_d + 0.4, P.scr_pitch + 1, pol(P.scr_post_r, a, -0.5)))
         cuts.append(cyl(P.scr_head_d + 1.0, P.scr_pitch, pol(P.scr_post_r, a, seat)))  # head pocket
+        px, py, _ = pol(P.scr_post_r, a)
+        # printed upside down, the seat is a roof over the head pocket: bridge it
+        cuts += bridged_roof(cyl(P.scr_head_d + 1.0, 400, (px, py, -200)), P.scr_rod_d + 0.4, seat,
+                             toward=-1, angle=a, at=(px, py))
     return cut(s, cuts + fix_holes)
 
 
@@ -114,7 +123,9 @@ def base():
     for a in _POST_ANGLES:
         x, y, _ = pol(P.scr_post_r, a)
         cuts.append(cyl(P.scr_rod_d + 0.4, t + 1, (x, y, -0.5)))
-        cuts.append(rz(hexprism(P.scr_nut_af + 0.2, P.scr_nut_h - 0.4, (P.scr_post_r, 0, -0.01)), a))
+        cuts.append(rz(hexprism(P.scr_nut_af + 0.2, P.scr_nut_pocket + 0.01, (P.scr_post_r, 0, -0.01)), a))
+        cuts += bridged_roof(rz(hexprism(P.scr_nut_af + 0.2, 400, (P.scr_post_r, 0, -200)), a),
+                             P.scr_rod_d + 0.4, P.scr_nut_pocket, toward=1, angle=a, at=(x, y))
     # floor vents either side of the sill
     for a in (315,):
         cuts.append(cyl(9.0, t + 1, pol(P.scr_foot_r + 1.0, a, -0.5)))

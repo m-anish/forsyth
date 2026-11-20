@@ -11,14 +11,15 @@ Sizes are in print orientation (the meshes in `print/` are already turned that w
 | cup_arm | ASA | 3 | 77.3 | 54.0 | 23.5 | 4.8 | 5.2 | flat | 0 | ok |
 | cup_hub | ASA | 1 | 43.6 | 43.6 | 34.5 | 29.1 | 31.2 | flat | 404 | ok |
 | cup_hub_cap | ASA | 1 | 30.0 | 30.0 | 2.4 | 1.6 | 1.7 | flat | 0 | ok |
-| enclosure_body | ASA | 1 | 188.2 | 159.0 | 38.5 | 141.6 | 151.6 | flat | 166 | ok |
+| enclosure_body | ASA | 1 | 188.2 | 159.0 | 38.5 | 141.5 | 151.4 | flat | 65 | ok |
 | enclosure_lid | ASA | 1 | 168.2 | 137.0 | 3.7 | 57.5 | 61.6 | flat | 119 | ok |
 | rain_base | ASA | 1 | 113.2 | 113.2 | 27.3 | 40.8 | 43.6 | flat | 60 | ok |
 | rain_bucket | ASA | 1 | 64.0 | 37.6 | 20.0 | 5.7 | 6.1 | flat | 74 | ok |
 | rain_funnel | ASA | 1 | 113.2 | 113.2 | 127.8 | 93.0 | 99.5 | flat | 12 | ok |
-| screen_base | ASA | 1 | 138.0 | 138.0 | 80.5 | 35.6 | 38.0 | flat | 89 | ok |
-| screen_cap | ASA | 1 | 138.0 | 138.0 | 32.7 | 26.7 | 28.5 | flat | 105 | ok |
-| screen_plate | ASA | 5 | 138.0 | 138.0 | 32.7 | 19.9 | 21.3 | flat | 0 | ok |
+| rain_mesh | ASA | 1 | 40.0 | 40.0 | 1.6 | 1.3 | 1.4 | flat | 0 | ok |
+| screen_base | ASA | 1 | 138.0 | 138.0 | 80.5 | 35.6 | 38.1 | flat | 89 | ok |
+| screen_cap | ASA | 1 | 138.0 | 138.0 | 32.7 | 26.6 | 28.5 | flat | 107 | ok |
+| screen_plate | ASA | 5 | 138.0 | 138.0 | 32.7 | 20.4 | 21.8 | flat | 0 | ok |
 | sky_head | ASA | 1 | 30.5 | 30.5 | 22.8 | 7.3 | 7.8 | flat | 77 | ok |
 | sky_mount | ASA | 1 | 45.0 | 103.9 | 26.1 | 26.1 | 27.9 | flat | 196 | ok |
 | solar_bracket | ASA | 1 | 103.8 | 68.0 | 76.0 | 56.6 | 60.6 | flat | 139 | ok |
@@ -29,7 +30,7 @@ Sizes are in print orientation (the meshes in `print/` are already turned that w
 | tpu_washer_gx16 | TPU | 2 | 22.0 | 22.0 | 1.0 | 0.2 | 0.2 | flat | 0 | ok |
 | tpu_wind_lid_gasket | TPU | 1 | 73.1 | 70.6 | 0.8 | 0.5 | 0.6 | flat | 0 | ok |
 | vane_rotor | ASA | 1 | 208.0 | 39.5 | 47.2 | 37.5 | 40.1 | flat | 126 | ok |
-| wind_body | ASA | 1 | 164.1 | 70.6 | 33.4 | 67.1 | 71.8 | flat | 467 | ok |
+| wind_body | ASA | 1 | 164.1 | 70.6 | 33.4 | 65.8 | 70.4 | flat | 411 | ok |
 | wind_lid | ASA | 1 | 76.1 | 72.6 | 18.0 | 11.8 | 12.6 | flat | 72 | ok |
 | wind_pcb_ring | ASA | 1 | 60.9 | 60.9 | 1.7 | 0.5 | 0.6 | flat | 0 | ok |
 | wind_shim | ASA | 2 | 7.6 | 7.6 | 1.2 | 0.0 | 0.0 | flat | 0 | ok |
@@ -37,20 +38,20 @@ Sizes are in print orientation (the meshes in `print/` are already turned that w
 
 Overhang = down-facing surface shallower than 45 degrees that is not on the bed. Where it is not zero, the biggest contributors are:
 
-- cup_hub: 202 mm2 at z=7, 188 mm2 at z=30, 15 mm2 at z=9
-- enclosure_body: 57 mm2 at z=27, 39 mm2 at z=26, 31 mm2 at z=28
+- cup_hub: 202 mm2 at z=7, 182 mm2 at z=30, 15 mm2 at z=9
+- enclosure_body: 34 mm2 at z=28, 31 mm2 at z=30
 - enclosure_lid: 119 mm2 at z=1
 - rain_base: 25 mm2 at z=24, 18 mm2 at z=6, 17 mm2 at z=9
 - rain_bucket: 74 mm2 at z=5
 - rain_funnel: 10 mm2 at z=124, 3 mm2 at z=125
-- screen_base: 89 mm2 at z=3
-- screen_cap: 105 mm2 at z=30
+- screen_base: 77 mm2 at z=2, 12 mm2 at z=3
+- screen_cap: 105 mm2 at z=30, 1 mm2 at z=22
 - sky_head: 67 mm2 at z=8, 10 mm2 at z=18
 - sky_mount: 154 mm2 at z=16, 24 mm2 at z=14, 15 mm2 at z=25
 - solar_bracket: 106 mm2 at z=73, 12 mm2 at z=47, 11 mm2 at z=46
-- vane_rotor: 125 mm2 at z=28, 1 mm2 at z=17, 0 mm2 at z=18
-- wind_body: 228 mm2 at z=1, 72 mm2 at z=5, 50 mm2 at z=17
-- wind_lid: 72 mm2 at z=5
+- vane_rotor: 119 mm2 at z=28, 6 mm2 at z=29, 1 mm2 at z=17
+- wind_body: 228 mm2 at z=1, 50 mm2 at z=19, 42 mm2 at z=5
+- wind_lid: 42 mm2 at z=5, 31 mm2 at z=6
 
 ## Derived numbers
 
@@ -62,6 +63,7 @@ Overhang = down-facing surface shallower than 45 degrees that is not on the bed.
 - Magnet-to-reed distances (centre to centre): vane 8.8 mm through the lid; anemometer 7.6 mm through the floor; rain 6.0 mm passing, 9.3 mm at rest
 - Sky pod: opening 65 mm above the mast top, its lowest rim 7 mm above the top of the vane; vane tail passes 10 mm from the pod; view cone +/-40 deg, tilted 25 deg
 - Antenna (inside the box, whip up): 34 mm clear of the cell, 64 mm from the nearest face of the mast
+- Fit checks: cup_hub: M5 nut slides into its slot and over the bore ok; vane_rotor: M5 nut slides into its slot and over the bore ok; wind_body: gland locknut seats flat inside (4 mm of thread left for it) ok
 - Assembly clash check: none
 
 ## Hardware
@@ -70,7 +72,7 @@ Overhang = down-facing surface shallower than 45 degrees that is not on the bed.
 |---|---|---|
 | Ball bearing 5x16x5, shielded | 4 | wind: two per rotor |
 | M5 x 40 socket-head cap screw, stainless, part-threaded | 2 | wind: the two rotor shafts |
-| M5 hex nut, stainless | 8 | one trapped in each rotor hub; about six on the vane ballast screw |
+| M5 hex nut, stainless | 6 | one trapped in each rotor hub; up to 4 on the vane ballast screw (all that fit under the spine) |
 | M5 x 25 screw, stainless | 1 | vane nose ballast: add nuts until the rotor balances (10 to 15 g in all) |
 | Disc magnet 6x2 | 2 | vane 1, cups 1 |
 | Disc magnet 4x2 | 2 | rain bucket: one working, one counterweight |

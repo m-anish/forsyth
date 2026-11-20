@@ -1,0 +1,18 @@
+# build.forsyth.starstucklab.com: the assembly guide (public) and tracker (Cloudflare Access).
+# Deploy with ./deploy.sh. The Access settings the API checks tokens against are in [vars]
+# below (see README in this folder).
+name = "forsyth-build"
+compatibility_date = "2026-05-01"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "forsyth-build"
+database_id = "e6da3f9a-3a86-4c21-859d-2ae90e748942"
+
+# Cloudflare Access (Zero Trust team "damp-frog-65f7"; application "Forsyth build tracker"
+# on build.forsyth.starstucklab.com/app and /api). Not secrets: the API checks every token
+# against this team's public keys and this application's audience tag.
+[vars]
+ACCESS_TEAM_DOMAIN = "damp-frog-65f7.cloudflareaccess.com"
+ACCESS_AUD = "8b79ec64f744aed2687ae12b8b42917263d3cacfc846272c8088fb424429454d"

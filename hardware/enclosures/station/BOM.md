@@ -20,17 +20,17 @@ panel.
 | M5 x 40 socket head, SS202, full thread (rotor shafts) | 2 | 4 | 5.66 | 22.64 | [listing](https://omrook.com/ss-allen-bolt-m5-x-40mm-dia-5mm-length-40mm-stainless-steel-ss202-socket-head-cap-screws/) |
 | M5 x 25 socket head, SS202 (vane ballast) | 1 | 2 | 3.42 | 6.84 | [listing](https://omrook.com/ss-allen-bolt-m5-x-25mm-dia-5mm-length-25mm-stainless-steel-ss202-socket-head-cap-screws/) |
 | M5 x 12 button head, SS202 (6 mm feet) | 6 | 10 | 2.01 | 20.10 | [listing](https://omrook.com/ss-button-allen-m5-x-12mm-dia-5mm-length-12mm-stainless-steel-ss202-allen-socket-button-screws/) |
-| M5 x 10 button head, SS202 (box tabs) | 2 | 4 | 1.89 | 7.56 | [listing](https://omrook.com/ss-button-allen-m5-x-10mm-dia-5mm-length-10mm-stainless-steel-ss202-allen-socket-button-screws/) |
+| M5 x 10 button head, SS202 (box tabs 2, crossarm connectors 4) | 6 | 4 | 1.89 | 7.56 | [listing](https://omrook.com/ss-button-allen-m5-x-10mm-dia-5mm-length-10mm-stainless-steel-ss202-allen-socket-button-screws/) |
 | M5 x 8 button head, SS202 (3 mm bases) | 4 | 6 | 1.77 | 10.62 | [listing](https://omrook.com/ss-button-allen-m5-x-8mm-dia-5mm-length-8mm-stainless-steel-ss202-allen-socket-button-screws/) |
-| M5 hex nut, SS304, pack of 50 | 8 | 1 pack | 47.20 | 47.20 | [listing](https://omrook.com/ss-m5-5mm-hex-nut-stainless-steel-ss304-pack-50pcs/) |
+| M5 hex nut, SS304, pack of 50 (rotor hubs 2, vane ballast up to 4) | 6 | 1 pack | 47.20 | 47.20 | [listing](https://omrook.com/ss-m5-5mm-hex-nut-stainless-steel-ss304-pack-50pcs/) |
 | M5 washer, SS304, pack of 100 (under the foot-screw heads) | 12 | 1 pack | 47.20 | 47.20 | [listing](https://omrook.com/ss-washer-m5-for-5mm-bolts-and-screws-stainless-steel-washer-grade-ss304-100pcs/) |
-| M5 profile nut for 2020, pack of 10 | 12 | 2 packs | 59.00 | 118.00 | [listing](https://omrook.com/m5-20-profile-nuts-ms-with-nickel-plating-for-2020-series-t-sliding-nut-hammer-nut-10pcs/) |
+| M5 profile nut for 2020, pack of 10 (mounts 12, crossarm connectors 4) | 16 | 2 packs | 59.00 | 118.00 | [listing](https://omrook.com/m5-20-profile-nuts-ms-with-nickel-plating-for-2020-series-t-sliding-nut-hammer-nut-10pcs/) |
 | M3 x 8 socket head, SS202 | 14 | 20 | 1.65 | 33.00 | [listing](https://omrook.com/ss-allen-bolt-m3-x-8mm-dia-3mm-length-8mm-stainless-steel-ss202-socket-head-cap-screws/) |
 | M3 x 10 socket head, SS202 | 3 | 5 | 1.65 | 8.25 | [listing](https://omrook.com/ss-allen-bolt-m3-x-10mm-dia-3mm-length-10mm-stainless-steel-ss202-socket-head-cap-screws/) |
-| M3 x 6 socket head, SS202 | 3 | 5 | 1.42 | 7.10 | [listing](https://omrook.com/ss-allen-bolt-m3-x-6mm-dia-3mm-length-6mm-stainless-steel-ss202-socket-head-cap-screws/) |
+| M3 x 6 socket head, SS202 (rain funnel 3, lightning module 2) | 5 | 5 | 1.42 | 7.10 | [listing](https://omrook.com/ss-allen-bolt-m3-x-6mm-dia-3mm-length-6mm-stainless-steel-ss202-socket-head-cap-screws/) |
 | M3 x 16 socket head, SS202 (rain stops) | 2 | 4 | 1.89 | 7.56 | [listing](https://omrook.com/ss-allen-bolt-m3-x-16mm-dia-3mm-length-16mm-stainless-steel-ss202-socket-head-cap-screws/) |
-| M3 x 50 socket head, SS202 (screen stack 3, rain axle 1) | 4 | 5 | 5.90 | 29.50 | [listing](https://omrook.com/ss-allen-bolt-m3-x-50mm-dia-3mm-length-50mm-stainless-steel-ss202-socket-head-cap-screws/) |
-| M3 hex nut, SS304, pack of 100 | 3 | 1 pack | 61.36 | 61.36 | [listing](https://omrook.com/ss-m3-3mm-hex-nut-stainless-steel-ss304-100-pcs/) |
+| M3 x 50 socket head, SS202 (rain axle) | 1 | 5 | 5.90 | 29.50 | [listing](https://omrook.com/ss-allen-bolt-m3-x-50mm-dia-3mm-length-50mm-stainless-steel-ss202-socket-head-cap-screws/) |
+| M3 hex nut, SS304, pack of 100 (not used since the screen moved to M4) | 0 | 1 pack | 61.36 | 61.36 | [listing](https://omrook.com/ss-m3-3mm-hex-nut-stainless-steel-ss304-100-pcs/) |
 | M3 nyloc nut, SS202 | 1 | 4 | 2.48 | 9.92 | [listing](https://omrook.com/m3-nyloc-nut-ss-dia-3mm-stainless-steel/) |
 | 625 ZZ bearing, 5 x 16 x 5 | 4 | 6 | 14.16 | 84.96 | [listing](https://omrook.com/625zz-ball-bearing-5x16x5mm/) |
 | Neodymium disc 6 x 2 mm (vane, cups) | 2 | 4 | 7.08 | 28.32 | [listing](https://omrook.com/6mm-x-2mm-neodymium-disc-magnets-dia-6mm-thickness-2mm/) |
@@ -82,7 +82,7 @@ Notes
 | GX12 2-pin set (SOLAR) | 1 | 1 | 71 | [listing](https://www.flyrobo.in/2pin-rs765-gx12-aviation-plug-connector-set) |
 | GX12 3-pin set (RAIN) | 1 | 1 | 83 | [listing](https://www.flyrobo.in/3pin-rs765-gx12-aviation-plug-connector-set) |
 | GX16 5-pin set (WIND) | 1 | 1 | 75 | [listing](https://www.flyrobo.in/gx16-5-pin-circular-aviation-socket-plug-male-and-female-panel-connector) |
-| PG7 nylon cable gland | 3 | 5 | 7.19 | [listing](https://www.flyrobo.in/pg7-waterproof-ip68-nylon-plastic-cable-gland-connector) |
+| PG7 nylon cable gland (wind housing) | 1 | 5 | 7.19 | [listing](https://www.flyrobo.in/pg7-waterproof-ip68-nylon-plastic-cable-gland-connector) |
 | 2020 right-angle connector (mast to crossarm) | 2 | 4 | 26 | [listing](https://www.flyrobo.in/2020-aluminum-profile-right-angle-connector) |
 
 Subtotal about Rs 455. The repo's notes say the GX12-2, GX12-3 and GX16-5 were
@@ -93,7 +93,7 @@ the right-angle connectors if you have brackets for your profile.
 
 | Item | Need | Order | Each (Rs) | Link |
 |---|---|---|---|---|
-| M3 x 6 brass heat-set insert, OD 4.2, pack of 10 | 12 | 2 packs | 58 | [listing](https://quartzcomponents.com/products/m3-x-6mm-brass-heat-set-threaded-round-insert-nut-10-pcs) |
+| M3 x 6 brass heat-set insert, OD 4.2, pack of 10 (wind 3, box 9, screen cap 2) | 14 | 2 packs | 58 | [listing](https://quartzcomponents.com/products/m3-x-6mm-brass-heat-set-threaded-round-insert-nut-10-pcs) |
 | Pressure vent, M12 x 1.5 screw type (optional, see README on the airtight box) | 1 | 1 | 43 | [listing](https://quartzcomponents.com/products/pressure-vent-screw-type-m12x1-5) |
 
 Subtotal Rs 159, below Quartz's Rs 500 free-shipping line, so expect a
@@ -112,6 +112,18 @@ asks for an enclosed printer and glue on the bed; your current ASA profile
 (260 C) sits inside that. It does not state a density, so the mass estimate
 below uses the usual 1.07 g/cm3 for ASA.
 
+## Still to buy (found while writing the assembly guide, 2026-11-19)
+
+The "Need" column above was corrected against the model on 2026-11-19; the
+"Order" column is what was ordered. These are short:
+
+| Item | Need | Where | Why |
+|---|---|---|---|
+| GX16 8-pin socket + plug set (ENV) | 1 | not listed at Flyrobo; any GX16-8 panel set fits the 16.2 mm hole | the screen's one 8-core cable (README, Cables) |
+| M4 x 80 socket head, stainless | 3 | OnlyScrews (see the note above) | screen clamp |
+| M4 hex nut, stainless | 3 | OnlyScrews | trapped in the screen base |
+| M5 x 10 button head, SS202 | 2 more | Omrook, as above | the two crossarm connectors come without screws or nuts: one per leg, 4 in all |
+
 ## Not found at these shops
 
 | Item | Need | Where |
@@ -119,10 +131,14 @@ below uses the usual 1.07 g/cm3 for ASA.
 | TPU filament, 95A | under 10 g | a sample coil is enough |
 | Shielded 5-core outdoor cable (wind) | mast height + 0.5 m | local electrical shop: alarm or security cable, as the architecture notes |
 | 4-core cable (sky pod), 3-core (rain), 2-core (solar) | about 1.5 m each | same |
+| 8-core cable (screen, ENV) | about 1.5 m | same; Board B's J1 to the GX16-8 (README, Cables) |
 | UV-stable black nylon cable ties, 2.5 mm | 20 | local; Omrook's ties are white, which goes brittle in sun |
+| Two-part epoxy (5-minute) | small pack | local; fixes the four magnets in their pockets (clearance fits) |
 | Neutral-cure silicone | small tube | local; for the gland threads and the cable exit under the sky pod |
 | 3 mm closed-cell foam, 40 x 12 mm | 1 piece | offcut; goes on the lid pad over the cell |
 | Silica gel sachet | 1 | inside the box |
+| Isopropyl alcohol, 99% | small bottle | chemist or electronics shop; cleans the grease out of the two cup bearings (not 70%: its water rusts them) |
+| Light oil (sewing-machine, clock or instrument) | a few drops | local; goes back into the cleaned cup bearings |
 | 2020 end caps and slot covers | 3 caps | optional; easy to print |
 
 ## Printed material

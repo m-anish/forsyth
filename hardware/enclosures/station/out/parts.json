@@ -59,6 +59,13 @@
    "color": "white"
   },
   {
+   "name": "rain_mesh",
+   "file": "print/rain_mesh.3mf",
+   "qty": 1,
+   "material": "ASA",
+   "color": "white"
+  },
+  {
    "name": "screen_base",
    "file": "print/screen_base.3mf",
    "qty": 1,

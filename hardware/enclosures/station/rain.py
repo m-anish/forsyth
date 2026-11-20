@@ -7,6 +7,8 @@ way underneath without the profile blocking the drains.
 """
 import math
 
+import Part
+
 import params as P
 from lib import *
 
@@ -124,12 +126,32 @@ def funnel():
     return flip(funnel_use())
 
 
+def mesh():
+    """Insect and leaf screen: a perforated disc, printed flat, that rests in the funnel's cone."""
+    d, t, h = P.rain_mesh_d, P.rain_mesh_t, P.rain_mesh_hole
+    pitch = h + 1.2
+    n = int((d / 2) // pitch) + 1
+    holes = []
+    for i in range(-n, n + 1):
+        for j in range(-n, n + 1):
+            x, y = i * pitch, j * pitch
+            if math.hypot(abs(x) + h / 2, abs(y) + h / 2) < d / 2 - 1.6:
+                holes.append(box(x - h / 2, x + h / 2, y - h / 2, y + h / 2, -0.5, t + 0.5))
+    return clean(cyl(d, t).cut(Part.makeCompound(holes)))
+
+
+def mesh_z():
+    """Height of the mesh's underside once it rests on the funnel's cone."""
+    return P.rain_cone_z + (P.rain_mesh_d / 2 - P.rain_nozzle_d / 2)
+
+
 def parts():
-    return {"rain_base": base(), "rain_bucket": bucket(), "rain_funnel": funnel()}
+    return {"rain_base": base(), "rain_bucket": bucket(), "rain_funnel": funnel(), "rain_mesh": mesh()}
 
 
 def place(p):
     b = mv(p["rain_bucket"], 0, 0, -P.rain_pivot_h)
     b = rot(b, P.rain_tilt, (0, 1, 0))
     b = mv(b, 0, 0, P.rain_pivot_z)
-    return [("rain_base", p["rain_base"]), ("rain_bucket", b), ("rain_funnel", funnel_use())]
+    return [("rain_base", p["rain_base"]), ("rain_bucket", b), ("rain_funnel", funnel_use()),
+            ("rain_mesh", mv(p["rain_mesh"], 0, 0, mesh_z()))]

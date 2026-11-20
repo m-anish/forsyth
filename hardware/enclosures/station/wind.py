@@ -17,7 +17,7 @@ def _tower_cuts(z0):
         cyl(od, P.brg_w + 0.01, (0, 0, z0 - 0.01)),
         cyl(P.tower_bore, P.tower_h, (0, 0, z0)),
         cyl(od, P.brg_w + 0.02, (0, 0, z0 + P.brg_w + P.brg_sep)),
-    ]
+    ] + bridged_roof(cyl(od, 400, (0, 0, -200)), P.tower_bore, z0 + P.brg_w)   # lower pocket's roof
 
 
 def _ear_xy():
@@ -42,9 +42,10 @@ def body():
         shell.append(prism([(L - ft - g, P.wind_rail_h), (L - ft, P.wind_rail_h), (L - ft, h)],
                            rw, "xz", y0))
     shell.append(box(L - ft, L, -fw, fw, 0, h))
-    # flat pad for the cable gland
-    gz = P.wind_floor + 3.0 + P.gland_d / 2
-    pad = box(P.wind_r_out - 2.0, P.wind_r_out + 2.5, -10, 10, 0, gz + P.gland_d / 2 + 4)
+    # flat pad for the cable gland, wide and tall enough for its locknut's seat inside
+    gz = P.wind_gland_z
+    pw = P.gland_nut_r + 2.0
+    pad = box(P.wind_r_out - 2.0, P.wind_r_out + 2.5, -pw, pw, 0, gz + pw)
     shell.append(rz(pad, P.wind_gland_angle))
     s = fuse(shell)
 
@@ -73,7 +74,15 @@ def body():
     for x, y in _ear_xy():
         d = P.m3_insert_l + 1.0
         cuts.append(cyl(P.m3_insert_d, d + 0.01, (x, y, h - d)))
-    cuts.append(rz(cyl(P.gland_d, 14, (P.wind_r_in - 4, 0, gz), (1, 0, 0)), P.wind_gland_angle))
+    cuts.append(rz(teardrop(P.gland_d, 14, (P.wind_r_in - 4, 0, gz), "x"), P.wind_gland_angle))
+    # flat seat for the locknut inside, leaving gland_wall under the flange (the PG7
+    # thread is only 8 to 9 mm); its roof slopes at 45 deg so it prints without support
+    xs = P.wind_r_out + 2.5 - P.gland_wall
+    sr = P.gland_nut_r + 0.5
+    d = h + 2.0 - (gz + sr)          # the 45 deg roof runs out past the top: no flat ceiling
+    seat = prism([(xs - 14, gz - sr), (xs, gz - sr), (xs, gz + sr), (xs - d, gz + sr + d),
+                  (xs - 14, gz + sr + d)], 2 * sr, "xz", -sr)
+    cuts.append(rz(seat, P.wind_gland_angle))
     # cable-tie slots through one rail, between the cup sweep and the foot
     x0 = max(P.cup_sweep_r + 6.0, P.wind_r_out + 12.0)
     for x in (x0, (x0 + L - ft - 14.0) / 2 + 4.0):
@@ -102,11 +111,12 @@ def lid():
     s = fuse(parts)
     cuts = _tower_cuts(0.0)
     cuts += [cyl(P.m3_clear, t + 1, (x, y, -0.5)) for x, y in _ear_xy()]
-    # north index: an engraved arrow on the side away from the arm
+    # north index: an engraved arrow pointing along the arm at the mast. The arm hangs off
+    # the mast's south face (README, "Which way round"), so the arrow points north.
     r0 = P.vane_flange_r + 3.0
     r1 = P.wind_lid_r - 1.5
     if r1 - r0 > 3:
-        cuts.append(prism([(-r0, -2.2), (-r0, 2.2), (-r1, 0)], 0.61, "xy", t - 0.6))
+        cuts.append(prism([(r0, -2.2), (r0, 2.2), (r1, 0)], 0.61, "xy", t - 0.6))
     return cut(s, cuts)
 
 
@@ -180,8 +190,12 @@ def vane_rotor_use():
     mw = P.mag_d + 0.2
     cuts = [
         cyl(P.brg_id + 0.3, P.vane_bore_top - ht, (0, 0, ht - 0.01)),         # shaft bore
-        hexprism(af, nh, (0, 0, nz)),
+        rz(hexprism(af, nh, (0, 0, nz)), 30),                                 # flats face the slot walls
         box(-af / 2, af / 2, 0, max(rh, rf) + 1, nz, nz + nh),                # nut slides in from +Y
+    ]
+    slot_fp = fuse([rz(hexprism(af, 400, (0, 0, -200)), 30), box(-af / 2, af / 2, 0, max(rh, rf) + 1, -200, 200)])
+    cuts += bridged_roof(slot_fp, P.brg_id + 0.3, nz, toward=-1, angle=0)
+    cuts += [
         box(P.vane_reed_r - ml / 2, P.vane_reed_r + ml / 2, -mw / 2, mw / 2,
             g - 0.01, g + P.mag_d + 0.3),                                     # magnet, axis radial
         obround(P.m5_clear, 12.0, b + 0.02, (-(n - 17), 0, z_top - b - 0.01)),  # ballast slot
@@ -231,6 +245,8 @@ def cup_hub():
     cuts = [cyl(P.brg_id + 0.3, bore + 0.02, (0, 0, H + P.lip_h - bore))]
     cuts.append(hexprism(af, nh, (0, 0, nz)))
     cuts.append(box(0, rf + 1, -af / 2, af / 2, nz, nz + nh))                 # nut from +X
+    slot_fp = fuse([hexprism(af, 400, (0, 0, -200)), box(0, rf + 1, -af / 2, af / 2, -200, 200)])
+    cuts += bridged_roof(slot_fp, P.brg_id + 0.3, nz + nh, toward=1, angle=90)
     cuts.append(box(-(P.anemo_mag_r + ml / 2), -(P.anemo_mag_r - ml / 2), -mw / 2, mw / 2,
                     H - (P.mag_d + 0.3), H + 0.01))                           # magnet at 180 deg
     slot = fuse([box(4.35, rf + 2, -at / 2, at / 2, -0.01, sh),
@@ -262,6 +278,33 @@ def cup_arm():
              box(R - 4.5 - P.cup_key, R - 4.65, -hh, hh, 0, t + P.cup_key),
              prism([(d / 2 - 6, t), (d / 2 + 8, t), (d / 2 - 12, t + 7)], 3.0, "xz", -1.5)]
     return cut(fuse(parts), [inner])
+
+
+# ------------------------------------------------------------- fit checks ---
+def fit_checks(p):
+    """Fits no single-part check can see: [(what, mm3 of plastic in the way)].
+    Anything above about 0.5 mm3 means the part cannot go in. Run by build.py."""
+    out = []
+    nut = hexprism(P.m5_nut_af, P.m5_nut_h, (0, 0, 0))
+    hub = p["cup_hub"]
+    nz = P.cup_hub_h - 3.5 - (P.m5_nut_h + 0.4) + 0.2
+    out.append(("cup_hub: M5 nut slides into its slot and over the bore",
+                max(hub.common(mv(nut, x, 0, nz)).Volume for x in (0, 2, 4, 7, 10, 14, 18, 22))))
+    vane = vane_rotor_use()
+    zc = _vane_dims()[2]
+    nv = rz(nut, 30)
+    out.append(("vane_rotor: M5 nut slides into its slot and over the bore",
+                max(vane.common(mv(nv, 0, y, zc + 3.7)).Volume for y in (0, 2, 4, 7, 10, 14, 18, 22))))
+    body = p["wind_body"]
+    xs = P.wind_r_out + 2.5 - P.gland_wall
+    worst = 0.0
+    for rot in (0, 30):
+        ln = cut(rz(hexprism(P.gland_nut_af, 4.0, (0, 0, 0)), rot), [cyl(P.gland_d, 6, (0, 0, -1))])
+        ln = rz(mv(ry(ln, 90), xs - 4.0 - 0.01, 0, P.wind_gland_z), P.wind_gland_angle)
+        worst = max(worst, body.common(ln).Volume)
+    out.append(("wind_body: gland locknut seats flat inside (%g mm of thread left for it)"
+                % (P.gland_thread - P.gland_wall - P.port_gasket_t), worst))
+    return out
 
 
 # ---------------------------------------------------------------- assembly ---

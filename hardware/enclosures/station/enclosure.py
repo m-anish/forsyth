@@ -103,7 +103,7 @@ def body():
         box(-b, W + b, -b, H + b, D - gd - 1, D + 1)))
     # cable entries, bottom wall
     for (label, d, _fl), x in zip(P.enc_ports, port_positions()):
-        cuts.append(cyl(d, t + 2, (x, -t - 1, D / 2), (0, 1, 0)))
+        cuts.append(teardrop(d, t + 2, (x, -t - 1, D / 2), "y"))
     # no antenna hole: the antenna stays inside (ASA passes 868 MHz), one leak fewer
     # tab holes
     o = tl / 2 + 0.5
