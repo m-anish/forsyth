@@ -196,27 +196,38 @@ from the bottom-left corner, y up, in mm.
   footprint drills five locating holes (Ø3.5 at (23.4, 95.5) and (78.6, 60.5), Ø3.2 at
   (23.4, 78.0) and (78.6, 78.0), Ø2.4 at (15.2, 60.5)); the headers above are placed clear of
   them. Its body covers x 8–94, y 58–98, so nothing through-hole sits there.
-- **Top side, modules on SMD female headers:** ESP32 rows at y 71.1 and 96.5, pins x 40.5–93.8,
-  USB end at the right edge, antenna end to the left over a copper keepout (x 30–42, y 69–98.5,
-  both layers: no tracks, fills or pours). Core1262 rows at x 8.0 and 23.2, y 54.4–74.7.
-  E220 header vertical at x 44.0, centred y 57.0. ZS-042 4-pin row at x 38.8 (SCL at the top),
-  module body to the left. EG800AK header H11 vertical at x 68.8, centred y 38.7. W5500 (through-hole
-  module footprint) at the right edge, RJ45 end pointing right, rows y 30.8 and 51.2.
+- **Top side, modules on SMD female headers** (2026-11-21, re-placed so the three optional
+  radios fit at once; module bodies checked for overlap against the starred EasyEDA footprints):
+  - ESP32 rows at y 71.1 and 96.5, pins x 40.5–93.8; body x 38.6–95.7, y 69.8–97.8; USB end at
+    the right edge, antenna end to the left over a copper keepout (x 30–38.6, y 69–98.5).
+  - **E220** header H3 vertical at x 41.5, y 48.9–64.1, M0 (pin 1) at the bottom; the body runs left
+    along the edge: T30D x 0–43, y 44.5–68.5 (T22D x 7–43, y 46–67), SMA hanging ~5.5 mm off the
+    left edge. Both outlines in silk.
+  - **Core1262** rows horizontal at y 73.7 and 89.0, pins x 2.5–20.3, pin 1 (and ANT) at the left
+    end next to RF1; body about x 0.4–22.4, y 72–91.
+  - **EG800AK** header H11 vertical at x 68.8, centred y 38.7; body about x 44–70, y 27–50 (outline
+    estimated from 26 × 23 mm: measure the module).
+  - ZS-042 4-pin row at x 38.8, body x 2–40, y 21–42.5. W5500 at the right edge, rows y 30.8 and
+    51.2, RJ45 end pointing right; body x 75–100, jack 2 mm past the edge.
+  - Core1262 3.3 V switch (Q5/Q6/R19/R20) at x 27.5, y 76–88; RF1 SMA at the left edge, y 80.3.
 - **Power** along the bottom edge: USB-C at the right edge (x 96.5, y 20), the 5 V terminal and
   the external-cell terminal at the bottom edge, charger and protection x 57–93, boost x 37–55,
   3V3P LDO and the E220 switch at the bottom left. LTE supply switch and logic under the
   EG800AK footprint.
 - **Holes:** four Ø3.2 mm (M3) corner holes 3.5 mm in from each edge; W5500 Ø2.2 mm at
-  (97.3, 50.9); ZS-042 three Ø1.8 mm (M1.6) at (10.2, 41.0), (10.2, 22.6), (36.5, 41.0). Still to add,
+  (97.6, 50.9) (from the W5500-lite footprint); ZS-042 three Ø1.8 mm (M1.6) at (10.2, 41.0), (10.2, 22.6), (36.5, 41.0). Still to add,
   once their positions are known: YD-ESP32-S3, E220 (T22D/T30D), Core1262 and EG800AK holes.
 - **Copper:** GND pours on both layers. Net rules: 0.8 mm tracks for VBAT, BAT_CELL_N, SYS,
   BOOST_SW, 5V, VBUS, VIN_RAW and VBAT_LTE; 0.5 mm for GND, 3V3P, 5V_LORA and 3V3_SX; 0.254 mm
   for signals.
-- **Routed** 2026-11-21 with EasyEDA's autorouter (run in the window; the bridge call hangs). DRC:
-  no clearance errors; two GND islands left to join by hand: H2 pin 1 (ESP32 GND at the antenna
-  end, boxed in by SX_PWR along the top edge and 3V3_SX on the bottom) and the divider grounds
-  R3/R5/R7/C6 under the ESP32. The 1048P footprint keeps the bottom pour out from under the whole
-  holder body, so there is no bottom GND plane under the modules: stitching vias there float.
-  SYS came out about 0.48 mm wide: widen it where there is room.
-- **To do:** join the two GND islands, widen SYS, silk ("RJ45 →", + and − on U9, module outlines),
-  final DRC, then the remaining module holes.
+- **Routing:** the first autoroute (2026-11-21) predates the re-placement and has to be redone
+  with "keep existing" off. The 1048P footprint keeps the bottom pour out from under the whole
+  holder body, so there is no bottom GND plane under the modules (stitching vias there float).
+- **Footprint checks against the starred EasyEDA parts:** W5500-lite matches (rows 20.32 mm, pin 1
+  at the jack end). The E220 T22D/T30D 7-pin row matches; both modules also have 3–4 pins at the
+  SMA end (mounting/GND) that this carrier leaves unsupported: a 1 × 4 SMD socket or a standoff
+  there would stop the module rocking. The starred "SX1262 core" footprint is the castellated
+  Core1262 with rows 16.2 mm apart, not the 15.24 mm used here (Waveshare drawing for the pinned
+  board): measure the module before ordering. The YD-ESP32-S3 and EG800AK footprints had no
+  geometry to read.
+- **To do:** reroute, rebuild pours, join any GND islands, widen SYS, final DRC.
