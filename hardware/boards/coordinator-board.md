@@ -8,15 +8,17 @@ the station's gateway through a power cut. Designed in EasyEDA Pro (`forsyth-coo
 Status (2026-11-20): **schematic drawn, ERC clean** (0 errors, 2 minor warnings, no floating
 pins; every net checked against §2–3). Second pass the same day: TP4056 and protection as
 chips instead of the module, an MT3608 boost (SOT-23-6) instead of the TPS61023 (SOT-563,
-too fiddly to hand-solder), the ZS-042 on its 4-pin side, and the W5500 module as a library part. EasyEDA Pro project `forsyth-coordinator`
+too fiddly to hand-solder), the ZS-042 on its 4-pin side, and the W5500 module as a library part.
+Third pass: **every part must be easy to buy in India** (§6). The XB8089D gave way to a DW01A +
+FS8205A pair, the parts every TP4056 module carries, and the CJ3407s became AO3401A. EasyEDA Pro project `forsyth-coordinator`
 (`72172190064947adb14801d54671a5b3`), schematic page P1. Not laid out yet: footprints marked
 **[measure]** need the module in hand first.
 
 Designators as drawn: H1/H2 dev-board headers P1/P2, H3 E220, H4/H5 Core1262 rows, U6 W5500
 module (EasyEDA `W5500_MODULE`, 25 × 23 mm, 2 × 6), H8 ZS-042 (4-pin side), H9 OLED, H10 spare
 GPIO, BT1 18650 holder (Keystone 1042P), U1 Qwiic, U2 USB-C, U3 5 V terminal, U4 MT3608 boost,
-U5 AMS1117-3.3, U7 TP4056 (ESOP-8), U8 XB8089D protection (ESOP-8), F1 PTC, D1 SMAJ5.0A,
-D2 SS34 (load sharing), D3 SS34 (boost), Q1/Q2 CJ3407, Q3 2N7002, L1 4.7 µH SWPA6045S
+U5 AMS1117-3.3, U7 TP4056 (ESOP-8), U8 DW01A protection (SOT-23-6) + Q4 FS8205A dual N-FET (TSSOP-8), F1 PTC, D1 SMAJ5.0A,
+D2 SS34 (load sharing), D3 SS34 (boost), Q1/Q2 AO3401A, Q3 2N7002, L1 4.7 µH SWPA6045S
 (Isat 5.5 A), LED1 red (charging), LED2 green (charged), RF1 SMA (Core1262 antenna, DNP until
 it is fitted). The headers use 2.54 mm pin-header footprints; fit female headers.
 
@@ -36,12 +38,12 @@ it is fitted). The headers use 2.54 mm pin-header footprints; fit female headers
 ```
 5 V in (USB-C power-only, or 2-pin terminal from a PoE splitter)
   └─ F1 PTC 2 A ─ D1 SMAJ5.0A ─┬──────────────── VBUS ── U7 TP4056 VCC ─ BAT ── VBAT = BT1 +
-                               │                     BT1 − ── U8 XB8089D ── GND (low-side cut)
+                               │                     BT1 − ── U8 DW01A + Q4 FS8205A ── GND (low-side cut)
                                ├── D2 SS34 ──┐
-  VBAT ── Q1 CJ3407 (P-FET, gate on VBUS) ───┴── SYS (3.0–4.8 V)
+  VBAT ── Q1 AO3401A (P-FET, gate on VBUS) ──┴── SYS (3.0–4.8 V)
                                    └─ L1 4.7 µH ─ U4 MT3608 SW ─ D3 SS34 ── 5V (4.99 V)
 5V ─┬─ dev board 5V pin (its own LDO makes the ESP32's 3.3 V)
-    ├─ Q2 CJ3407 high-side switch ── 5V_LORA ── E220 VCC (+ 220 µF + 100 nF at the pin)
+    ├─ Q2 AO3401A high-side switch ── 5V_LORA ── E220 VCC (+ 220 µF + 100 nF at the pin)
     └─ U5 AMS1117-3.3 ── 3V3P ── Core1262, W5500, ZS-042, OLED/Qwiic
 ```
 
@@ -52,12 +54,13 @@ it is fitted). The headers use 2.54 mm pin-header footprints; fit female headers
   and cell in a closed box than 1 A (1.2 k gives 1 A). TEMP to GND (no NTC), CE to VBUS.
   LED1 red lights while charging (CHRG), LED2 green when done (STDBY), each with 1 k.
   10 µF at VCC (C15) and at BAT (C14).
-- **Protection (U8 XB8089D, ESOP-8):** one chip with the FETs inside, on the cell's negative
-  side, as a DW01 + 8205 module does it: GND pins to the cell's −, VM pins to board GND, VDD
-  from VBAT through R14 100 Ω with C13 100 nF to the cell's −. Its exposed pad is left off
-  every net (copper for heat only) **[check the XB8089D datasheet before layout: pad
-  connection, R14/C13 values]**. Board GND is therefore the cell's protected negative, not
-  BT1 − directly.
+- **Protection (U8 DW01A + Q4 FS8205A),** on the cell's negative side exactly as a TP4056
+  module does it: DW01A VSS and the FS8205A's S1 pins to the cell's − (`BAT_CELL_N`), S2 pins
+  to board GND, OD → G1 (discharge FET), OC → G2 (charge FET), CS to board GND through R18 1 k,
+  VDD from VBAT through R14 100 Ω with C13 100 nF to the cell's −; TD (pin 4) unconnected. The
+  FETs' common drain (pins 1 and 8, `PROT_D`) joins only the two pins. Board GND is therefore
+  the cell's protected negative, not BT1 − directly. Trips at about 4.3 V, 2.4 V and 3 A
+  (DW01A), well above the boost's ~2.5 A peak from a low cell.
 - **One 5 V rail from the boost** (U4 MT3608, SOT-23-6, 1.2 MHz, 0.6 V reference; R8 732 k /
   R9 100 k = 4.99 V; L1 4.7 µH, Isat 5.5 A; D3 SS34): the dev board's LDO and the E220 both
   want a real 5 V, which a 3.0–4.2 V cell can't give. Its 4 A switch limit covers the T30D's
@@ -109,6 +112,27 @@ Avoids strapping pins (0, 3, 45, 46), the USB pair (19, 20), UART0 (43, 44) and 
 1. **[measure]** W5500 mini against the library footprint (25 × 23 mm, 2 × 6), or star a
    user-contributed W5500-lite part to swap in; ZS-042: 4-pin header order, position and
    board outline.
-2. XB8089D datasheet: exposed-pad connection and the VDD R/C values.
-3. Check the Keystone 1042P holder's pads.
-4. Firmware: `config.py` pins for the Core1262, W5500 RST, `LORA_PWR`, the two sense pins.
+2. The 18650 holder: the footprint is Keystone 1042P; the generic SMD holders sold in India
+   (77 × 21 mm) look like the same pattern but **measure one** before layout.
+3. Firmware: `config.py` pins for the Core1262, W5500 RST, `LORA_PWR`, the two sense pins.
+
+## 6. Buying it in India
+
+A hard requirement: every part must be easy to get in India. Checked 2026-11-20 (web
+listings, not live stock):
+
+| Part | Where |
+|---|---|
+| TP4056 ESOP-8 | Evelta, Quartz Components, Electronicscomp (check it is ESOP-8, not SOP-8) |
+| DW01A (SOT-23-6), FS8205A (TSSOP-8) | DNA Tech, Probots, Quartz Components |
+| MT3608 SOT-23-6 | Sunrom, DNA Tech, Electron Components, Quartz Components |
+| SWPA6045S4R7MT 4.7 µH | Evelta (same part) |
+| AO3401A, 2N7002, SS34, AMS1117-3.3, 0603 parts, 0603 LEDs | common: Quartz, DNA Tech, Robu |
+| USB-C 6-pin power-only | Hubtronics, Evelta |
+| 18650 SMD holder | Robu, Robocraze, Quartz, DNA Tech (generic; measure pads) |
+| JST-SH 4-pin (Qwiic) | Evelta |
+| Pin headers, KF301 terminal, edge SMA, 220 µF SMD electrolytic | common |
+| **F1 1812 PTC 2 A** | **only DigiKey India / Tanotis found** |
+| **D1 SMAJ5.0A TVS** | **only DigiKey India found** |
+
+Replaced for availability: XB8089D → DW01A + FS8205A; CJ3407 → AO3401A (same SOT-23 pinout).
