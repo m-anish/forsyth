@@ -11,8 +11,13 @@ chips instead of the module, an MT3608 boost (SOT-23-6) instead of the TPS61023 
 too fiddly to hand-solder), the ZS-042 on its 4-pin side, and the W5500 module as a library part.
 Third pass: **every part must be easy to buy in India** (§6). The XB8089D gave way to a DW01A +
 FS8205A pair, the parts every TP4056 module carries, and the CJ3407s became AO3401A. EasyEDA Pro project `forsyth-coordinator`
-(`72172190064947adb14801d54671a5b3`), schematic page P1. Not laid out yet: footprints marked
-**[measure]** need the module in hand first.
+(`72172190064947adb14801d54671a5b3`), schematic pages P1 and P2.
+
+Fourth pass (2026-11-21): an optional **LTE module** (§2a) and **power gating** for each
+optional radio (E220, Core1262, LTE). Every module header is now an **SMD female strip**, so no
+through-hole pins sit over the battery holder on the back. Layout started (§7): **100 × 100 mm**,
+the dual 18650 holder on the bottom side, module mounting holes where the module's drawing gives
+them. Placed and DRC-clean for clearance; **not yet routed**.
 
 Designators as drawn: H1/H2 dev-board headers P1/P2, H3 E220, H4/H5 Core1262 rows, U6 W5500
 module (EasyEDA `W5500_MODULE`, 25 × 23 mm, 2 × 6), H8 ZS-042 (4-pin side), H9 OLED, H10 spare
@@ -21,7 +26,11 @@ external cells, U1 Qwiic, U2 USB-C, U3 5 V terminal, U4 MT3608 boost,
 U5 AMS1117-3.3, U7 TP4056 (ESOP-8), U8 DW01A protection (SOT-23-6) + Q4 FS8205A dual N-FET (TSSOP-8), F1 PTC, D1 SMAJ5.0A,
 D2 SS34 (load sharing), D3 SS34 (boost), Q1/Q2 AO3401A, Q3 2N7002, L1 4.7 µH SWPA6045S
 (Isat 5.5 A), LED1 red (charging), LED2 green (charged), RF1 SMA (Core1262 antenna, DNP until
-it is fitted). The headers use 2.54 mm pin-header footprints; fit female headers.
+it is fitted). Page P2: Q5/Q6 + R19/R20 Core1262 3.3 V switch, Q7/Q8 + R21/R22 LTE supply
+switch, C16 220 µF + C17 22 µF on the LTE supply, U10 XC6206P182MR (1.8 V) + C18/C19, R23/R24
+logic-level links, Q9 + R25 PWRKEY driver, Q10/Q11 BSS138 + R26–R29 UART level shifters, H11 the
+LTE module's 6-pin header. Module headers H1–H5 and H8–H11 are Mill-Max 310-43-1xx SMD female
+footprints (alternating legs; any SMD female strip with the same leg pattern fits).
 
 ## 1. What plugs in
 
@@ -79,6 +88,27 @@ it is fitted). The headers use 2.54 mm pin-header footprints; fit female headers
 - **Recharge:** 580 mA refills two empty cells in about 11 hours; R15 1.2 k gives 1 A (about
   6 to 7 hours) if the TP4056 has a good copper pour under it.
 
+## 2a. Optional LTE, and gating the optional radios
+
+- **LTE module: 7Semi EG800AK-CN Pico** (Hubtronics, about ₹860; Quectel EG800AK-CN, Cat 1 bis).
+  26 × 23 mm, u.FL main antenna, 3.4–4.3 V supply, one 6-pin header on its right edge, top to
+  bottom RST, KEY, RX, TX, GND, VIN (H11; RST left unconnected), two mounting holes on its left
+  edge. Bands B1/3/5/8/34/38/39/40/41 cover Jio (B3/5/40), Airtel (B3/8/40) and Vi (B1/3/8/40/41).
+- **Supply straight from VBAT**, not the 5 V boost: the module wants 3.4–4.3 V and draws up to
+  about 2 A in bursts. Q7 AO3401A high-side switch (R21 100 k gate pull-up), driven by Q8 2N7002
+  from GPIO46 (`LTE_PWR`, R22 100 k pull-down: off at boot). C16 220 µF + C17 22 µF at the header.
+  Below about 3.4 V on the cells the module will drop out; firmware should not start it there.
+- **Logic level:** Quectel UARTs are usually 1.8 V, the 7Semi board's level is not documented. Q10/Q11
+  BSS138 bidirectional shifters between the ESP32 (3.3 V, R27/R29 10 k) and `LTE_IO` (R26/R28 10 k).
+  `LTE_IO` = 1.8 V from U10 (R23 0 Ω fitted) or 3V3P (R24 0 Ω, DNP): measure the module's TX idle
+  level first and fit the matching link.
+- **PWRKEY:** Q9 2N7002 open-drain on KEY, driven by GPIO36 (`LTE_KEY`, R25 pull-down): firmware
+  pulses it low for the module's power-on time.
+- **Core1262 3.3 V switch:** Q5 AO3401A from 3V3P to `3V3_SX`, Q6 2N7002 on GPIO45 (`SX_PWR`,
+  R20 100 k pull-down: off at boot). The E220 already has its own switch on GPIO7.
+- GPIO45 and 46 are strapping pins; the 100 k pull-downs hold them at their safe boot level and
+  the switches stay off until firmware drives them high.
+
 ## 3. Pin map (ESP32-S3 GPIO)
 
 Avoids strapping pins (0, 3, 45, 46), the USB pair (19, 20), UART0 (43, 44) and GPIO48
@@ -98,8 +128,11 @@ Avoids strapping pins (0, 3, 45, 46), the USB pair (19, 20), UART0 (43, 44) and 
 | I2C SDA / SCL | 1 / 2 | DS3231, OLED, Qwiic; firmware's OLED pins |
 | `VBAT_SENSE` | 4 | ADC1: 100 k / 100 k from VBAT + 100 nF |
 | `VBUS_SENSE` | 5 | 100 k / 100 k from VBUS: high = on mains |
-| spare | 15, 35, 36, 37 | to a 1 × 6 header with 3V3 and GND |
-| unused | 6 | was DS3231 SQW; the 4-pin ZS-042 side has none |
+| LTE TXD → module RX / RXD ← module TX | 15 / 35 | through the BSS138 shifters |
+| `LTE_KEY` (PWRKEY) | 36 | high pulls KEY low through Q9 |
+| `SX_PWR` (Core1262 3.3 V) | 45 | strapping pin; high = on; 100 k pull-down |
+| `LTE_PWR` (LTE supply) | 46 | strapping pin; high = on; 100 k pull-down |
+| spare | 6, 37 | H10, 1 × 4 with 3V3 and GND |
 
 ## 4. Connectors and the rest
 
@@ -108,8 +141,7 @@ Avoids strapping pins (0, 3, 45, 46), the USB pair (19, 20), UART0 (43, 44) and 
 - **J3** OLED, 4-pin (GND, VCC, SCL, SDA: the common SSD1306 order). **J4** Qwiic JST-SH
   (GND, 3V3, SDA, SCL, as on Board A). **J5** spare GPIO.
 - Test points: VBUS, SYS, VBAT, 5V, 3V3P, GND.
-- Four M3 holes. No copper under the E220's and Core1262's antenna ends; the
-  W5500's RJ45 and both LoRa antennas on opposite edges.
+- Four M3 corner holes plus module holes (§7). No copper under the ESP32's antenna end.
 
 ## 5. Open before layout
 
@@ -154,3 +186,31 @@ listings, not live stock):
 | D1 SMAJ5.0A TVS | Ktron: Vishay SMAJ5.0A-E3/61 (SMA, minimum order 7) |
 
 Every part now has an Indian source. Replaced for availability: XB8089D → DW01A + FS8205A; CJ3407 → AO3401A (same SOT-23 pinout).
+
+## 7. Layout (started 2026-11-21)
+
+**100.0 × 100.0 mm, two layers** (under JLCPCB's 100 × 100 price step). Coordinates below are
+from the bottom-left corner, y up, in mm.
+
+- **Bottom side:** BT1 dual 18650 holder only, centred at (51.0, 78.0), rotated 180°. The 1048P
+  footprint drills five locating holes (Ø3.5 at (23.4, 95.5) and (78.6, 60.5), Ø3.2 at
+  (23.4, 78.0) and (78.6, 78.0), Ø2.4 at (15.2, 60.5)); the headers above are placed clear of
+  them. Its body covers x 8–94, y 58–98, so nothing through-hole sits there.
+- **Top side, modules on SMD female headers:** ESP32 rows at y 71.1 and 96.5, pins x 40.5–93.8,
+  USB end at the right edge, antenna end to the left over a copper keepout (x 30–42, y 69–98.5,
+  both layers: no tracks, fills or pours). Core1262 rows at x 8.0 and 23.2, y 54.4–74.7.
+  E220 header vertical at x 44.0, centred y 57.0. ZS-042 4-pin row at x 38.8 (SCL at the top),
+  module body to the left. EG800AK header H11 vertical at x 68.8, centred y 38.7. W5500 (through-hole
+  module footprint) at the right edge, RJ45 end pointing right, rows y 30.8 and 51.2.
+- **Power** along the bottom edge: USB-C at the right edge (x 96.5, y 20), the 5 V terminal and
+  the external-cell terminal at the bottom edge, charger and protection x 57–93, boost x 37–55,
+  3V3P LDO and the E220 switch at the bottom left. LTE supply switch and logic under the
+  EG800AK footprint.
+- **Holes:** four Ø3.2 mm (M3) corner holes 3.5 mm in from each edge; W5500 Ø2.2 mm at
+  (97.3, 50.9); ZS-042 three Ø1.8 mm (M1.6) at (10.2, 41.0), (10.2, 22.6), (36.5, 41.0). Still to add,
+  once their positions are known: YD-ESP32-S3, E220 (T22D/T30D), Core1262 and EG800AK holes.
+- **Copper:** GND pours on both layers. Net rules: 0.8 mm tracks for VBAT, BAT_CELL_N, SYS,
+  BOOST_SW, 5V, VBUS, VIN_RAW and VBAT_LTE; 0.5 mm for GND, 3V3P, 5V_LORA and 3V3_SX; 0.254 mm
+  for signals.
+- **To do:** route (the native autorouter, driven through the bridge, did not start; route in the
+  EasyEDA window), stitch the pours, silk ("RJ45 →", + and − on U9, module outlines), DRC.
