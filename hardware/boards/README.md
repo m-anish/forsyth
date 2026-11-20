@@ -9,6 +9,7 @@ a per-board BOM **with designators**, and a bring-up checklist.
 | [board-a-core.md](board-a-core.md) | **A — core** | sealed box under the Stevenson screen |
 | [board-b-environment.md](board-b-environment.md) | **B — environment** | inside the Stevenson screen |
 | [board-d-wind.md](board-d-wind.md) | **D — wind interface** | masthead junction |
+| [coordinator-board.md](coordinator-board.md) | **Coordinator carrier** | the gateway box indoors (started 2026-11-20) |
 
 **Forward-looking:**
 
@@ -20,8 +21,7 @@ a per-board BOM **with designators**, and a bring-up checklist.
   narrow mode where sending them works), the window and heater that decide image quality,
   and a ranked, sceptical account of what sky imagery is worth to a forecast.
 
-(The coordinator gets its own sheet when its design pass starts; the rain gauge is a
-bare reed switch and has no PCB.)
+(The rain gauge is a bare reed switch and has no PCB.)
 
 **Workflow:** these sheets are the source of truth for *intent*; the KiCad projects are
 the source of truth for *implementation*. After each layout pass, export the KiCad BOM
