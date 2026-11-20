@@ -132,7 +132,7 @@ listings, not live stock):
 | 18650 SMD holder | Robu, Robocraze, Quartz, DNA Tech (generic; measure pads) |
 | JST-SH 4-pin (Qwiic) | Evelta |
 | Pin headers, KF301 terminal, edge SMA, 220 µF SMD electrolytic | common |
-| **F1 1812 PTC 2 A** | **only DigiKey India / Tanotis found** |
+| F1 1812 PTC, 2 A hold | Sophix: Weite WT1812-20030 (2 A, 30 V, 1812, drops into the same footprint) |
 | **D1 SMAJ5.0A TVS** | **only DigiKey India found** |
 
 Replaced for availability: XB8089D → DW01A + FS8205A; CJ3407 → AO3401A (same SOT-23 pinout).
