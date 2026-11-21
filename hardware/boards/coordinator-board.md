@@ -32,7 +32,7 @@ plugging into two header rows. Same GPIO map (§3), so firmware is unchanged.
 
 Designators as drawn: U13 ESP32-S3-WROOM-1-N8R2, U18 E220 (Anish's starred MESHNODES T30D+T22D footprint, through-hole), U12 Core1262 (castellated), U6 W5500
 module (EasyEDA `W5500_MODULE`, 25 × 23 mm, 2 × 6), U8 DS3231 ZS-042 module (Anish's starred EasyEDA part, through-hole; only its 4-pin side, pins 7–10, is wired), H9 OLED, H10 spare
-GPIO, BT1 dual 18650 holder (Keystone 1048P pattern, cells in parallel), U9 3.81 mm terminal for
+GPIO, BT1 dual 18650 holder (MYOUNG BH-18650-2J, cells in parallel, both + at one end), U9 3.81 mm terminal for
 external cells, U1 Qwiic, U2 USB-C (16-pin, TYPE-C-31-M-12; power in plus USB data to the ESP32), U3 5 V terminal, U4 7Semi TPS61023 boost module,
 U5 AMS1117-3.3, U7 TP4056 charging module (with DW01A + 8205A protection and its own LEDs), F1 PTC,
 D1 SMAJ5.0A, D2 SS34 (load sharing), Q1/Q2 AO3401A, Q3 2N7002, no board antenna connector for the Core1262 (a u.FL pigtail from the module's own IPEX to the enclosure wall; its ANT pin is left unconnected). Gaps in the numbering (U8, Q4, L1, D3, R8/R9, R14–R18, C9, C11, C13–C15,
@@ -51,7 +51,7 @@ footprints (alternating legs; any SMD female strip with the same leg pattern fit
 | 3 | **Waveshare Core1262-HF** (SX1262, SPI) — future | SPI (shared) | castellated, soldered flat (starred "SX1262 chip_Waveshare" footprint, rows 16.2 mm apart, 2 × 8 at 2.54 mm), module 19 × 22 mm | Left: GND, GND, RXEN, TXEN, DIO2, DIO1, GND, 3V3. Right: ANT, GND, CS, CLK, MOSI, MISO, RESET, BUSY (Waveshare Core126X schematic). ANT pin unconnected: the antenna goes through a u.FL-to-SMA pigtail from the module's own IPEX to the enclosure wall (Anish, 2026-11-21; the board SMA RF1 was dropped). |
 | 4 | **W5500-lite** (Ethernet) | SPI (shared) | 2 × 6, 2.54 mm pitch, rows **20.32 mm** apart (LilyGO T-Lite W5500 drawing); module 23.00 × 24.92 mm, top pin about 6.3 mm below its top edge, Ø2.0 mm hole 1.61 mm from the left and 2.50 mm from the top edges. Schematic part: EasyEDA `W5500_MODULE`, footprint checked against all of this (§5) | Left: GND, GND, MOSI, SCK, CS, INT. Right: GND, 3V3, 3V3, NC, RST, MISO. **3.3 V only.** RJ45 at the board edge. |
 | 5 | **DS3231 ZS-042** (RTC + AT24C32) | I2C | 1 × 4 header, the module's right-hand row, top to bottom SCL, SDA, VCC, GND (confirmed). Board 38.00 × 21.50 mm; bottom pin of the 4-row 6.67 mm above the bottom edge, so the top pin is 14.29 mm above it; row about 1.2 mm in from the right edge (scaled from the drawing, not dimensioned). Ø1.70 mm holes at (8.15, 1.55) and (8.15, 19.95) from the left/top corner, and 3.55 mm in from the right edge, 1.55 mm from the top. The 6-pin row (unused) starts 4.47 mm from the top. | No SQW, so no alarm interrupt; firmware polls the RTC. Has its own 4.7 k pull-ups. Its coin-cell "charger" (a resistor and diode) cooks a CR2032: remove the resistor, or fit an LIR2032. |
-| BT1 | **2 × 18650 Li-ion in parallel (1S2P)**, dual SMD holder (Robocraze; Keystone 1048P footprint, 86 × 40 mm) | — | SMD | Both + contacts to VBAT, both − to the protection. Li-ion, 4.2 V: the TP4056 is a Li-ion charger, **not** LiFePO4 like the leaves. Fit two matched cells at the same charge. |
+| BT1 | **2 × 18650 Li-ion in parallel (1S2P)**, dual SMD holder, MYOUNG BH-18650-B1BA007 ("BH-18650-2J", LCSC C6937126, 77 × 39.9 mm, 86 mm over the tabs) | — | SMD | Both + contacts to VBAT, both − to the protection. Li-ion, 4.2 V: the TP4056 is a Li-ion charger, **not** LiFePO4 like the leaves. Fit two matched cells at the same charge. |
 | U9 | **External cells** (optional), 2-pin 3.81 mm screw terminal (KF128-3.81) | — | TH | Parallel with BT1, behind the same protection: a 1S Li-ion bank only (4.2 V max), at the same voltage as the fitted cells when connected, ideally with its own fuse. Mark + and − on the silk. |
 
 ## 2. Power
@@ -173,11 +173,10 @@ also selects 3.3 V flash, which the N8R2 needs; the 100 k pull-down keeps it the
    right, outline 23.0 × 25.0 mm with the pins 0.7 mm nearer the bottom end, as on the module.
    So the jack-opening end is the pin 1/12 end: put that end at the board edge. Its silk does
    not show the jack; add an "RJ45 →" mark there in layout.
-2. The dual 18650 holder: laid out on the Keystone 1048P footprint as a working estimate
-   (Anish, 2026-11-20: fix later if the Robocraze holder differs). Four 7.3 × 6.4 mm pads at
-   x ±40.0, y ±9.55 mm (cells 19.1 mm apart); the cells sit head-to-tail, so pins 1 and 4 (+)
-   are on opposite corners, as are 2 and 3 (−). The footprint also drills 3.2–3.5 mm holes for
-   Keystone's locating pegs; drop them if the generic holder has none.
+2. The dual 18650 holder: MYOUNG BH-18650-B1BA007 (BH-18650-2J, LCSC C6937126; replaced the
+   Keystone 1048P on 2026-11-21, whose slots sit head to tail). Both cells face the same way:
+   pins 1 and 3 are +, 2 and 4 are − (Anish). Four 5.3 × 7.35 mm pads at x ±40.86, y ±9.55 mm;
+   two Ø3.2 mm locating holes 55.4 mm apart on the centre line and one Ø1.8 mm peg hole.
 3. Firmware: `config.py` pins for the Core1262, W5500 RST, `LORA_PWR`, the two sense pins.
 
 ## 6. Buying it in India
@@ -194,7 +193,7 @@ listings, not live stock):
 | USB-C 16-pin receptacle (TYPE-C-31-M-12 or equivalent) | Hubtronics, Evelta, Robu |
 | USBLC6-2SC6 (SOT-23-6) | Evelta, Electronicscomp |
 | TS-1187A 5.1 × 5.1 mm SMD tactile switch | common (Robu, Quartz) |
-| Dual 18650 SMD holder | Robocraze (generic; measure pads against 1048P) |
+| Dual 18650 SMD holder | MYOUNG BH-18650-B1BA007 (LCSC C6937126, ~$2) |
 | KF128 3.81 mm 2-pin terminal | common |
 | JST-SH 4-pin (Qwiic) | Evelta |
 | Pin headers, KF301 terminal, u.FL-to-SMA pigtail, 220 µF SMD electrolytic | common |
@@ -208,10 +207,13 @@ Every part now has an Indian source. Replaced for availability: XB8089D → DW01
 **100.0 × 100.0 mm, two layers** (under JLCPCB's 100 × 100 price step). Coordinates below are
 from the bottom-left corner, y up, in mm.
 
-- **Bottom side:** BT1 dual 18650 holder only, centred at (51.0, 78.0), rotated 180°. The 1048P
-  footprint drills five locating holes (Ø3.5 at (23.4, 95.5) and (78.6, 60.5), Ø3.2 at
-  (23.4, 78.0) and (78.6, 78.0), Ø2.4 at (15.2, 60.5)); the headers above are placed clear of
-  them. Its body covers x 8–94, y 58–98, so nothing through-hole sits there.
+- **Bottom side:** BT1 dual 18650 holder only (BH-18650-2J), centred at (51.0, 78.0). Both +
+  pads (VBAT) are on the left at x 10.1, both − pads (BAT_CELL_N) on the right at x 91.9, rows
+  y 68.5 and 87.6. Locating holes Ø3.2 at (23.3, 78.0) and (78.7, 78.0), peg hole Ø1.8 at
+  (86.9, 95.4). Its body covers x 12.5–89.5, y 58–98, so nothing through-hole sits there.
+  The two + pads join through VBAT (left-low to the trunk, left-high to the VBAT via at
+  (24.2, 83.1)); the two − pads are linked by a 0.8 mm bottom track at x 91.9 and run on to
+  U7 and U9.
 - **Top side, modules on SMD female headers** (2026-11-21, re-placed so the three optional
   radios fit at once; module bodies checked for overlap against the starred EasyEDA footprints):
   - **ESP32-S3-WROOM-1** U13 centred (38.1, 83.3), body x 29.1–47.1, y 74.3–100, antenna end
@@ -271,7 +273,7 @@ from the bottom-left corner, y up, in mm.
   VBAT_LTE stays on top copper with no vias.
 - **Routing:** rerouted by Anish after the sixth pass (WROOM, castellated Core1262, MESHNODES
   E220): **DRC clean** (no clearance or connection errors, netlist matches) after one GND track
-  was moved off H10's unused pin 5. The 1048P footprint keeps the bottom pour out from under the whole
+  was moved off H10's unused pin 5. The holder footprint keeps the bottom pour out from under the whole
   holder body, so there is no bottom GND plane under the modules (stitching vias there float).
 - **Footprint checks against the starred EasyEDA parts:** W5500-lite matches (rows 20.32 mm, pin 1
   at the jack end). The E220 T22D/T30D 7-pin row matches; their 3–4 antenna-end pins are in the MESHNODES footprint (U18). The starred "SX1262 core" footprint is the castellated
@@ -289,8 +291,7 @@ from the bottom-left corner, y up, in mm.
   Every R, C and F1 carries its value (32 mil text, 6 mil stroke) in the part's own row or just
   under it. The back carries a notes block between the W5500 rows (flash procedure, which
   module goes where, the 1S-only warnings), a label on the TP4056 module, and a large + or −
-  beside each of BT1's four pads. The two cells sit head to tail: pads 1 and 4 are + (VBAT),
-  pads 2 and 3 are − (BAT_CELL_N).
+  beside each of BT1's four pads: both + on the left (VBAT), both − on the right (BAT_CELL_N).
 
   Module labels on the front:
   - "E220-900T22D / T30D" inside the E220 outline;
