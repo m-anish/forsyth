@@ -227,11 +227,19 @@ from the bottom-left corner, y up, in mm.
     T30D antenna-end pins at x 3.0, y 40.9–48.5; T22D's at x 10.0, y 41.5–46.6. The body runs left:
     T30D x 0–43, y 36.5–60.5, SMA hanging off the left edge; the part over the holder (y > 58) is
     body only, above low SMD parts. Moved down 7.5 mm (sixth pass) so no through-hole pin sits
-    under the holder. C1 (220 µF on 5V_LORA) moved next to its VCC pin at (48.3, 55.9).
+    under the holder. C1 (220 µF on 5V_LORA, a 7.7 mm can) at (47.0, 61.5), rotated 90° (5V pad at the
+    bottom). It sits between the E220 body (x ≤ 43), H9 (x ≥ 50.8) and the EG800AK module
+    (y ≤ 56.8), clear of all three.
   - **Core1262** U12 castellated, centred (59.7, 83.8), pin 1 at the top-left, pads x 50.2–69.2,
     y 74.9–92.7; its RXEN/TXEN/DIO1 side faces the ESP32's SX pins.
-  - **EG800AK** header H11 vertical at x 68.8, centred y 38.7; body about x 44–70, y 27–50 (outline
-    estimated from 26 × 23 mm: measure the module).
+  - **EG800AK** header H11 vertical at x 68.8, centred y 38.7. Body x 47.3–70.3, y 30.8–56.8,
+    placed from 7Semi's own DXF of the Pico board (10454.dxf; the 3D model confirms it is a top
+    view). The 26 mm side runs along H11, the header row sits 1.5 mm in from one long edge, and
+    the two Ø2.0 mm holes sit 1.5 mm in from the opposite edge, 13.5 mm apart. One hole is level
+    with the end pin, the other 0.8 mm past the far end. On this board that puts M2 holes
+    (Ø2.2 mm, unplated, MH5/MH6) at (48.8, 32.3), level with VBAT, and (48.8, 45.8), 0.8 mm above
+    RST. Mount on 8.5 mm nylon M2 standoffs to match the female header height. Nothing taller than
+    an SOT-23 sits under the module; C1 was moved out from under its corner.
   - DS3231 module U8 (moved down 6.4 mm to clear the E220 body): 4-pin row at x 38.8, y 21.3–29.0 (SCL at the low end, GND at the high end, as
     the starred footprint has it); its unused 6-pin row's pads at x 3.8; body x 2–40, y 14.7–36.1.
     **Check:** the footprint's pin order is the mirror of the order in §1 (SCL at the top with the
@@ -251,11 +259,16 @@ from the bottom-left corner, y up, in mm.
   the bottom left. LTE supply switch and logic under the
   EG800AK footprint.
 - **Holes:** Ø3.2 mm (M3) holes 3.5 mm in from the edges at all four corners (MH4 back in the top-right corner now that the dev board is gone); W5500 Ø2.2 mm at
-  (97.6, 50.9) (from the W5500-lite footprint); ZS-042 three Ø1.8 mm (M1.6) at (10.2, 41.0), (10.2, 22.6), (36.5, 41.0) before U8; then mirrored to match the starred DS3231 footprint and moved down with it, now at (10.2, 34.1), (10.2, 15.7), (36.5, 15.7). Still to add,
-  once their positions are known: E220 (T22D/T30D) and EG800AK holes.
+  (97.6, 50.9) (from the W5500-lite footprint); ZS-042 three Ø1.8 mm (M1.6) at (10.2, 41.0), (10.2, 22.6), (36.5, 41.0) before U8; then mirrored to match the starred DS3231 footprint and moved down with it, now at (10.2, 34.1), (10.2, 15.7), (36.5, 15.7). EG800AK holes
+  MH5/MH6 as above (2026-11-21). Still to add, once their positions are known: E220 (T22D/T30D)
+  holes.
 - **Copper:** GND pours on both layers. Net rules: 0.8 mm tracks for VBAT, BAT_CELL_N, SYS,
   5V, VBUS, VIN_RAW and VBAT_LTE; 0.5 mm for GND, 3V3P, 5V_LORA and 3V3_SX; 0.254 mm
   for signals.
+- **LTE mounting-hole rework (2026-11-21):** Q7 (LTE supply switch) moved to (48.8, 29.0) mm,
+  below hole MH5. Its VBAT, VBAT_LTE and gate tracks, the bottom GND link beside MH5, and the
+  3V3P diagonal by MH6 were re-routed so no copper comes within 1.5 mm of either hole centre.
+  VBAT_LTE stays on top copper with no vias.
 - **Routing:** rerouted by Anish after the sixth pass (WROOM, castellated Core1262, MESHNODES
   E220): **DRC clean** (no clearance or connection errors, netlist matches) after one GND track
   was moved off H10's unused pin 5. The 1048P footprint keeps the bottom pour out from under the whole
@@ -284,7 +297,10 @@ from the bottom-left corner, y up, in mm.
   - "W5500-LITE / ETHERNET" between the W5500 rows;
   - "TPS61023 5V BOOST" by U4, with its pins labelled VIN, GND, GND, 5V;
   - H11 is the EG800AK LTE header: "EG800AK LTE" above it, the designator turned upright, and
-    its pins labelled NC, PWRKEY, RX, TX, GND, VBAT.
+    its pins labelled NC, PWRKEY, RX, TX, GND, VBAT. The LTE outline is the real 26 × 23 mm board
+    (above); its left edge is broken where it would cross Q8, R21, R22 or a hole;
+  - W5500 pins labelled on the inside of both rows, "RJ45 LAN >" at the jack end;
+  - "DS3231 RTC" inside the RTC outline, with SCL, SDA, 3V3 and GND at its 4-pin row.
 
   All other text is at least 40 mil high with a 6 mil stroke. No text touches a mask opening
   (checked by rasterising the silk and mask gerbers). The only silk on pads is footprint body
@@ -296,4 +312,4 @@ from the bottom-left corner, y up, in mm.
   JLC clips silk from pads, or these footprints can be edited in the library.
 - **To do before ordering:** a last pour rebuild (Shift+B) and DRC after any edit; check the
   footprint questions above against real parts (TPS61023 module pinout and drills, DS3231 pin
-  order, Core1262 row spacing, EG800AK outline and holes); then Gerbers.
+  order, Core1262 row spacing, EG800AK holes against the real module); then Gerbers.
