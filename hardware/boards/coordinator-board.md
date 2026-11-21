@@ -29,7 +29,7 @@ D2 SS34 (load sharing), D3 SS34 (boost), Q1/Q2 AO3401A, Q3 2N7002, L1 4.7 µH SW
 it is fitted). Page P2: Q5/Q6 + R19/R20 Core1262 3.3 V switch, Q7/Q8 + R21/R22 LTE supply
 switch, C16 220 µF + C17 22 µF on the LTE supply, U10 XC6206P182MR (1.8 V) + C18/C19, R23/R24
 logic-level links, Q9 + R25 PWRKEY driver, Q10/Q11 BSS138 + R26–R29 UART level shifters, H11 the
-LTE module's 6-pin header. Module headers H1–H5 and H8–H11 are Mill-Max 310-43-1xx SMD female
+LTE module's 6-pin header, H12/H13 E220 antenna-end supports (4-way, no net). Module headers H1–H5 and H8–H13 are Mill-Max 310-43-1xx SMD female
 footprints (alternating legs; any SMD female strip with the same leg pattern fits).
 
 ## 1. What plugs in
@@ -202,7 +202,11 @@ from the bottom-left corner, y up, in mm.
     the right edge, antenna end to the left over a copper keepout (x 30–38.6, y 69–98.5).
   - **E220** header H3 vertical at x 41.5, y 48.9–64.1, M0 (pin 1) at the bottom; the body runs left
     along the edge: T30D x 0–43, y 44.5–68.5 (T22D x 7–43, y 46–67), SMA hanging ~5.5 mm off the
-    left edge. Both outlines in silk.
+    left edge. Both outlines in silk. The modules' antenna-end "fixed hole" pins (no electrical
+    function per Ebyte) sit in their own 4-way SMD sockets, the same 5.6 mm height as H3, no net:
+    **H13** (T30D, 4 pins) at x 3.0, y 48.9–56.5, pads 0.46 mm from the edge; **H12** (T22D, 3 pins
+    plus one spare position) at x 10.0, y 49.5–57.1. Positions from the starred T22D and combined
+    T30D/T22D footprints, offset from M0.
   - **Core1262** rows horizontal at y 73.7 and 89.0, pins x 2.5–20.3, pin 1 (and ANT) at the left
     end next to RF1; body about x 0.4–22.4, y 72–91.
   - **EG800AK** header H11 vertical at x 68.8, centred y 38.7; body about x 44–70, y 27–50 (outline
@@ -224,9 +228,7 @@ from the bottom-left corner, y up, in mm.
   with "keep existing" off. The 1048P footprint keeps the bottom pour out from under the whole
   holder body, so there is no bottom GND plane under the modules (stitching vias there float).
 - **Footprint checks against the starred EasyEDA parts:** W5500-lite matches (rows 20.32 mm, pin 1
-  at the jack end). The E220 T22D/T30D 7-pin row matches; both modules also have 3–4 pins at the
-  SMA end (mounting/GND) that this carrier leaves unsupported: a 1 × 4 SMD socket or a standoff
-  there would stop the module rocking. The starred "SX1262 core" footprint is the castellated
+  at the jack end). The E220 T22D/T30D 7-pin row matches; their 3–4 antenna-end pins now land in H12/H13. The starred "SX1262 core" footprint is the castellated
   Core1262 with rows 16.2 mm apart, not the 15.24 mm used here (Waveshare drawing for the pinned
   board): measure the module before ordering. The YD-ESP32-S3 and EG800AK footprints had no
   geometry to read.
