@@ -275,7 +275,16 @@ from the bottom-left corner, y up, in mm.
 
   Every R, C and F1 carries its value (32 mil text, 6 mil stroke) in the part's own row or just
   under it. The back carries a notes block between the W5500 rows (flash procedure, which
-  module goes where, the 1S-only warnings) and a label on the TP4056 module.
+  module goes where, the 1S-only warnings), a label on the TP4056 module, and a large + or −
+  beside each of BT1's four pads. The two cells sit head to tail: pads 1 and 4 are + (VBAT),
+  pads 2 and 3 are − (BAT_CELL_N).
+
+  Module labels on the front:
+  - "E220-900T22D / T30D" inside the E220 outline;
+  - "W5500-LITE / ETHERNET" between the W5500 rows;
+  - "TPS61023 5V BOOST" by U4, with its pins labelled VIN, GND, GND, 5V;
+  - H11 is the EG800AK LTE header: "EG800AK LTE" above it, the designator turned upright, and
+    its pins labelled NC, PWRKEY, RX, TX, GND, VBAT.
 
   All other text is at least 40 mil high with a 6 mil stroke. No text touches a mask opening
   (checked by rasterising the silk and mask gerbers). The only silk on pads is footprint body
