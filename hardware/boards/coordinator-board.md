@@ -221,7 +221,9 @@ from the bottom-left corner, y up, in mm.
   the bottom side there is clear of everything but the U4 header pins at x 44.8 and the U9 pins
   from x 67). U4 boost module header at x 44.8, y 10.2–17.9 (body outline not in the footprint:
   keep x 43–55 clear on top); D2 and Q1 at x 59.7, y 4.8 and 8.4; C2 at (84.6, 24.1); C17 moved
-  to (74.9, 32.8). 3V3P LDO and the E220 switch at
+  to (74.9, 32.8). C16 (the 220 µF can, ~7.7 mm tall) moved out from under the EG800AK to
+  (68.6, 22.9), just below the module body, with a short 0.8 mm track up to H11 pin 6 (VIN).
+  Only low parts (SOT-23, 0603, 0805) may sit under a module on 5.6 mm headers. 3V3P LDO and the E220 switch at
   the bottom left. LTE supply switch and logic under the
   EG800AK footprint.
 - **Holes:** four Ø3.2 mm (M3) corner holes 3.5 mm in from each edge; W5500 Ø2.2 mm at
@@ -232,7 +234,7 @@ from the bottom-left corner, y up, in mm.
   for signals.
 - **Routing:** rerouted by Anish after the module swap (2026-11-21): no clearance errors and no
   GND islands. SYS is 0.8 mm except two short 0.54 mm necks into Q1. Left: SX_RXEN (H2 pin 6 to
-  H4 pin 3) unrouted, and the RF1 removal still to push to the PCB. The 1048P footprint keeps the bottom pour out from under the whole
+  H4 pin 3) unrouted; the RF1 removal is pushed and its leftover tracks deleted. The 1048P footprint keeps the bottom pour out from under the whole
   holder body, so there is no bottom GND plane under the modules (stitching vias there float).
 - **Footprint checks against the starred EasyEDA parts:** W5500-lite matches (rows 20.32 mm, pin 1
   at the jack end). The E220 T22D/T30D 7-pin row matches; their 3–4 antenna-end pins now land in H12/H13. The starred "SX1262 core" footprint is the castellated
