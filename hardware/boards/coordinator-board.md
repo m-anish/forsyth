@@ -265,6 +265,26 @@ from the bottom-left corner, y up, in mm.
   Core1262 with rows 16.2 mm apart, not the 15.24 mm used here (Waveshare drawing for the pinned
   board): measure the module before ordering. The EG800AK footprint had no
   geometry to read.
+- **Silkscreen** (2026-11-21, after Board B's style): the star-and-sapling logo with
+  "starstucklab.com" at (88.5, 87.6) and the brand block under it ("FORSYTH WEATHER MESH",
+  forsyth.starstucklab.com, "COORDINATOR CARRIER", "REV0 100 x 100 mm 2026-11"). Every
+  connector is labelled:
+  - pin names at H14 (UART0), H9 (OLED), H10 and U1 (QWIIC);
+  - + and − with "5V IN" and "EXT 1S CELL" at the screw terminals;
+  - RESET and BOOT at the buttons.
+
+  Every R, C and F1 carries its value (32 mil text, 6 mil stroke) in the part's own row or just
+  under it. The back carries a notes block between the W5500 rows (flash procedure, which
+  module goes where, the 1S-only warnings) and a label on the TP4056 module.
+
+  All other text is at least 40 mil high with a 6 mil stroke. No text touches a mask opening
+  (checked by rasterising the silk and mask gerbers). The only silk on pads is footprint body
+  outlines:
+  - the E220 T30D outline across Q2, Q3, C12, C8 and C10, and the EG800AK outline across Q11;
+  - corner touches on C1, C16 and U10;
+  - the TP4056 module outline on its own back pads.
+
+  JLC clips silk from pads, or these footprints can be edited in the library.
 - **To do before ordering:** a last pour rebuild (Shift+B) and DRC after any edit; check the
   footprint questions above against real parts (TPS61023 module pinout and drills, DS3231 pin
   order, Core1262 row spacing, EG800AK outline and holes); then Gerbers.
