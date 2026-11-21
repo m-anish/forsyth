@@ -29,8 +29,7 @@ module (EasyEDA `W5500_MODULE`, 25 × 23 mm, 2 × 6), H8 ZS-042 (4-pin side), H9
 GPIO, BT1 dual 18650 holder (Keystone 1048P pattern, cells in parallel), U9 3.81 mm terminal for
 external cells, U1 Qwiic, U2 USB-C, U3 5 V terminal, U4 7Semi TPS61023 boost module,
 U5 AMS1117-3.3, U7 TP4056 charging module (with DW01A + 8205A protection and its own LEDs), F1 PTC,
-D1 SMAJ5.0A, D2 SS34 (load sharing), Q1/Q2 AO3401A, Q3 2N7002, RF1 SMA (Core1262 antenna, DNP
-until it is fitted). Gaps in the numbering (U8, Q4, L1, D3, R8/R9, R14–R18, C9, C11, C13–C15,
+D1 SMAJ5.0A, D2 SS34 (load sharing), Q1/Q2 AO3401A, Q3 2N7002, no board antenna connector for the Core1262 (a u.FL pigtail from the module's own IPEX to the enclosure wall; its ANT pin is left unconnected). Gaps in the numbering (U8, Q4, L1, D3, R8/R9, R14–R18, C9, C11, C13–C15,
 LED1/2) are the chip-level charger and boost parts the modules replaced. Page P2: Q5/Q6 + R19/R20 Core1262 3.3 V switch, Q7/Q8 + R21/R22 LTE supply
 switch, C16 220 µF + C17 22 µF on the LTE supply, U10 XC6206P182MR (1.8 V) + C18/C19, R23/R24
 logic-level links, Q9 + R25 PWRKEY driver, Q10/Q11 BSS138 + R26–R29 UART level shifters, H11 the
@@ -43,7 +42,7 @@ footprints (alternating legs; any SMD female strip with the same leg pattern fit
 |---|---|---|---|---|
 | 1 | **YD-ESP32-S3 N8R2** (VCC-GND Studio; FlyRobo) | — | 2 × 22-pin female headers, 2.54 mm, rows **25.40 mm** apart | Board 27.94 × 57.15 mm, antenna end 6.2 mm past it. Pin 1 (3V3) at the antenna end. Both USB-C at the far end: keep that edge clear and at the board edge. **Leave its IN-OUT jumper open** (the carrier feeds its 5V pin; the open jumper's diode stops that reaching a laptop's USB). Its RGB jumper must be closed for the WS2812 on GPIO48. |
 | 2 | **Ebyte E220-900T22D *or* T30D** (UART, LLCC68) | UART1 | one 1 × 7 female header, 2.54 mm, both module outlines in silk (as on Board A) | Same pin order on both: M0, M1, RXD, TXD, AUX, VCC, GND. T30D outline is the larger; antenna (SMA on the module) toward the board edge. |
-| 3 | **Waveshare Core1262-HF** (SX1262, SPI) — future | SPI (shared) | 2 × 8, 2.54 mm pitch, rows **15.24 mm** apart (Waveshare drawing; pads 1.6 × 2.8), module 19 × 22 mm | Left: GND, GND, RXEN, TXEN, DIO2, DIO1, GND, 3V3. Right: ANT, GND, CS, CLK, MOSI, MISO, RESET, BUSY (Waveshare Core126X schematic). Optional edge SMA from ANT (50 Ω, DNP); the module also has an IPEX. |
+| 3 | **Waveshare Core1262-HF** (SX1262, SPI) — future | SPI (shared) | 2 × 8, 2.54 mm pitch, rows **15.24 mm** apart (Waveshare drawing; pads 1.6 × 2.8), module 19 × 22 mm | Left: GND, GND, RXEN, TXEN, DIO2, DIO1, GND, 3V3. Right: ANT, GND, CS, CLK, MOSI, MISO, RESET, BUSY (Waveshare Core126X schematic). ANT pin unconnected: the antenna goes through a u.FL-to-SMA pigtail from the module's own IPEX to the enclosure wall (Anish, 2026-11-21; the board SMA RF1 was dropped). |
 | 4 | **W5500-lite** (Ethernet) | SPI (shared) | 2 × 6, 2.54 mm pitch, rows **20.32 mm** apart (LilyGO T-Lite W5500 drawing); module 23.00 × 24.92 mm, top pin about 6.3 mm below its top edge, Ø2.0 mm hole 1.61 mm from the left and 2.50 mm from the top edges. Schematic part: EasyEDA `W5500_MODULE`, footprint checked against all of this (§5) | Left: GND, GND, MOSI, SCK, CS, INT. Right: GND, 3V3, 3V3, NC, RST, MISO. **3.3 V only.** RJ45 at the board edge. |
 | 5 | **DS3231 ZS-042** (RTC + AT24C32) | I2C | 1 × 4 header, the module's right-hand row, top to bottom SCL, SDA, VCC, GND (confirmed). Board 38.00 × 21.50 mm; bottom pin of the 4-row 6.67 mm above the bottom edge, so the top pin is 14.29 mm above it; row about 1.2 mm in from the right edge (scaled from the drawing, not dimensioned). Ø1.70 mm holes at (8.15, 1.55) and (8.15, 19.95) from the left/top corner, and 3.55 mm in from the right edge, 1.55 mm from the top. The 6-pin row (unused) starts 4.47 mm from the top. | No SQW, so no alarm interrupt; firmware polls the RTC. Has its own 4.7 k pull-ups. Its coin-cell "charger" (a resistor and diode) cooks a CR2032: remove the resistor, or fit an LIR2032. |
 | BT1 | **2 × 18650 Li-ion in parallel (1S2P)**, dual SMD holder (Robocraze; Keystone 1048P footprint, 86 × 40 mm) | — | SMD | Both + contacts to VBAT, both − to the protection. Li-ion, 4.2 V: the TP4056 is a Li-ion charger, **not** LiFePO4 like the leaves. Fit two matched cells at the same charge. |
@@ -183,7 +182,7 @@ listings, not live stock):
 | Dual 18650 SMD holder | Robocraze (generic; measure pads against 1048P) |
 | KF128 3.81 mm 2-pin terminal | common |
 | JST-SH 4-pin (Qwiic) | Evelta |
-| Pin headers, KF301 terminal, edge SMA, 220 µF SMD electrolytic | common |
+| Pin headers, KF301 terminal, u.FL-to-SMA pigtail, 220 µF SMD electrolytic | common |
 | F1 1812 PTC, 2 A hold | Sophix: Weite WT1812-20030 (2 A, 30 V, 1812, drops into the same footprint) |
 | D1 SMAJ5.0A TVS | Ktron: Vishay SMAJ5.0A-E3/61 (SMA, minimum order 7) |
 
@@ -210,12 +209,12 @@ from the bottom-left corner, y up, in mm.
     plus one spare position) at x 10.0, y 49.5–57.1. Positions from the starred T22D and combined
     T30D/T22D footprints, offset from M0.
   - **Core1262** rows horizontal at y 73.7 and 89.0, pins x 2.5–20.3, pin 1 (and ANT) at the left
-    end next to RF1; body about x 0.4–22.4, y 72–91.
+    end at the left; body about x 0.4–22.4, y 72–91.
   - **EG800AK** header H11 vertical at x 68.8, centred y 38.7; body about x 44–70, y 27–50 (outline
     estimated from 26 × 23 mm: measure the module).
   - ZS-042 4-pin row at x 38.8, body x 2–40, y 21–42.5. W5500 at the right edge, rows y 30.8 and
     51.2, RJ45 end pointing right; body x 75–100, jack 2 mm past the edge.
-  - Core1262 3.3 V switch (Q5/Q6/R19/R20) at x 27.5, y 76–88; RF1 SMA at the left edge, y 80.3.
+  - Core1262 3.3 V switch (Q5/Q6/R19/R20) at x 27.5, y 76–88.
 - **Power** along the bottom edge: USB-C at the right edge (x 96.5, y 20), the 5 V terminal and
   the external-cell terminal at the bottom edge. **U7 TP4056 module on the back**, body x 48.3–65.4,
   y 0.3–26.5, its IN/USB-C end on the bottom edge so its own USB-C port is usable (pads 0.4 mm in;
@@ -231,8 +230,9 @@ from the bottom-left corner, y up, in mm.
 - **Copper:** GND pours on both layers. Net rules: 0.8 mm tracks for VBAT, BAT_CELL_N, SYS,
   5V, VBUS, VIN_RAW and VBAT_LTE; 0.5 mm for GND, 3V3P, 5V_LORA and 3V3_SX; 0.254 mm
   for signals.
-- **Routing:** the first autoroute (2026-11-21) predates the re-placement and the module swap and
-  has to be redone with "keep existing" off (its leftover tracks and vias are the only DRC errors). The 1048P footprint keeps the bottom pour out from under the whole
+- **Routing:** rerouted by Anish after the module swap (2026-11-21): no clearance errors and no
+  GND islands. SYS is 0.8 mm except two short 0.54 mm necks into Q1. Left: SX_RXEN (H2 pin 6 to
+  H4 pin 3) unrouted, and the RF1 removal still to push to the PCB. The 1048P footprint keeps the bottom pour out from under the whole
   holder body, so there is no bottom GND plane under the modules (stitching vias there float).
 - **Footprint checks against the starred EasyEDA parts:** W5500-lite matches (rows 20.32 mm, pin 1
   at the jack end). The E220 T22D/T30D 7-pin row matches; their 3–4 antenna-end pins now land in H12/H13. The starred "SX1262 core" footprint is the castellated
