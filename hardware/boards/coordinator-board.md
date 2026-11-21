@@ -19,14 +19,19 @@ through-hole pins sit over the battery holder on the back. Layout started (§7):
 the dual 18650 holder on the bottom side, module mounting holes where the module's drawing gives
 them. Placed and DRC-clean for clearance; **not yet routed**.
 
+Fifth pass (2026-11-21, Anish): the charger and the boost are **modules** again, from his starred
+EasyEDA parts: U7 a TP4056 charging module with protection (HW-373 style, 26.2 × 17.1 mm, on the back
+with its USB-C on the bottom edge) and U4 a 7Semi TPS61023 5 V boost module (4-pin header). They replace the
+TP4056/DW01A/FS8205A chips, the MT3608, L1, D3 and 15 passives and LEDs.
+
 Designators as drawn: H1/H2 dev-board headers P1/P2, H3 E220, H4/H5 Core1262 rows, U6 W5500
 module (EasyEDA `W5500_MODULE`, 25 × 23 mm, 2 × 6), H8 ZS-042 (4-pin side), H9 OLED, H10 spare
 GPIO, BT1 dual 18650 holder (Keystone 1048P pattern, cells in parallel), U9 3.81 mm terminal for
-external cells, U1 Qwiic, U2 USB-C, U3 5 V terminal, U4 MT3608 boost,
-U5 AMS1117-3.3, U7 TP4056 (ESOP-8), U8 DW01A protection (SOT-23-6) + Q4 FS8205A dual N-FET (TSSOP-8), F1 PTC, D1 SMAJ5.0A,
-D2 SS34 (load sharing), D3 SS34 (boost), Q1/Q2 AO3401A, Q3 2N7002, L1 4.7 µH SWPA6045S
-(Isat 5.5 A), LED1 red (charging), LED2 green (charged), RF1 SMA (Core1262 antenna, DNP until
-it is fitted). Page P2: Q5/Q6 + R19/R20 Core1262 3.3 V switch, Q7/Q8 + R21/R22 LTE supply
+external cells, U1 Qwiic, U2 USB-C, U3 5 V terminal, U4 7Semi TPS61023 boost module,
+U5 AMS1117-3.3, U7 TP4056 charging module (with DW01A + 8205A protection and its own LEDs), F1 PTC,
+D1 SMAJ5.0A, D2 SS34 (load sharing), Q1/Q2 AO3401A, Q3 2N7002, RF1 SMA (Core1262 antenna, DNP
+until it is fitted). Gaps in the numbering (U8, Q4, L1, D3, R8/R9, R14–R18, C9, C11, C13–C15,
+LED1/2) are the chip-level charger and boost parts the modules replaced. Page P2: Q5/Q6 + R19/R20 Core1262 3.3 V switch, Q7/Q8 + R21/R22 LTE supply
 switch, C16 220 µF + C17 22 µF on the LTE supply, U10 XC6206P182MR (1.8 V) + C18/C19, R23/R24
 logic-level links, Q9 + R25 PWRKEY driver, Q10/Q11 BSS138 + R26–R29 UART level shifters, H11 the
 LTE module's 6-pin header, H12/H13 E220 antenna-end supports (4-way, no net). Module headers H1–H5 and H8–H13 are Mill-Max 310-43-1xx SMD female
@@ -48,11 +53,11 @@ footprints (alternating legs; any SMD female strip with the same leg pattern fit
 
 ```
 5 V in (USB-C power-only, or 2-pin terminal from a PoE splitter)
-  └─ F1 PTC 2 A ─ D1 SMAJ5.0A ─┬──────────────── VBUS ── U7 TP4056 VCC ─ BAT ── VBAT = BT1 +
-                               │      BT1 (2 cells ∥) + U9 ext. − ── U8 DW01A + Q4 FS8205A ── GND
+  └─ F1 PTC 2 A ─ D1 SMAJ5.0A ─┬──────── VBUS ── U7 TP4056 module IN+ ─ OUT+/B+ ── VBAT = BT1 +
+                               │      BT1 (2 cells ∥) + U9 ext. − ── U7 B−   (U7 OUT−/IN− = GND)
                                ├── D2 SS34 ──┐
   VBAT ── Q1 AO3401A (P-FET, gate on VBUS) ──┴── SYS (3.0–4.8 V)
-                                   └─ L1 4.7 µH ─ U4 MT3608 SW ─ D3 SS34 ── 5V (4.99 V)
+                                               └─ U4 TPS61023 module VIN ─ 5V out
 5V ─┬─ dev board 5V pin (its own LDO makes the ESP32's 3.3 V)
     ├─ Q2 AO3401A high-side switch ── 5V_LORA ── E220 VCC (+ 220 µF + 100 nF at the pin)
     └─ U5 AMS1117-3.3 ── 3V3P ── Core1262, W5500, ZS-042, OLED/Qwiic
@@ -61,22 +66,21 @@ footprints (alternating legs; any SMD female strip with the same leg pattern fit
 - **Load sharing:** with 5 V present, Q1's gate is held high (off) and the load runs from
   VBUS through D2 while the TP4056 charges the cell. Without it, Q1's 100 k gate pull-down
   turns it on and the cell carries everything. No gap at the hand-over beyond D2's drop.
-- **Charger (U7 TP4056, ESOP-8):** R15 2 k on PROG = about 580 mA, gentler on a chip
-  and cell in a closed box than 1 A (1.2 k gives 1 A). TEMP to GND (no NTC), CE to VBUS.
-  LED1 red lights while charging (CHRG), LED2 green when done (STDBY), each with 1 k.
-  10 µF at VCC (C15) and at BAT (C14).
-- **Protection (U8 DW01A + Q4 FS8205A),** on the cell's negative side exactly as a TP4056
-  module does it: DW01A VSS and the FS8205A's S1 pins to the cell's − (`BAT_CELL_N`), S2 pins
-  to board GND, OD → G1 (discharge FET), OC → G2 (charge FET), CS to board GND through R18 1 k,
-  VDD from VBAT through R14 100 Ω with C13 100 nF to the cell's −; TD (pin 4) unconnected. The
-  FETs' common drain (pins 1 and 8, `PROT_D`) joins only the two pins. Board GND is therefore
-  the cell's protected negative, not BT1 − directly. Trips at about 4.3 V, 2.4 V and 3 A
-  (DW01A), well above the boost's ~2.5 A peak from a low cell.
-- **One 5 V rail from the boost** (U4 MT3608, SOT-23-6, 1.2 MHz, 0.6 V reference; R8 732 k /
-  R9 100 k = 4.99 V; L1 4.7 µH, Isat 5.5 A; D3 SS34): the dev board's LDO and the E220 both
-  want a real 5 V, which a 3.0–4.2 V cell can't give. Its 4 A switch limit covers the T30D's
-  620 mA burst on top of the ESP32 and W5500 (about 2.5 A peak in the inductor from a 3.0 V
-  cell). Non-synchronous: with mains on, SYS ≈ 4.7 V and the boost barely switches.
+- **Charger and protection: U7, a TP4056 charging module** (the common HW-373 board with DW01A +
+  8205A). IN+ on VBUS, IN− and OUT− on board GND, B+ and OUT+ on VBAT, B− on the cells' negative
+  (`BAT_CELL_N`). Board GND is therefore the cells' protected negative, as before. Its own LEDs
+  show charging/charged. Most modules ship with a 1.2 k PROG resistor = 1 A; swap it for 2 k
+  (about 580 mA) for a gentler charge in a closed box. The module's own USB-C port is on VBUS
+  too: don't power it and the board's input at the same time. It sits on the **back**, USB-C end on
+  the bottom edge, soldered flat on six SMD pads through its edge holes (no through-holes in the
+  carrier).
+- **5 V rail: U4, a 7Semi TPS61023 boost module** (VIN from SYS, 5V out; library pinout VIN, GND,
+  GND, 5V: **check it against the real board**). The dev board's LDO and the E220 both want a
+  real 5 V, which a 3.0–4.2 V cell can't give. C7 10 µF on SYS and C8 22 µF on 5V stay on the
+  carrier. Small TPS61023 boards are usually sold for about 1 A at 5 V; the MT3608 design
+  budgeted about 1.5 A peak with a T30D bursting at full power, so check the module's rating
+  before running a T30D at 30 dBm from the cells. The library footprint came with 0.09 mm drills;
+  the board copy is set to 1.0 mm drill / 1.7 mm pad (redo this if the PCB is re-imported).
 - **3V3P** for the peripherals comes from its own LDO, not the dev board's 3V3 pin, so a
   W5500 (150–180 mA) and a Core1262 TX don't share the ESP32's regulator through WiFi peaks.
 - **E220 power switch** (Q2 + Q3 2N7002, `LORA_PWR`): firmware can power-cycle a hung
@@ -172,11 +176,9 @@ listings, not live stock):
 
 | Part | Where |
 |---|---|
-| TP4056 ESOP-8 | Evelta, Quartz Components, Electronicscomp (check it is ESOP-8, not SOP-8) |
-| DW01A (SOT-23-6), FS8205A (TSSOP-8) | DNA Tech, Probots, Quartz Components |
-| MT3608 SOT-23-6 | Sunrom, DNA Tech, Electron Components, Quartz Components |
-| SWPA6045S4R7MT 4.7 µH | Evelta (same part) |
-| AO3401A, 2N7002, SS34, AMS1117-3.3, 0603 parts, 0603 LEDs | common: Quartz, DNA Tech, Robu |
+| TP4056 charging module with protection (HW-373 style) | common everywhere (Robu, Robocraze, Evelta) |
+| 7Semi TPS61023 5 V boost module | 7Semi resellers (Hubtronics) |
+| AO3401A, 2N7002, SS34, AMS1117-3.3, 0603 parts | common: Quartz, DNA Tech, Robu |
 | USB-C 6-pin power-only | Hubtronics, Evelta |
 | Dual 18650 SMD holder | Robocraze (generic; measure pads against 1048P) |
 | KF128 3.81 mm 2-pin terminal | common |
@@ -215,17 +217,22 @@ from the bottom-left corner, y up, in mm.
     51.2, RJ45 end pointing right; body x 75–100, jack 2 mm past the edge.
   - Core1262 3.3 V switch (Q5/Q6/R19/R20) at x 27.5, y 76–88; RF1 SMA at the left edge, y 80.3.
 - **Power** along the bottom edge: USB-C at the right edge (x 96.5, y 20), the 5 V terminal and
-  the external-cell terminal at the bottom edge, charger and protection x 57–93, boost x 37–55,
-  3V3P LDO and the E220 switch at the bottom left. LTE supply switch and logic under the
+  the external-cell terminal at the bottom edge. **U7 TP4056 module on the back**, body x 48.3–65.4,
+  y 0.3–26.5, its IN/USB-C end on the bottom edge so its own USB-C port is usable (pads 0.4 mm in;
+  the bottom side there is clear of everything but the U4 header pins at x 44.8 and the U9 pins
+  from x 67). U4 boost module header at x 44.8, y 10.2–17.9 (body outline not in the footprint:
+  keep x 43–55 clear on top); D2 and Q1 at x 59.7, y 4.8 and 8.4; C2 at (84.6, 24.1); C17 moved
+  to (74.9, 32.8). 3V3P LDO and the E220 switch at
+  the bottom left. LTE supply switch and logic under the
   EG800AK footprint.
 - **Holes:** four Ø3.2 mm (M3) corner holes 3.5 mm in from each edge; W5500 Ø2.2 mm at
   (97.6, 50.9) (from the W5500-lite footprint); ZS-042 three Ø1.8 mm (M1.6) at (10.2, 41.0), (10.2, 22.6), (36.5, 41.0). Still to add,
   once their positions are known: YD-ESP32-S3, E220 (T22D/T30D), Core1262 and EG800AK holes.
 - **Copper:** GND pours on both layers. Net rules: 0.8 mm tracks for VBAT, BAT_CELL_N, SYS,
-  BOOST_SW, 5V, VBUS, VIN_RAW and VBAT_LTE; 0.5 mm for GND, 3V3P, 5V_LORA and 3V3_SX; 0.254 mm
+  5V, VBUS, VIN_RAW and VBAT_LTE; 0.5 mm for GND, 3V3P, 5V_LORA and 3V3_SX; 0.254 mm
   for signals.
-- **Routing:** the first autoroute (2026-11-21) predates the re-placement and has to be redone
-  with "keep existing" off. The 1048P footprint keeps the bottom pour out from under the whole
+- **Routing:** the first autoroute (2026-11-21) predates the re-placement and the module swap and
+  has to be redone with "keep existing" off (its leftover tracks and vias are the only DRC errors). The 1048P footprint keeps the bottom pour out from under the whole
   holder body, so there is no bottom GND plane under the modules (stitching vias there float).
 - **Footprint checks against the starred EasyEDA parts:** W5500-lite matches (rows 20.32 mm, pin 1
   at the jack end). The E220 T22D/T30D 7-pin row matches; their 3–4 antenna-end pins now land in H12/H13. The starred "SX1262 core" footprint is the castellated
