@@ -230,7 +230,7 @@ from the bottom-left corner, y up, in mm.
   Only low parts (SOT-23, 0603, 0805) may sit under a module on 5.6 mm headers. 3V3P LDO and the E220 switch at
   the bottom left. LTE supply switch and logic under the
   EG800AK footprint.
-- **Holes:** four Ø3.2 mm (M3) corner holes 3.5 mm in from each edge; W5500 Ø2.2 mm at
+- **Holes:** Ø3.2 mm (M3) holes 3.5 mm in from the edges at three corners; the fourth (MH4) can't go in the top-right corner, which the ESP32 dev board covers, so it sits at (97.0, 67.1), just below the dev board and clear of H1 and H10; W5500 Ø2.2 mm at
   (97.6, 50.9) (from the W5500-lite footprint); ZS-042 three Ø1.8 mm (M1.6) at (10.2, 41.0), (10.2, 22.6), (36.5, 41.0) before U8; now mirrored to (10.2, 40.4), (10.2, 22.0), (36.5, 22.0) to match the starred DS3231 footprint (see §7 note). Still to add,
   once their positions are known: YD-ESP32-S3, E220 (T22D/T30D), Core1262 and EG800AK holes.
 - **Copper:** GND pours on both layers. Net rules: 0.8 mm tracks for VBAT, BAT_CELL_N, SYS,
