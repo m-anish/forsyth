@@ -24,25 +24,31 @@ EasyEDA parts: U7 a TP4056 charging module with protection (HW-373 style, 26.2 �
 with its USB-C on the bottom edge) and U4 a 7Semi TPS61023 5 V boost module (4-pin header). They replace the
 TP4056/DW01A/FS8205A chips, the MT3608, L1, D3 and 15 passives and LEDs.
 
-Designators as drawn: H1/H2 dev-board headers P1/P2, H3 E220, H4/H5 Core1262 rows, U6 W5500
+Sixth pass (2026-11-21, Anish): the **YD-ESP32-S3 dev board is gone**. The carrier now carries a bare
+**ESP32-S3-WROOM-1-N8R2** (U13, Robu ₹459) soldered flat, with its own 3.3 V LDO, native USB on
+the board's USB-C (now 16-pin) for flashing, console and JTAG, BOOT/RESET buttons and a UART0
+fallback header. The Core1262 is now soldered flat by its castellated pads (U12) instead of
+plugging into two header rows. Same GPIO map (§3), so firmware is unchanged.
+
+Designators as drawn: U13 ESP32-S3-WROOM-1-N8R2, H3 E220, U12 Core1262 (castellated), U6 W5500
 module (EasyEDA `W5500_MODULE`, 25 × 23 mm, 2 × 6), U8 DS3231 ZS-042 module (Anish's starred EasyEDA part, through-hole; only its 4-pin side, pins 7–10, is wired), H9 OLED, H10 spare
 GPIO, BT1 dual 18650 holder (Keystone 1048P pattern, cells in parallel), U9 3.81 mm terminal for
-external cells, U1 Qwiic, U2 USB-C, U3 5 V terminal, U4 7Semi TPS61023 boost module,
+external cells, U1 Qwiic, U2 USB-C (16-pin, TYPE-C-31-M-12; power in plus USB data to the ESP32), U3 5 V terminal, U4 7Semi TPS61023 boost module,
 U5 AMS1117-3.3, U7 TP4056 charging module (with DW01A + 8205A protection and its own LEDs), F1 PTC,
 D1 SMAJ5.0A, D2 SS34 (load sharing), Q1/Q2 AO3401A, Q3 2N7002, no board antenna connector for the Core1262 (a u.FL pigtail from the module's own IPEX to the enclosure wall; its ANT pin is left unconnected). Gaps in the numbering (U8, Q4, L1, D3, R8/R9, R14–R18, C9, C11, C13–C15,
 LED1/2) are the chip-level charger and boost parts the modules replaced. Page P2: Q5/Q6 + R19/R20 Core1262 3.3 V switch, Q7/Q8 + R21/R22 LTE supply
 switch, C16 220 µF + C17 22 µF on the LTE supply, U10 XC6206P182MR (1.8 V) + C18/C19, R23/R24
 logic-level links, Q9 + R25 PWRKEY driver, Q10/Q11 BSS138 + R26–R29 UART level shifters, H11 the
-LTE module's 6-pin header, H12/H13 E220 antenna-end supports (4-way, no net). Module headers over or beside the battery holder (H1–H5, H9, H10, H12, H13) are Mill-Max 310-43-1xx SMD female
+LTE module's 6-pin header, H12/H13 E220 antenna-end supports (4-way, no net). ESP32 support: U16 AMS1117-3.3 (3V3_ESP) + C20 10 µF in, C21 22 µF + C22 100 nF out; R30 10 k + C23 1 µF on EN with SW1 RESET; R31 10 k pull-up on GPIO0 with SW2 BOOT; D3 USBLC6-2SC6 on D+/D−; H14 1 × 3 UART0 header (GND, TX, RX). Module headers over or beside the battery holder (H3, H9, H10, H12, H13) are Mill-Max 310-43-1xx SMD female
 footprints (alternating legs; any SMD female strip with the same leg pattern fits). Away from the battery, modules sit in **through-hole** female berg strips, which are sturdier (Anish, 2026-11-21): H11 (LTE, 1 × 6, 8.5 mm, LCSC C40877) and U8's 4-pin row; the W5500 was already through-hole.
 
 ## 1. What plugs in
 
 | # | Module | Interface | Footprint | Notes |
 |---|---|---|---|---|
-| 1 | **YD-ESP32-S3 N8R2** (VCC-GND Studio; FlyRobo) | — | 2 × 22-pin female headers, 2.54 mm, rows **25.40 mm** apart | Board 27.94 × 57.15 mm, antenna end 6.2 mm past it. Pin 1 (3V3) at the antenna end. Both USB-C at the far end: keep that edge clear and at the board edge. **Leave its IN-OUT jumper open** (the carrier feeds its 5V pin; the open jumper's diode stops that reaching a laptop's USB). Its RGB jumper must be closed for the WS2812 on GPIO48. |
+| 1 | **ESP32-S3-WROOM-1-N8R2** (Espressif; Robu R268955, ₹459) | — | soldered flat, 18 × 25.5 mm, 1.27 mm edge pads + ground pad (LCSC footprint) | PCB antenna: its 6 mm antenna end sits on the top board edge over a no-copper keepout. N8R2 = quad PSRAM, so GPIO35–37 stay usable (an R8 part would take them). The centre ground pad sits over the battery holder, so solder it with hot air (pins 1 and 40 also ground it). |
 | 2 | **Ebyte E220-900T22D *or* T30D** (UART, LLCC68) | UART1 | one 1 × 7 female header, 2.54 mm, both module outlines in silk (as on Board A) | Same pin order on both: M0, M1, RXD, TXD, AUX, VCC, GND. T30D outline is the larger; antenna (SMA on the module) toward the board edge. |
-| 3 | **Waveshare Core1262-HF** (SX1262, SPI) — future | SPI (shared) | 2 × 8, 2.54 mm pitch, rows **15.24 mm** apart (Waveshare drawing; pads 1.6 × 2.8), module 19 × 22 mm | Left: GND, GND, RXEN, TXEN, DIO2, DIO1, GND, 3V3. Right: ANT, GND, CS, CLK, MOSI, MISO, RESET, BUSY (Waveshare Core126X schematic). ANT pin unconnected: the antenna goes through a u.FL-to-SMA pigtail from the module's own IPEX to the enclosure wall (Anish, 2026-11-21; the board SMA RF1 was dropped). |
+| 3 | **Waveshare Core1262-HF** (SX1262, SPI) — future | SPI (shared) | castellated, soldered flat (starred "SX1262 chip_Waveshare" footprint, rows 16.2 mm apart, 2 × 8 at 2.54 mm), module 19 × 22 mm | Left: GND, GND, RXEN, TXEN, DIO2, DIO1, GND, 3V3. Right: ANT, GND, CS, CLK, MOSI, MISO, RESET, BUSY (Waveshare Core126X schematic). ANT pin unconnected: the antenna goes through a u.FL-to-SMA pigtail from the module's own IPEX to the enclosure wall (Anish, 2026-11-21; the board SMA RF1 was dropped). |
 | 4 | **W5500-lite** (Ethernet) | SPI (shared) | 2 × 6, 2.54 mm pitch, rows **20.32 mm** apart (LilyGO T-Lite W5500 drawing); module 23.00 × 24.92 mm, top pin about 6.3 mm below its top edge, Ø2.0 mm hole 1.61 mm from the left and 2.50 mm from the top edges. Schematic part: EasyEDA `W5500_MODULE`, footprint checked against all of this (§5) | Left: GND, GND, MOSI, SCK, CS, INT. Right: GND, 3V3, 3V3, NC, RST, MISO. **3.3 V only.** RJ45 at the board edge. |
 | 5 | **DS3231 ZS-042** (RTC + AT24C32) | I2C | 1 × 4 header, the module's right-hand row, top to bottom SCL, SDA, VCC, GND (confirmed). Board 38.00 × 21.50 mm; bottom pin of the 4-row 6.67 mm above the bottom edge, so the top pin is 14.29 mm above it; row about 1.2 mm in from the right edge (scaled from the drawing, not dimensioned). Ø1.70 mm holes at (8.15, 1.55) and (8.15, 19.95) from the left/top corner, and 3.55 mm in from the right edge, 1.55 mm from the top. The 6-pin row (unused) starts 4.47 mm from the top. | No SQW, so no alarm interrupt; firmware polls the RTC. Has its own 4.7 k pull-ups. Its coin-cell "charger" (a resistor and diode) cooks a CR2032: remove the resistor, or fit an LIR2032. |
 | BT1 | **2 × 18650 Li-ion in parallel (1S2P)**, dual SMD holder (Robocraze; Keystone 1048P footprint, 86 × 40 mm) | — | SMD | Both + contacts to VBAT, both − to the protection. Li-ion, 4.2 V: the TP4056 is a Li-ion charger, **not** LiFePO4 like the leaves. Fit two matched cells at the same charge. |
@@ -57,7 +63,7 @@ footprints (alternating legs; any SMD female strip with the same leg pattern fit
                                ├── D2 SS34 ──┐
   VBAT ── Q1 AO3401A (P-FET, gate on VBUS) ──┴── SYS (3.0–4.8 V)
                                                └─ U4 TPS61023 module VIN ─ 5V out
-5V ─┬─ dev board 5V pin (its own LDO makes the ESP32's 3.3 V)
+5V ─┬─ U16 AMS1117-3.3 ── 3V3_ESP ── ESP32-S3-WROOM-1 (22 µF + 100 nF at its 3V3 pin)
     ├─ Q2 AO3401A high-side switch ── 5V_LORA ── E220 VCC (+ 220 µF + 100 nF at the pin)
     └─ U5 AMS1117-3.3 ── 3V3P ── Core1262, W5500, ZS-042, OLED/Qwiic
 ```
@@ -74,13 +80,13 @@ footprints (alternating legs; any SMD female strip with the same leg pattern fit
   the bottom edge, soldered flat on six SMD pads through its edge holes (no through-holes in the
   carrier).
 - **5 V rail: U4, a 7Semi TPS61023 boost module** (VIN from SYS, 5V out; library pinout VIN, GND,
-  GND, 5V: **check it against the real board**). The dev board's LDO and the E220 both want a
+  GND, 5V: **check it against the real board**). The ESP32's LDO (U16, 1.1 V dropout) and the E220 both want a
   real 5 V, which a 3.0–4.2 V cell can't give. C7 10 µF on SYS and C8 22 µF on 5V stay on the
   carrier. Small TPS61023 boards are usually sold for about 1 A at 5 V; the MT3608 design
   budgeted about 1.5 A peak with a T30D bursting at full power, so check the module's rating
   before running a T30D at 30 dBm from the cells. The library footprint came with 0.09 mm drills;
   the board copy is set to 1.0 mm drill / 1.7 mm pad (redo this if the PCB is re-imported).
-- **3V3P** for the peripherals comes from its own LDO, not the dev board's 3V3 pin, so a
+- **3V3P** for the peripherals comes from its own LDO (U5), not the ESP32's (U16), so a
   W5500 (150–180 mA) and a Core1262 TX don't share the ESP32's regulator through WiFi peaks.
 - **E220 power switch** (Q2 + Q3 2N7002, `LORA_PWR`): firmware can power-cycle a hung
   radio. Off at boot (gate pull-up, GPIO pull-down) until firmware turns it on.
@@ -115,7 +121,10 @@ footprints (alternating legs; any SMD female strip with the same leg pattern fit
 ## 3. Pin map (ESP32-S3 GPIO)
 
 Avoids strapping pins (0, 3, 45, 46), the USB pair (19, 20), UART0 (43, 44) and GPIO48
-(the dev board's WS2812). GPIO 39–42 give up JTAG, which the built-in USB-JTAG makes moot.
+(unused on the bare module). GPIO 39–42 give up JTAG, which the built-in USB-JTAG makes moot.
+USB D−/D+ (GPIO19/20) go to the USB-C through D3. EN has 10 k to 3V3_ESP, 1 µF to GND and SW1
+(RESET); GPIO0 has a 10 k pull-up and SW2 (BOOT); UART0 (43/44) goes to H14. GPIO45 low at reset
+also selects 3.3 V flash, which the N8R2 needs; the 100 k pull-down keeps it there.
 
 | Function | GPIO | Notes |
 |---|---|---|
@@ -139,8 +148,11 @@ Avoids strapping pins (0, 3, 45, 46), the USB pair (19, 20), UART0 (43, 44) and 
 
 ## 4. Connectors and the rest
 
-- **J1** USB-C power-only receptacle (CC1/CC2 5.1 k to GND) and **J2** 2-pin 5 V terminal
-  (PoE splitter), both into F1.
+- **U2** USB-C 16-pin receptacle (TYPE-C-31-M-12; CC1/CC2 5.1 k to GND): VBUS into F1, D+/D−
+  to the ESP32 through D3, so one cable powers, charges and programs the board. **U3** 2-pin 5 V
+  terminal (PoE splitter), also into F1. Don't feed both at once from different supplies.
+- **SW1 RESET, SW2 BOOT** (TS-1187A 5.1 mm SMD, wired corner to corner so either internal pin
+  pairing works); **H14** 1 × 3 UART0 header for a USB-UART adapter if USB won't enumerate.
 - **J3** OLED, 4-pin (GND, VCC, SCL, SDA: the common SSD1306 order). **J4** Qwiic JST-SH
   (GND, 3V3, SDA, SCL, as on Board A). **J5** spare GPIO.
 - Test points: VBUS, SYS, VBAT, 5V, 3V3P, GND.
@@ -178,7 +190,10 @@ listings, not live stock):
 | TP4056 charging module with protection (HW-373 style) | common everywhere (Robu, Robocraze, Evelta) |
 | 7Semi TPS61023 5 V boost module | 7Semi resellers (Hubtronics) |
 | AO3401A, 2N7002, SS34, AMS1117-3.3, 0603 parts | common: Quartz, DNA Tech, Robu |
-| USB-C 6-pin power-only | Hubtronics, Evelta |
+| ESP32-S3-WROOM-1-N8R2 | Robu (SKU R268955, ₹459) |
+| USB-C 16-pin receptacle (TYPE-C-31-M-12 or equivalent) | Hubtronics, Evelta, Robu |
+| USBLC6-2SC6 (SOT-23-6) | Evelta, Electronicscomp |
+| TS-1187A 5.1 × 5.1 mm SMD tactile switch | common (Robu, Quartz) |
 | Dual 18650 SMD holder | Robocraze (generic; measure pads against 1048P) |
 | KF128 3.81 mm 2-pin terminal | common |
 | JST-SH 4-pin (Qwiic) | Evelta |
@@ -199,8 +214,13 @@ from the bottom-left corner, y up, in mm.
   them. Its body covers x 8–94, y 58–98, so nothing through-hole sits there.
 - **Top side, modules on SMD female headers** (2026-11-21, re-placed so the three optional
   radios fit at once; module bodies checked for overlap against the starred EasyEDA footprints):
-  - ESP32 rows at y 71.1 and 96.5, pins x 40.5–93.8; body x 38.6–95.7, y 69.8–97.8; USB end at
-    the right edge, antenna end to the left over a copper keepout (x 30–38.6, y 69–98.5).
+  - **ESP32-S3-WROOM-1** U13 centred (38.1, 83.3), body x 29.1–47.1, y 74.3–100, antenna end
+    (y 93.7–100) on the top edge over a keepout region (no wires, fills or pours, both layers) at
+    x 27.1–49.1, y 93.5–100. Its support sits to the left, by the 3V3/EN pins: U16 (14.0, 87.6),
+    C20 (7.6, 87.6), C21 (19.8, 87.6), C22 (26.4, 91.4), R30 (22.9, 90.4), C23 (22.9, 92.5), SW1 RESET
+    (11.4, 96.3); SW2 BOOT (43.2, 70.9) and R31 (49.8, 71.1) by GPIO0; the VBAT/VBUS sense dividers
+    R3–R7 and C6 in a row at y 72.1, x 7.6–25.4; H14 (through-hole) at x 4.8, y 75–80, in the strip
+    left of the battery holder.
   - **E220** header H3 vertical at x 41.5, y 48.9–64.1, M0 (pin 1) at the bottom; the body runs left
     along the edge: T30D x 0–43, y 44.5–68.5 (T22D x 7–43, y 46–67), SMA hanging ~5.5 mm off the
     left edge. Both outlines in silk. The modules' antenna-end "fixed hole" pins (no electrical
@@ -208,8 +228,8 @@ from the bottom-left corner, y up, in mm.
     **H13** (T30D, 4 pins) at x 3.0, y 48.9–56.5, pads 0.46 mm from the edge; **H12** (T22D, 3 pins
     plus one spare position) at x 10.0, y 49.5–57.1. Positions from the starred T22D and combined
     T30D/T22D footprints, offset from M0.
-  - **Core1262** rows horizontal at y 73.7 and 89.0, pins x 2.5–20.3, pin 1 (and ANT) at the left
-    end at the left; body about x 0.4–22.4, y 72–91.
+  - **Core1262** U12 castellated, centred (59.7, 83.8), pin 1 at the top-left, pads x 50.2–69.2,
+    y 74.9–92.7; its RXEN/TXEN/DIO1 side faces the ESP32's SX pins.
   - **EG800AK** header H11 vertical at x 68.8, centred y 38.7; body about x 44–70, y 27–50 (outline
     estimated from 26 × 23 mm: measure the module).
   - DS3231 module U8: 4-pin row at x 38.8, y 27.7–35.3 (SCL at the low end, GND at the high end, as
@@ -218,8 +238,8 @@ from the bottom-left corner, y up, in mm.
     4-pin row on the right). It matches a module mounted battery side up; compare with the real
     module before ordering. The three mounting holes follow the footprint. W5500 at the right edge, rows y 30.8 and
     51.2, RJ45 end pointing right; body x 75–100, jack 2 mm past the edge.
-  - Core1262 3.3 V switch (Q5/Q6/R19/R20) at x 27.5, y 76–88.
-- **Power** along the bottom edge: USB-C at the right edge (x 96.5, y 20), the 5 V terminal and
+  - Core1262 3.3 V switch (Q5/Q6/R19/R20) and R13 (NSS pull-up) in a column at x 74.9, y 72.4–88.0.
+- **Power** along the bottom edge: USB-C U2 at the right edge (x 96.2, y 20.0, opening past the edge) with D3 at (88.9, 26.7), the 5 V terminal and
   the external-cell terminal at the bottom edge. **U7 TP4056 module on the back**, body x 48.3–65.4,
   y 0.3–26.5, its IN/USB-C end on the bottom edge so its own USB-C port is usable (pads 0.4 mm in;
   the bottom side there is clear of everything but the U4 header pins at x 44.8 and the U9 pins
@@ -230,19 +250,18 @@ from the bottom-left corner, y up, in mm.
   Only low parts (SOT-23, 0603, 0805) may sit under a module on 5.6 mm headers. 3V3P LDO and the E220 switch at
   the bottom left. LTE supply switch and logic under the
   EG800AK footprint.
-- **Holes:** Ø3.2 mm (M3) holes 3.5 mm in from the edges at three corners; the fourth (MH4) can't go in the top-right corner, which the ESP32 dev board covers, so it sits at (97.0, 67.1), just below the dev board and clear of H1 and H10; W5500 Ø2.2 mm at
+- **Holes:** Ø3.2 mm (M3) holes 3.5 mm in from the edges at all four corners (MH4 back in the top-right corner now that the dev board is gone); W5500 Ø2.2 mm at
   (97.6, 50.9) (from the W5500-lite footprint); ZS-042 three Ø1.8 mm (M1.6) at (10.2, 41.0), (10.2, 22.6), (36.5, 41.0) before U8; now mirrored to (10.2, 40.4), (10.2, 22.0), (36.5, 22.0) to match the starred DS3231 footprint (see §7 note). Still to add,
-  once their positions are known: YD-ESP32-S3, E220 (T22D/T30D), Core1262 and EG800AK holes.
+  once their positions are known: E220 (T22D/T30D) and EG800AK holes.
 - **Copper:** GND pours on both layers. Net rules: 0.8 mm tracks for VBAT, BAT_CELL_N, SYS,
   5V, VBUS, VIN_RAW and VBAT_LTE; 0.5 mm for GND, 3V3P, 5V_LORA and 3V3_SX; 0.254 mm
   for signals.
-- **Routing:** rerouted by Anish after the module swap (2026-11-21): no clearance errors and no
-  GND islands. SYS is 0.8 mm except two short 0.54 mm necks into Q1. Left: SX_RXEN (H2 pin 6 to
-  H4 pin 3) unrouted; the RF1 removal is pushed and its leftover tracks deleted. The 1048P footprint keeps the bottom pour out from under the whole
+- **Routing:** the sixth-pass re-placement (WROOM, castellated Core1262) needs a full reroute with
+  "keep existing" off; earlier routes are stale. The 1048P footprint keeps the bottom pour out from under the whole
   holder body, so there is no bottom GND plane under the modules (stitching vias there float).
 - **Footprint checks against the starred EasyEDA parts:** W5500-lite matches (rows 20.32 mm, pin 1
   at the jack end). The E220 T22D/T30D 7-pin row matches; their 3–4 antenna-end pins now land in H12/H13. The starred "SX1262 core" footprint is the castellated
   Core1262 with rows 16.2 mm apart, not the 15.24 mm used here (Waveshare drawing for the pinned
-  board): measure the module before ordering. The YD-ESP32-S3 and EG800AK footprints had no
+  board): measure the module before ordering. The EG800AK footprint had no
   geometry to read.
 - **To do:** reroute, rebuild pours, join any GND islands, widen SYS, final DRC.
