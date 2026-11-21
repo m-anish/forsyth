@@ -30,7 +30,7 @@ the board's USB-C (now 16-pin) for flashing, console and JTAG, BOOT/RESET button
 fallback header. The Core1262 is now soldered flat by its castellated pads (U12) instead of
 plugging into two header rows. Same GPIO map (§3), so firmware is unchanged.
 
-Designators as drawn: U13 ESP32-S3-WROOM-1-N8R2, H3 E220, U12 Core1262 (castellated), U6 W5500
+Designators as drawn: U13 ESP32-S3-WROOM-1-N8R2, U18 E220 (Anish's starred MESHNODES T30D+T22D footprint, through-hole), U12 Core1262 (castellated), U6 W5500
 module (EasyEDA `W5500_MODULE`, 25 × 23 mm, 2 × 6), U8 DS3231 ZS-042 module (Anish's starred EasyEDA part, through-hole; only its 4-pin side, pins 7–10, is wired), H9 OLED, H10 spare
 GPIO, BT1 dual 18650 holder (Keystone 1048P pattern, cells in parallel), U9 3.81 mm terminal for
 external cells, U1 Qwiic, U2 USB-C (16-pin, TYPE-C-31-M-12; power in plus USB data to the ESP32), U3 5 V terminal, U4 7Semi TPS61023 boost module,
@@ -39,7 +39,7 @@ D1 SMAJ5.0A, D2 SS34 (load sharing), Q1/Q2 AO3401A, Q3 2N7002, no board antenna 
 LED1/2) are the chip-level charger and boost parts the modules replaced. Page P2: Q5/Q6 + R19/R20 Core1262 3.3 V switch, Q7/Q8 + R21/R22 LTE supply
 switch, C16 220 µF + C17 22 µF on the LTE supply, U10 XC6206P182MR (1.8 V) + C18/C19, R23/R24
 logic-level links, Q9 + R25 PWRKEY driver, Q10/Q11 BSS138 + R26–R29 UART level shifters, H11 the
-LTE module's 6-pin header, H12/H13 E220 antenna-end supports (4-way, no net). ESP32 support: U16 AMS1117-3.3 (3V3_ESP) + C20 10 µF in, C21 22 µF + C22 100 nF out; R30 10 k + C23 1 µF on EN with SW1 RESET; R31 10 k pull-up on GPIO0 with SW2 BOOT; D3 USBLC6-2SC6 on D+/D−; H14 1 × 3 UART0 header (GND, TX, RX). Module headers over or beside the battery holder (H3, H9, H10, H12, H13) are Mill-Max 310-43-1xx SMD female
+LTE module's 6-pin header, ESP32 support: U16 AMS1117-3.3 (3V3_ESP) + C20 10 µF in, C21 22 µF + C22 100 nF out; R30 10 k + C23 1 µF on EN with SW1 RESET; R31 10 k pull-up on GPIO0 with SW2 BOOT; D3 USBLC6-2SC6 on D+/D−; H14 1 × 3 UART0 header (GND, TX, RX). Module headers over or beside the battery holder (H9, H10) are Mill-Max 310-43-1xx SMD female
 footprints (alternating legs; any SMD female strip with the same leg pattern fits). Away from the battery, modules sit in **through-hole** female berg strips, which are sturdier (Anish, 2026-11-21): H11 (LTE, 1 × 6, 8.5 mm, LCSC C40877) and U8's 4-pin row; the W5500 was already through-hole.
 
 ## 1. What plugs in
@@ -221,19 +221,19 @@ from the bottom-left corner, y up, in mm.
     (11.4, 96.3); SW2 BOOT (43.2, 70.9) and R31 (49.8, 71.1) by GPIO0; the VBAT/VBUS sense dividers
     R3–R7 and C6 in a row at y 72.1, x 7.6–25.4; H14 (through-hole) at x 4.8, y 75–80, in the strip
     left of the battery holder.
-  - **E220** header H3 vertical at x 41.5, y 48.9–64.1, M0 (pin 1) at the bottom; the body runs left
-    along the edge: T30D x 0–43, y 44.5–68.5 (T22D x 7–43, y 46–67), SMA hanging ~5.5 mm off the
-    left edge. Both outlines in silk. The modules' antenna-end "fixed hole" pins (no electrical
-    function per Ebyte) sit in their own 4-way SMD sockets, the same 5.6 mm height as H3, no net:
-    **H13** (T30D, 4 pins) at x 3.0, y 48.9–56.5, pads 0.46 mm from the edge; **H12** (T22D, 3 pins
-    plus one spare position) at x 10.0, y 49.5–57.1. Positions from the starred T22D and combined
-    T30D/T22D footprints, offset from M0.
+  - **E220** U18, the starred MESHNODES footprint (through-hole: the 7-pin row plus both modules'
+    antenna-end "fixed hole" pins, no net, and silk outlines for both): row vertical at x 41.5,
+    y 40.9–56.1, M0 (pin 1) at the bottom, GND (pin 7) 0.9 mm below the battery holder's edge.
+    T30D antenna-end pins at x 3.0, y 40.9–48.5; T22D's at x 10.0, y 41.5–46.6. The body runs left:
+    T30D x 0–43, y 36.5–60.5, SMA hanging off the left edge; the part over the holder (y > 58) is
+    body only, above low SMD parts. Moved down 7.5 mm (sixth pass) so no through-hole pin sits
+    under the holder. C1 (220 µF on 5V_LORA) moved next to its VCC pin at (48.3, 55.9).
   - **Core1262** U12 castellated, centred (59.7, 83.8), pin 1 at the top-left, pads x 50.2–69.2,
     y 74.9–92.7; its RXEN/TXEN/DIO1 side faces the ESP32's SX pins.
   - **EG800AK** header H11 vertical at x 68.8, centred y 38.7; body about x 44–70, y 27–50 (outline
     estimated from 26 × 23 mm: measure the module).
-  - DS3231 module U8: 4-pin row at x 38.8, y 27.7–35.3 (SCL at the low end, GND at the high end, as
-    the starred footprint has it); its unused 6-pin row's pads at x 3.8; body x 2–40, y 21–42.5.
+  - DS3231 module U8 (moved down 6.4 mm to clear the E220 body): 4-pin row at x 38.8, y 21.3–29.0 (SCL at the low end, GND at the high end, as
+    the starred footprint has it); its unused 6-pin row's pads at x 3.8; body x 2–40, y 14.7–36.1.
     **Check:** the footprint's pin order is the mirror of the order in §1 (SCL at the top with the
     4-pin row on the right). It matches a module mounted battery side up; compare with the real
     module before ordering. The three mounting holes follow the footprint. W5500 at the right edge, rows y 30.8 and
@@ -251,7 +251,7 @@ from the bottom-left corner, y up, in mm.
   the bottom left. LTE supply switch and logic under the
   EG800AK footprint.
 - **Holes:** Ø3.2 mm (M3) holes 3.5 mm in from the edges at all four corners (MH4 back in the top-right corner now that the dev board is gone); W5500 Ø2.2 mm at
-  (97.6, 50.9) (from the W5500-lite footprint); ZS-042 three Ø1.8 mm (M1.6) at (10.2, 41.0), (10.2, 22.6), (36.5, 41.0) before U8; now mirrored to (10.2, 40.4), (10.2, 22.0), (36.5, 22.0) to match the starred DS3231 footprint (see §7 note). Still to add,
+  (97.6, 50.9) (from the W5500-lite footprint); ZS-042 three Ø1.8 mm (M1.6) at (10.2, 41.0), (10.2, 22.6), (36.5, 41.0) before U8; then mirrored to match the starred DS3231 footprint and moved down with it, now at (10.2, 34.1), (10.2, 15.7), (36.5, 15.7). Still to add,
   once their positions are known: E220 (T22D/T30D) and EG800AK holes.
 - **Copper:** GND pours on both layers. Net rules: 0.8 mm tracks for VBAT, BAT_CELL_N, SYS,
   5V, VBUS, VIN_RAW and VBAT_LTE; 0.5 mm for GND, 3V3P, 5V_LORA and 3V3_SX; 0.254 mm
@@ -260,7 +260,7 @@ from the bottom-left corner, y up, in mm.
   "keep existing" off; earlier routes are stale. The 1048P footprint keeps the bottom pour out from under the whole
   holder body, so there is no bottom GND plane under the modules (stitching vias there float).
 - **Footprint checks against the starred EasyEDA parts:** W5500-lite matches (rows 20.32 mm, pin 1
-  at the jack end). The E220 T22D/T30D 7-pin row matches; their 3–4 antenna-end pins now land in H12/H13. The starred "SX1262 core" footprint is the castellated
+  at the jack end). The E220 T22D/T30D 7-pin row matches; their 3–4 antenna-end pins are in the MESHNODES footprint (U18). The starred "SX1262 core" footprint is the castellated
   Core1262 with rows 16.2 mm apart, not the 15.24 mm used here (Waveshare drawing for the pinned
   board): measure the module before ordering. The EG800AK footprint had no
   geometry to read.
