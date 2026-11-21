@@ -25,7 +25,7 @@ with its USB-C on the bottom edge) and U4 a 7Semi TPS61023 5 V boost module (4-p
 TP4056/DW01A/FS8205A chips, the MT3608, L1, D3 and 15 passives and LEDs.
 
 Designators as drawn: H1/H2 dev-board headers P1/P2, H3 E220, H4/H5 Core1262 rows, U6 W5500
-module (EasyEDA `W5500_MODULE`, 25 × 23 mm, 2 × 6), H8 ZS-042 (4-pin side), H9 OLED, H10 spare
+module (EasyEDA `W5500_MODULE`, 25 × 23 mm, 2 × 6), U8 DS3231 ZS-042 module (Anish's starred EasyEDA part, through-hole; only its 4-pin side, pins 7–10, is wired), H9 OLED, H10 spare
 GPIO, BT1 dual 18650 holder (Keystone 1048P pattern, cells in parallel), U9 3.81 mm terminal for
 external cells, U1 Qwiic, U2 USB-C, U3 5 V terminal, U4 7Semi TPS61023 boost module,
 U5 AMS1117-3.3, U7 TP4056 charging module (with DW01A + 8205A protection and its own LEDs), F1 PTC,
@@ -33,8 +33,8 @@ D1 SMAJ5.0A, D2 SS34 (load sharing), Q1/Q2 AO3401A, Q3 2N7002, no board antenna 
 LED1/2) are the chip-level charger and boost parts the modules replaced. Page P2: Q5/Q6 + R19/R20 Core1262 3.3 V switch, Q7/Q8 + R21/R22 LTE supply
 switch, C16 220 µF + C17 22 µF on the LTE supply, U10 XC6206P182MR (1.8 V) + C18/C19, R23/R24
 logic-level links, Q9 + R25 PWRKEY driver, Q10/Q11 BSS138 + R26–R29 UART level shifters, H11 the
-LTE module's 6-pin header, H12/H13 E220 antenna-end supports (4-way, no net). Module headers H1–H5 and H8–H13 are Mill-Max 310-43-1xx SMD female
-footprints (alternating legs; any SMD female strip with the same leg pattern fits).
+LTE module's 6-pin header, H12/H13 E220 antenna-end supports (4-way, no net). Module headers over or beside the battery holder (H1–H5, H9, H10, H12, H13) are Mill-Max 310-43-1xx SMD female
+footprints (alternating legs; any SMD female strip with the same leg pattern fits). Away from the battery, modules sit in **through-hole** female berg strips, which are sturdier (Anish, 2026-11-21): H11 (LTE, 1 × 6, 8.5 mm, LCSC C40877) and U8's 4-pin row; the W5500 was already through-hole.
 
 ## 1. What plugs in
 
@@ -212,7 +212,11 @@ from the bottom-left corner, y up, in mm.
     end at the left; body about x 0.4–22.4, y 72–91.
   - **EG800AK** header H11 vertical at x 68.8, centred y 38.7; body about x 44–70, y 27–50 (outline
     estimated from 26 × 23 mm: measure the module).
-  - ZS-042 4-pin row at x 38.8, body x 2–40, y 21–42.5. W5500 at the right edge, rows y 30.8 and
+  - DS3231 module U8: 4-pin row at x 38.8, y 27.7–35.3 (SCL at the low end, GND at the high end, as
+    the starred footprint has it); its unused 6-pin row's pads at x 3.8; body x 2–40, y 21–42.5.
+    **Check:** the footprint's pin order is the mirror of the order in §1 (SCL at the top with the
+    4-pin row on the right). It matches a module mounted battery side up; compare with the real
+    module before ordering. The three mounting holes follow the footprint. W5500 at the right edge, rows y 30.8 and
     51.2, RJ45 end pointing right; body x 75–100, jack 2 mm past the edge.
   - Core1262 3.3 V switch (Q5/Q6/R19/R20) at x 27.5, y 76–88.
 - **Power** along the bottom edge: USB-C at the right edge (x 96.5, y 20), the 5 V terminal and
@@ -227,7 +231,7 @@ from the bottom-left corner, y up, in mm.
   the bottom left. LTE supply switch and logic under the
   EG800AK footprint.
 - **Holes:** four Ø3.2 mm (M3) corner holes 3.5 mm in from each edge; W5500 Ø2.2 mm at
-  (97.6, 50.9) (from the W5500-lite footprint); ZS-042 three Ø1.8 mm (M1.6) at (10.2, 41.0), (10.2, 22.6), (36.5, 41.0). Still to add,
+  (97.6, 50.9) (from the W5500-lite footprint); ZS-042 three Ø1.8 mm (M1.6) at (10.2, 41.0), (10.2, 22.6), (36.5, 41.0) before U8; now mirrored to (10.2, 40.4), (10.2, 22.0), (36.5, 22.0) to match the starred DS3231 footprint (see §7 note). Still to add,
   once their positions are known: YD-ESP32-S3, E220 (T22D/T30D), Core1262 and EG800AK holes.
 - **Copper:** GND pours on both layers. Net rules: 0.8 mm tracks for VBAT, BAT_CELL_N, SYS,
   5V, VBUS, VIN_RAW and VBAT_LTE; 0.5 mm for GND, 3V3P, 5V_LORA and 3V3_SX; 0.254 mm
