@@ -256,12 +256,15 @@ from the bottom-left corner, y up, in mm.
 - **Copper:** GND pours on both layers. Net rules: 0.8 mm tracks for VBAT, BAT_CELL_N, SYS,
   5V, VBUS, VIN_RAW and VBAT_LTE; 0.5 mm for GND, 3V3P, 5V_LORA and 3V3_SX; 0.254 mm
   for signals.
-- **Routing:** the sixth-pass re-placement (WROOM, castellated Core1262) needs a full reroute with
-  "keep existing" off; earlier routes are stale. The 1048P footprint keeps the bottom pour out from under the whole
+- **Routing:** rerouted by Anish after the sixth pass (WROOM, castellated Core1262, MESHNODES
+  E220): **DRC clean** (no clearance or connection errors, netlist matches) after one GND track
+  was moved off H10's unused pin 5. The 1048P footprint keeps the bottom pour out from under the whole
   holder body, so there is no bottom GND plane under the modules (stitching vias there float).
 - **Footprint checks against the starred EasyEDA parts:** W5500-lite matches (rows 20.32 mm, pin 1
   at the jack end). The E220 T22D/T30D 7-pin row matches; their 3–4 antenna-end pins are in the MESHNODES footprint (U18). The starred "SX1262 core" footprint is the castellated
   Core1262 with rows 16.2 mm apart, not the 15.24 mm used here (Waveshare drawing for the pinned
   board): measure the module before ordering. The EG800AK footprint had no
   geometry to read.
-- **To do:** reroute, rebuild pours, join any GND islands, widen SYS, final DRC.
+- **To do before ordering:** a last pour rebuild (Shift+B) and DRC after any edit; check the
+  footprint questions above against real parts (TPS61023 module pinout and drills, DS3231 pin
+  order, Core1262 row spacing, EG800AK outline and holes); then Gerbers.
