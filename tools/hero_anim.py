@@ -27,7 +27,7 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageStat
 
 REPO = Path(__file__).resolve().parent.parent
 ASSETS = REPO / "site" / "assets"
-VERSION = 2
+VERSION = 3
 
 # Coordinates are in the generator's pixels (ref_w wide) and scaled to the webp.
 HEROES = {

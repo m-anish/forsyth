@@ -188,7 +188,7 @@ h2.headline {
     rgba(11,12,14,0.96) 100%);
 }
 /* hero-anim.js: the same photo with the vane and cups painted out; it draws them back, moving */
-.hero.wind-on { background-image: url("assets/hero-plate.webp?v=2"); }
+.hero.wind-on { background-image: url("assets/hero-plate.webp?v=3"); }
 .hero-wind {
   position: absolute;
   inset: 0;
@@ -199,7 +199,7 @@ h2.headline {
 }
 @media (max-width: 700px) {
   .hero { background-image: url("assets/hero-mobile.webp?v=2"); }
-  .hero.wind-on { background-image: url("assets/hero-mobile-plate.webp?v=2"); }
+  .hero.wind-on { background-image: url("assets/hero-mobile-plate.webp?v=3"); }
 }
 
 .hero-inner {

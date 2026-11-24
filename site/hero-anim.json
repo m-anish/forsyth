@@ -2,9 +2,9 @@
  "desktop": {
   "w": 1600,
   "h": 1067,
-  "plate": "assets/hero-plate.webp?v=2",
+  "plate": "assets/hero-plate.webp?v=3",
   "vane": {
-   "src": "assets/hero-vane.webp?v=2",
+   "src": "assets/hero-vane.webp?v=3",
    "x": 1185,
    "y": 206,
    "pivot": [
@@ -14,7 +14,7 @@
    "axis": -0.3026070906043381
   },
   "hub": {
-   "src": "assets/hero-hub.webp?v=2",
+   "src": "assets/hero-hub.webp?v=3",
    "x": 1249,
    "y": 296
   },
@@ -34,9 +34,9 @@
  "mobile": {
   "w": 900,
   "h": 1350,
-  "plate": "assets/hero-mobile-plate.webp?v=2",
+  "plate": "assets/hero-mobile-plate.webp?v=3",
   "vane": {
-   "src": "assets/hero-mobile-vane.webp?v=2",
+   "src": "assets/hero-mobile-vane.webp?v=3",
    "x": 499,
    "y": 403,
    "pivot": [
@@ -46,7 +46,7 @@
    "axis": -0.0696545737285682
   },
   "hub": {
-   "src": "assets/hero-mobile-hub.webp?v=2",
+   "src": "assets/hero-mobile-hub.webp?v=3",
    "x": 530,
    "y": 459
   },
