@@ -7,7 +7,7 @@
   <meta name="description" content="A solar-powered mesh of small weather stations that talk over LoRa — and a forecast engine that checks the global models against what the valley actually did, in public. A starstucklab project." />
   <meta property="og:title" content="forsyth" />
   <meta property="og:description" content="A scatter of quiet machines that know what the sky is planning. A starstucklab project." />
-  <meta property="og:image" content="https://forsyth.starstucklab.com/assets/hero.webp" />
+  <meta property="og:image" content="https://forsyth.starstucklab.com/assets/hero.webp?v=2" />
   <meta property="og:type" content="website" />
   <meta name="theme-color" content="#0b0c0e" />
 
@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/kit/tokens.css" />
   <link rel="stylesheet" href="assets/kit/base.css" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=3" />
   <link rel="icon" type="image/svg+xml" href="assets/mark.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png" />
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
@@ -42,7 +42,7 @@
 
 <!-- ============ HERO ============ -->
 <section class="hero">
-  <div class="rain" aria-hidden="true"></div>
+  <canvas class="hero-wind" aria-hidden="true"></canvas>
   <div class="hero-inner">
     <div class="hero-eyebrow">
       <span>A weather mesh</span>
@@ -53,25 +53,6 @@
     <p class="hero-tag">A scatter of quiet machines that know what the sky is planning —
       and keep the forecasts honest about it.</p>
     <a class="hero-cta" href="https://live.forsyth.starstucklab.com">watch it live ↗</a>
-  </div>
-
-  <!-- The aneroid: the needle falls first, then — only then — the rain starts. -->
-  <div class="hero-inst" aria-hidden="true">
-    <svg class="baro" viewBox="0 0 120 120" width="132" height="132">
-      <circle class="baro-face" cx="60" cy="60" r="54"/>
-      <circle class="baro-rim" cx="60" cy="60" r="54"/>
-      <g class="baro-ticks"></g>
-      <text class="baro-word" x="24" y="82" text-anchor="middle">STORM</text>
-      <text class="baro-word baro-word-rain" x="34" y="42" text-anchor="middle">RAIN</text>
-      <text class="baro-word" x="60" y="28" text-anchor="middle">CHANGE</text>
-      <text class="baro-word" x="90" y="46" text-anchor="middle">FAIR</text>
-      <g class="baro-needle">
-        <path d="M60 60 L60 17 L57.6 22 L60 60 Z"/>
-        <path d="M60 60 L60 74" stroke-width="1.6"/>
-      </g>
-      <circle class="baro-hub" cx="60" cy="60" r="3.2"/>
-    </svg>
-    <span class="baro-note">the needle moved first</span>
   </div>
 
   <div class="hero-scroll">scroll ↓</div>
@@ -269,7 +250,7 @@
   <div class="wrap">
     <div class="feature-grid">
       <div class="feature-image">
-        <img src="assets/unit.webp" alt="A hand-built forsyth leaf on a workbench: small grey enclosure, solar panel, brass wind vane and anemometer cups, battery cell." loading="lazy" />
+        <img src="assets/unit.webp?v=2" alt="A forsyth leaf before assembly, on a workbench by a rainy window: the wind kit with its orange vane and cups bolted to an offcut of aluminium extrusion, the white louvred screen, and the open core box with its board, battery cell, antenna and small solar panel." loading="lazy" />
       </div>
       <div class="feature-text">
         <span class="kicker">The arrangement</span>
@@ -534,29 +515,9 @@
 
 </div><!-- /.page -->
 
-<!-- ============ THE DOWNPOUR (scroll moment overlay) ============ -->
-<div class="downpour" aria-hidden="true"></div>
-
 <script>
 (function() {
   'use strict';
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // ---------- barometer dial: draw the tick marks ----------
-  const ticks = document.querySelector('.baro-ticks');
-  if (ticks) {
-    let t = '';
-    for (let a = -120; a <= 120; a += 12) {
-      const rad = (a - 90) * Math.PI / 180;
-      const major = (a % 60 === 0);
-      const r1 = major ? 44 : 47, r2 = 50;
-      t += `<line x1="${60 + r1 * Math.cos(rad)}" y1="${60 + r1 * Math.sin(rad)}"
-                  x2="${60 + r2 * Math.cos(rad)}" y2="${60 + r2 * Math.sin(rad)}"
-                  ${major ? 'class="major"' : ''}/>`;
-    }
-    ticks.innerHTML = t;
-  }
-
   // ---------- timeline: light up sequentially when in view ----------
   const tlObs = new IntersectionObserver(function(entries) {
     entries.forEach(function(e) {
@@ -584,24 +545,15 @@
     status.textContent = moods[i];
   }, 9000);
 
-  // ---------- the rain arrives: forsyth's quiet version of a strike ----------
-  // Scrolling into the mood band, the promised rain shows up. The page does
-  // not flash or shake — it just rains a little harder for a moment, and the
-  // station allows itself one small remark.
+  // ---------- one small remark ----------
+  // Scrolling into the mood band, the station allows itself a word.
   const band = document.querySelector('.band.mood');
-  const downpour = document.querySelector('.downpour');
-  if (!band || !downpour) return;
-  let rained = false;
+  if (!band) return;
   const bandObs = new IntersectionObserver(function(entries) {
     entries.forEach(function(e) {
-      if (e.isIntersecting && !rained) {
-        rained = true;
+      if (e.isIntersecting) {
         status.textContent = 'Station 000 · Right again';
         holdUntil = Date.now() + 14000;
-        if (!reduced) {
-          downpour.classList.add('on');
-          setTimeout(function() { downpour.classList.remove('on'); }, 5200);
-        }
         bandObs.disconnect();
       }
     });
@@ -610,5 +562,6 @@
 })();
 </script>
 
+<script src="hero-anim.js?v=3" defer></script>
 </body>
 </html>
